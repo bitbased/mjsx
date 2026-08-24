@@ -158,7 +158,9 @@ function createSdlWindow(pxW, pxH, opts) {
   /* The display-shape mask is applied to a scratch copy of the frame, in
      pixel space, before upload — portable to every other backend (the web
      preview can do the same with border-radius, a panel simply is round). */
-  var scratch = mask ? new Uint8Array(pxW * pxH * 3) : null;
+  var scratch = null;
+  function remask(m) { mask = m; scratch = mask ? new Uint8Array(pxW * pxH * 3) : null; }
+  remask(mask);
   function applyMask(rgb) {
     if (!mask) return rgb;
     scratch.set(rgb);
@@ -207,6 +209,19 @@ function createSdlWindow(pxW, pxH, opts) {
     /* Width of the toolbar's pixel surface — resize-dependent; redraw the
        strip at this width before every present. */
     toolbarWidth: function () { return tbW; },
+
+    /* Change the simulated panel WITHOUT touching the OS window — the same
+       window simply letterboxes the new screen. The next present() must
+       supply a buffer of the new size. */
+    setScreenSize: function (w2, h2) {
+      pxW = w2; pxH = h2;
+      lib.SDL_DestroyTexture(tex);
+      tex = lib.SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, pxW, pxH);
+      if (!tex) fail('SDL_CreateTexture');
+      remask(mask);
+      refit();
+    },
+    setMask: function (m) { remask(m); },
 
     /* Drain the event queue into plain objects, coordinates already in
        PIXEL space (window coords divided by scale). */

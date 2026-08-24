@@ -155,16 +155,16 @@ function toolbarFrame() {
   return ppm.subarray(idx);
 }
 
-/* Tear the window and screen surface down and up again at the new
-   size/shape. sys deliberately survives — a fresh epoch would strand every
-   pending UI.setTimer. The current example (or menu) is re-run at the new
+/* Swap the simulated panel INSIDE the same OS window — the window keeps
+   its size and position and simply letterboxes the new screen. sys
+   deliberately survives too — a fresh epoch would strand every pending
+   UI.setTimer. The current example (or menu) is re-run at the new
    dimensions, exactly as it would boot on that panel. */
 function rebuild() {
-  win.destroy();
-  win = openWindow();
+  win.setMask(SHAPES[shapeIdx].mask);
+  win.setScreenSize(pxW, pxH);
   backend = createPureJsBackend(pxW, pxH);
   globalThis.gfx = backend.gfx;
-  tb = null;
   UI.state = {};
   if (current) loadExample(current); else showMenu();
   UI._dirty = true;
