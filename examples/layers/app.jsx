@@ -40,8 +40,8 @@ function App() {
     <box h={gfx.height()}>
       {/* fixed header */}
       <box bg={0x223048} pad={em(0.75)} h={em(3.4)}>
-        <text text="LAYERS" size={2} color={0x8fb8ff} />
-        <text text="fixed header - list crops under me" size={1} color={UI.theme.muted} />
+        <text text="LAYERS" size={2} align="center" color={0x8fb8ff} />
+        <text text="fixed header - list crops under me" size={1} align="center" color={UI.theme.muted} />
       </box>
 
       {/* the scroll region takes whatever the header+footer leave */}
