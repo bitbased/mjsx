@@ -10,8 +10,10 @@
  *   refined  the SAME letterforms with optical centring only. The one
  *            liberty refined may ever take is moving a stem to the true
  *            middle of the cell where the even-width 4x6 grid forced it
- *            off to col 1 (I, T, 1, !, +) — never a different structure,
- *            angle, or stroke start. Everything unlisted inherits exact,
+ *            off to col 1 (I, T, 1, !, +), and giving M and W their
+ *            centre peaks at a consistent 45 degrees while the sides stay
+ *            dead straight, exactly as the bitmaps structure them — never
+ *            a different structure beyond that. Everything unlisted inherits exact,
  *            then falls back to the bitmap derivation, so every glyph
  *            keeps the bitmap's own letterform and angles.
  *
@@ -38,9 +40,14 @@ var REFINED = {
     'T': { s: [[0.5, 0.5, 3.5, 0.5], [2, 0.5, 2, 5.5]], d: [] },
     '!': { s: [[2, 0.5, 2, 3.5]], d: [[2, 5.5]] },
     '+': { s: [[2, 1.4, 2, 3.6], [0.9, 2.5, 3.1, 2.5]], d: [] },
-    '1': { s: [[1, 1.5, 2, 0.5], [2, 0.5, 2, 5.5], [0.9, 5.5, 3.1, 5.5]], d: [] }
+    '1': { s: [[1, 1.5, 2, 0.5], [2, 0.5, 2, 5.5], [0.9, 5.5, 3.1, 5.5]], d: [] },
+    'M': { s: [[0.5, 5.5, 0.5, 0.5], [3.5, 5.5, 3.5, 0.5], [0.5, 0.5, 2, 2], [2, 2, 3.5, 0.5]], d: [] },
+    'W': { s: [[0.5, 0.5, 0.5, 5.5], [3.5, 0.5, 3.5, 5.5], [0.5, 5.5, 2, 4], [2, 4, 3.5, 5.5]], d: [] }
   },
-  '6x8': {}
+  '6x8': {
+    'M': { s: [[0.5, 6.5, 0.5, 0.5], [4.5, 6.5, 4.5, 0.5], [0.5, 0.5, 2.5, 2.5], [2.5, 2.5, 4.5, 0.5]], d: [] },
+    'W': { s: [[0.5, 0.5, 0.5, 6.5], [4.5, 0.5, 4.5, 6.5], [0.5, 6.5, 2.5, 4.5], [2.5, 4.5, 4.5, 6.5]], d: [] }
+  }
 };
 
 /* refined inherits exact, then overrides */
