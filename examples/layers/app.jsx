@@ -91,15 +91,17 @@ function SmallModal() {
 }
 
 function TallModal() {
-  var lines = [
-    <text text="TALL MODAL" size={2} align="center" color={0x8fb8ff} />,
-    <text text="content taller than the screen: margins collapse to their minimum and THIS panel scrolls" size={1} color={UI.theme.muted} wrap={true} />
-  ];
-  for (var i = 1; i <= 20; i++) {
+  var lines = [];
+  for (var i = 1; i <= 24; i++) {
     lines.push(<text text={'scrolling modal line ' + i} size={1} color={UI.theme.text} />);
   }
-  lines.push(<Button label="CLOSE" size={1} onTap={function () { UI.closeModal(); }} />);
-  return <Modal>{lines}</Modal>;
+  return (
+    <Modal header={<text text="STICKY HEADER" size={2} align="center" color={0x8fb8ff} />}
+           footer={<Button label="CLOSE (STICKY)" size={1}
+                           onTap={function () { UI.closeModal(); }} />}>
+      {lines}
+    </Modal>
+  );
 }
 
 UI.mount(App);

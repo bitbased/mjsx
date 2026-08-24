@@ -468,25 +468,37 @@ function Swatch(p) {
 /* A centred overlay panel for UI.openModal. Margins are MINIMUMS: the
  * panel centres vertically in the leftover space while its content fits,
  * and when the content would not fit inside the minimum margins the panel
- * pins to the available height and scrolls inside instead of overflowing
- * the screen. Usage: UI.openModal(function () { return h(Modal, {}, ...kids); })
+ * pins to the available height and its CONTENT scrolls — while optional
+ * `header` and `footer` nodes stay sticky above and below the scroll.
+ * The panel node is rebuilt after the fits/pins decision rather than
+ * mutated, because measure() caches by node and a stale content-height
+ * cache would paint the background and border past the pinned bounds.
+ * Usage: UI.openModal(function () { return h(Modal, {...}, ...kids); })
  */
 function Modal(p) {
   var margin = p.margin === undefined ? em(1.5) : p.margin;
   var innerW = gfx.width() - margin * 2;
   var availH = gfx.height() - margin * 2;
-  var panel = h('box', {
-    bg: p.bg === undefined ? UI.theme.panel : p.bg,
-    border: p.border === undefined ? UI.theme.accent : p.border,
-    borderW: p.borderW || 2,
-    radius: p.radius === undefined ? 10 : p.radius,
-    pad: p.pad === undefined ? em(1) : p.pad,
-    gap: p.gap === undefined ? em(0.75) : p.gap
-  }, p.children);
-  if (measure(panel, innerW) > availH) {
-    panel.props.h = availH;
-    panel.props.scroll = p.scroll || '_modal';
+  var gap = p.gap === undefined ? em(0.75) : p.gap;
+  function build(pin) {
+    var kids = [];
+    if (p.header) kids.push(p.header);
+    kids.push(h('box', pin ? { flex: 1, scroll: p.scroll || '_modal', gap: gap }
+                           : { gap: gap }, p.children));
+    if (p.footer) kids.push(p.footer);
+    var props = {
+      bg: p.bg === undefined ? UI.theme.panel : p.bg,
+      border: p.border === undefined ? UI.theme.accent : p.border,
+      borderW: p.borderW || 2,
+      radius: p.radius === undefined ? 10 : p.radius,
+      pad: p.pad === undefined ? em(1) : p.pad,
+      gap: gap
+    };
+    if (pin) props.h = availH;
+    return h('box', props, kids);
   }
+  var probe = build(false);
+  var panel = measure(probe, innerW) > availH ? build(true) : probe;
   return h('box', { h: gfx.height(), pad: margin, vcenter: true }, panel);
 }
 
