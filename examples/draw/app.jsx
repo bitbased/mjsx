@@ -93,7 +93,7 @@ function App() {
         <text text={'DRAW - ' + strokes.length + ' shapes'} size={1} align="center" color={0x8fb8ff} />
       </box>
 
-      <box flex={1} bg={0x14161b}
+      <box flex={1} bg={0x14161b} clip={true}
            onDraw={function (phase, x, y, id) {
              var st2 = UI.state.strokes || [];
              var live = UI.state.live || {};

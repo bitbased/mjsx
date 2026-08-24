@@ -408,6 +408,17 @@ function draw(node, x, y, availW, forcedH) {
 
     var boxH = forcedH || p.h;
 
+    /* clip: confine the children's draws (and hit areas) to this box —
+       what a canvas-like region needs so captured strokes recorded past
+       its edges cannot paint over the neighbours. Scroll viewports clip
+       already; the native clip is a single rect, not a stack, so nesting
+       clips inside one another is not supported. */
+    var clipHits0 = -1;
+    if (p.clip && !p.scroll) {
+      clipHits0 = UI._hits.length;
+      gfx.clip(x, y, availW, hgt);
+    }
+
     if (p.scroll && boxH) {
       /* Content height first, so the offset clamps before anything draws. */
       var contentH = 0, seenC = false;
@@ -501,6 +512,11 @@ function draw(node, x, y, availW, forcedH) {
         by += draw(node.kids[bi], x + pl, by, availW - pl - pr);
       }
     }
+    if (clipHits0 >= 0) {
+      gfx.unclip();
+      UI._clipHits(clipHits0, x, y, availW, hgt);
+    }
+
     if (p.onTap || p.onLongPress || p.onDraw) {
       UI._hit(x - hp(p), y - hp(p), availW + hp(p) * 2, hgt + hp(p) * 2,
               p.onTap, p.onHold || p.onLongPress,
