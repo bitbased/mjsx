@@ -12,8 +12,6 @@ Shipped (all freely redistributable, attribution below):
   Apache License 2.0 (https://github.com/googlefonts/robotomono)
 - `SpaceMono-Bold.ttf` — Space Mono, © Colophon Foundry / Google,
   SIL Open Font License 1.1 (via Google Fonts)
-- `VT323-Regular.ttf` — VT323, © Peter Hull,
-  SIL Open Font License 1.1 (via Google Fonts)
 
 System faces discovered automatically (not redistributed): SF Mono,
 PT Mono, Menlo on macOS; DejaVu Sans Mono on Linux; Consolas on Windows.
