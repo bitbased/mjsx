@@ -57,6 +57,11 @@ function createSdlWindow(pxW, pxH, opts) {
      dark), a number previews rounded corners of that pixel radius. */
   var snapScale = opts.snapScale !== false;
   var mask = opts.mask;
+  /* Everything that is not the simulated screen — the letterbox around it
+     and the masked-off corners — is bezel: dark but NOT black, so the
+     screen's boundary and shape stay visible even when the app itself draws
+     near-black. */
+  var bezel = opts.bezel || [34, 36, 42];
 
   var lib = dlopen(libPath(), {
     SDL_Init: { args: ['u32'], returns: 'i32' },
@@ -70,6 +75,7 @@ function createSdlWindow(pxW, pxH, opts) {
     SDL_DestroyTexture: { args: ['ptr'], returns: 'void' },
     SDL_UpdateTexture: { args: ['ptr', 'ptr', 'ptr', 'i32'], returns: 'i32' },
     SDL_RenderClear: { args: ['ptr'], returns: 'i32' },
+    SDL_SetRenderDrawColor: { args: ['ptr', 'u8', 'u8', 'u8', 'u8'], returns: 'i32' },
     SDL_RenderCopy: { args: ['ptr', 'ptr', 'ptr', 'ptr'], returns: 'i32' },
     SDL_RenderPresent: { args: ['ptr'], returns: 'void' },
     SDL_PollEvent: { args: ['ptr'], returns: 'i32' },
@@ -155,7 +161,7 @@ function createSdlWindow(pxW, pxH, opts) {
             out = ddx * ddx + ddy * ddy > r * r;
           }
         }
-        if (out) { var i = (y * pxW + x) * 3; scratch[i] = 8; scratch[i + 1] = 8; scratch[i + 2] = 10; }
+        if (out) { var i = (y * pxW + x) * 3; scratch[i] = bezel[0]; scratch[i + 1] = bezel[1]; scratch[i + 2] = bezel[2]; }
       }
     }
     return scratch;
@@ -166,6 +172,7 @@ function createSdlWindow(pxW, pxH, opts) {
        and letterboxed in the current window. */
     present: function (rgb) {
       if (lib.SDL_UpdateTexture(tex, null, fptr(applyMask(rgb)), pxW * 3) !== 0) fail('SDL_UpdateTexture');
+      lib.SDL_SetRenderDrawColor(ren, bezel[0], bezel[1], bezel[2], 255);
       lib.SDL_RenderClear(ren);
       rectBuf[0] = dst.x; rectBuf[1] = dst.y; rectBuf[2] = dst.w; rectBuf[3] = dst.h;
       lib.SDL_RenderCopy(ren, tex, null, fptr(rectBuf));
