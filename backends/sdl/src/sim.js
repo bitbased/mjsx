@@ -23,21 +23,37 @@ var scale = parseInt(numArgs[2] || '3', 10);
 
 /* Rounded corners BY DEFAULT — that's what the simulated hardware looks
    like. --square turns it off, --circle previews a round display,
-   --radius=N picks a different corner. */
-var mask = 24;
+   --radius=N picks a different corner. The toolbar's SHAPE button cycles
+   the same three live. */
+var SHAPES = [
+  { name: 'RND', mask: 24 },
+  { name: 'CIR', mask: 'circle' },
+  { name: 'SQR', mask: undefined }
+];
+var shapeIdx = 0;
 for (var fi = 0; fi < flagArgs.length; fi++) {
-  if (flagArgs[fi] === '--circle') mask = 'circle';
-  else if (flagArgs[fi] === '--square') mask = undefined;
-  else if (flagArgs[fi].slice(0, 9) === '--radius=') mask = parseInt(flagArgs[fi].slice(9), 10);
+  if (flagArgs[fi] === '--circle') shapeIdx = 1;
+  else if (flagArgs[fi] === '--square') shapeIdx = 2;
+  else if (flagArgs[fi].slice(0, 9) === '--radius=') SHAPES[0].mask = parseInt(flagArgs[fi].slice(9), 10);
 }
+var SIZES = [[240, 240], [240, 320], [172, 320], [128, 128], [320, 480]];
 var snapScale = flagArgs.indexOf('--free') === -1;
+
+var TB_H = 12, TB_SCALE = 2;
+var createSdlWindow = require('./window.js').createSdlWindow;
+var createPureJsBackend = require('../../pure-js/src/backend.js').createPureJsBackend;
+
+function openWindow() {
+  return createSdlWindow(pxW, pxH, {
+    scale: scale, snapScale: snapScale, mask: SHAPES[shapeIdx].mask,
+    toolbarH: TB_H, toolbarScale: TB_SCALE,
+    title: 'mjsx sim ' + pxW + 'x' + pxH
+  });
+}
 
 var win;
 try {
-  win = require('./window.js').createSdlWindow(pxW, pxH, {
-    scale: scale, snapScale: snapScale, mask: mask,
-    title: 'mjsx sim ' + pxW + 'x' + pxH
-  });
+  win = openWindow();
 } catch (e) {
   console.error('Could not open an SDL2 window: ' + e.message);
   console.error('  macOS:        brew install sdl2');
@@ -46,7 +62,7 @@ try {
   process.exit(1);
 }
 
-var backend = require('../../pure-js/src/backend.js').createPureJsBackend(pxW, pxH);
+var backend = createPureJsBackend(pxW, pxH);
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
@@ -78,7 +94,7 @@ function Menu() {
   for (var i = 0; i < examples.length; i++) {
     kids.push(h(Button, {
       label: examples[i], size: 1, pad: em(0.75),
-      onTap: (function (name) { return function () { loadExample(name); }; })(examples[i])
+      onTap: (function (name) { return function () { current = name; loadExample(name); }; })(examples[i])
     }));
   }
   kids.push(h('spacer', { h: em(0.5) }));
@@ -86,16 +102,72 @@ function Menu() {
   return h('box', { pad: em(2), gap: em(0.75), h: gfx.height(), scroll: 'menu' }, kids);
 }
 
-function showMenu() { UI.mount(Menu); }
+function showMenu() { current = null; UI.mount(Menu); }
+var current = null;
 if (exampleName) {
   if (examples.indexOf(exampleName) === -1) {
     console.error('no example "' + exampleName + '" — have: ' + examples.join(', '));
     win.destroy();
     process.exit(1);
   }
+  current = exampleName;
   loadExample(exampleName);
 } else {
   showMenu();
+}
+
+/* ---- toolbar: its own little pixel strip, drawn with the shared bitmap
+   font through a second (instance-scoped) pure-js backend. Buttons carry
+   their hit ranges out of the draw — same drawn-box-is-hit-box rule the
+   main framework lives by. ---- */
+var tb = null, tbW = 0, tbHits = [];
+function toolbarFrame() {
+  var w = win.toolbarWidth();
+  if (!tb || tbW !== w) { tb = createPureJsBackend(w, TB_H); tbW = w; }
+  tb.gfx.clear(0x14161b);
+  tbHits = [];
+  var x = 2;
+  function btn(label, fn) {
+    var bw = label.length * 5 + 5;
+    tb.gfx.frect(x, 1, bw, TB_H - 2, 0x2a2d36);
+    tb.gfx.text(x + 3, 3, 1, 0xd8dce4, label);
+    tbHits.push({ x: x, w: bw, fn: fn });
+    x += bw + 4;
+  }
+  btn('RESTART', function () {
+    UI.state = {};
+    if (current) loadExample(current); else showMenu();
+  });
+  btn('MENU', showMenu);
+  btn('SHAPE:' + SHAPES[shapeIdx].name, function () {
+    shapeIdx = (shapeIdx + 1) % SHAPES.length;
+    rebuild();
+  });
+  btn(pxW + 'X' + pxH, function () {
+    var idx = 0;
+    for (var si = 0; si < SIZES.length; si++) if (SIZES[si][0] === pxW && SIZES[si][1] === pxH) idx = si;
+    var next = SIZES[(idx + 1) % SIZES.length];
+    pxW = next[0]; pxH = next[1];
+    rebuild();
+  });
+  var ppm = tb.toPPM(), idx = 0, nl = 0;
+  while (nl < 3) { if (ppm[idx++] === 10) nl++; }
+  return ppm.subarray(idx);
+}
+
+/* Tear the window and screen surface down and up again at the new
+   size/shape. sys deliberately survives — a fresh epoch would strand every
+   pending UI.setTimer. The current example (or menu) is re-run at the new
+   dimensions, exactly as it would boot on that panel. */
+function rebuild() {
+  win.destroy();
+  win = openWindow();
+  backend = createPureJsBackend(pxW, pxH);
+  globalThis.gfx = backend.gfx;
+  tb = null;
+  UI.state = {};
+  if (current) loadExample(current); else showMenu();
+  UI._dirty = true;
 }
 
 var MOUSE = 'mouse';
@@ -114,6 +186,14 @@ function frame() {
     var ev = events[i];
     if (ev.type === 'quit') { win.destroy(); process.exit(0); }
     else if (ev.type === 'redraw') UI._dirty = true;
+    else if (ev.target === 'toolbar') {
+      if (ev.type === 'down') {
+        for (var bi = 0; bi < tbHits.length; bi++) {
+          if (ev.x >= tbHits[bi].x && ev.x < tbHits[bi].x + tbHits[bi].w) { tbHits[bi].fn(); break; }
+        }
+        UI._dirty = true;
+      }
+    }
     else if (ev.type === 'down') UI.pointer(MOUSE, 0, ev.x, ev.y);
     else if (ev.type === 'drag') UI.pointer(MOUSE, 1, ev.x, ev.y);
     else if (ev.type === 'up') UI.pointer(MOUSE, 2, ev.x, ev.y);
@@ -128,10 +208,10 @@ function frame() {
   }
   if (UI.ticker() || UI.dirty()) {
     UI.render();
-    win.present(pixels());
+    win.present(pixels(), toolbarFrame());
   }
 }
 
 UI.render();
-win.present(pixels());
+win.present(pixels(), toolbarFrame());
 setInterval(frame, 33);

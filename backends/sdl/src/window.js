@@ -62,6 +62,14 @@ function createSdlWindow(pxW, pxH, opts) {
      screen's boundary and shape stay visible even when the app itself draws
      near-black. */
   var bezel = opts.bezel || [34, 36, 42];
+  /* Optional host-UI strip across the top of the window, OUTSIDE the
+     simulated screen: its own little pixel surface (toolbarH rows tall,
+     drawn at a fixed toolbarScale), fed as present()'s second argument.
+     Mouse events inside the strip come back with target 'toolbar' and
+     toolbar-pixel coordinates. */
+  var tbH = opts.toolbarH || 0;
+  var tbScale = opts.toolbarScale || 2;
+  var tbStrip = tbH * tbScale;
 
   var lib = dlopen(libPath(), {
     SDL_Init: { args: ['u32'], returns: 'i32' },
@@ -104,7 +112,7 @@ function createSdlWindow(pxW, pxH, opts) {
   if (('' + fmtName) !== 'SDL_PIXELFORMAT_RGB24') fail('pixel format constant mismatch (' + fmtName + ')');
 
   var win = lib.SDL_CreateWindow(cstr(title), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                 pxW * scale, pxH * scale, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+                                 pxW * scale, pxH * scale + tbStrip, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
   if (!win) fail('SDL_CreateWindow');
   var ren = lib.SDL_CreateRenderer(win, -1, 0);
   if (!ren) fail('SDL_CreateRenderer');
@@ -125,14 +133,24 @@ function createSdlWindow(pxW, pxH, opts) {
   /* Contain-fit: the frame keeps its aspect, letterboxed in whatever shape
      the window has been dragged to. Recomputed on every size change; mouse
      coordinates are mapped back through the same rectangle. */
-  var winW = pxW * scale, winH = pxH * scale;
-  var dst = { x: 0, y: 0, w: winW, h: winH, fit: scale };
+  var winW = pxW * scale, winH = pxH * scale + tbStrip;
+  var tbW = 0, tbTex = null;
+  var dst = { x: 0, y: 0, w: 0, h: 0, fit: scale };
   function refit() {
-    var fit = Math.min(winW / pxW, winH / pxH);
+    var availH = winH - tbStrip;
+    var fit = Math.min(winW / pxW, availH / pxH);
     if (snapScale && fit >= 1) fit = Math.floor(fit);
     dst.fit = fit;
     dst.w = Math.round(pxW * fit); dst.h = Math.round(pxH * fit);
-    dst.x = Math.floor((winW - dst.w) / 2); dst.y = Math.floor((winH - dst.h) / 2);
+    dst.x = Math.floor((winW - dst.w) / 2);
+    dst.y = tbStrip + Math.floor((availH - dst.h) / 2);
+    /* The toolbar surface tracks the window width at its own fixed scale;
+       its texture is remade lazily when that width changes. */
+    var newTbW = Math.max(1, Math.floor(winW / tbScale));
+    if (newTbW !== tbW) {
+      tbW = newTbW;
+      if (tbTex) { lib.SDL_DestroyTexture(tbTex); tbTex = null; }
+    }
   }
   refit();
   var rectBuf = new Int32Array(4);
@@ -170,14 +188,25 @@ function createSdlWindow(pxW, pxH, opts) {
   return {
     /* Blit an RGB (3 bytes/pixel, pxW*pxH) buffer and show it, contained
        and letterboxed in the current window. */
-    present: function (rgb) {
+    present: function (rgb, toolbarRgb) {
       if (lib.SDL_UpdateTexture(tex, null, fptr(applyMask(rgb)), pxW * 3) !== 0) fail('SDL_UpdateTexture');
       lib.SDL_SetRenderDrawColor(ren, bezel[0], bezel[1], bezel[2], 255);
       lib.SDL_RenderClear(ren);
+      if (tbH && toolbarRgb) {
+        if (!tbTex) tbTex = lib.SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, tbW, tbH);
+        if (!tbTex) fail('SDL_CreateTexture (toolbar)');
+        if (lib.SDL_UpdateTexture(tbTex, null, fptr(toolbarRgb), tbW * 3) !== 0) fail('SDL_UpdateTexture (toolbar)');
+        rectBuf[0] = 0; rectBuf[1] = 0; rectBuf[2] = tbW * tbScale; rectBuf[3] = tbStrip;
+        lib.SDL_RenderCopy(ren, tbTex, null, fptr(rectBuf));
+      }
       rectBuf[0] = dst.x; rectBuf[1] = dst.y; rectBuf[2] = dst.w; rectBuf[3] = dst.h;
       lib.SDL_RenderCopy(ren, tex, null, fptr(rectBuf));
       lib.SDL_RenderPresent(ren);
     },
+
+    /* Width of the toolbar's pixel surface — resize-dependent; redraw the
+       strip at this width before every present. */
+    toolbarWidth: function () { return tbW; },
 
     /* Drain the event queue into plain objects, coordinates already in
        PIXEL space (window coords divided by scale). */
@@ -204,15 +233,22 @@ function createSdlWindow(pxW, pxH, opts) {
           /* MouseButton/MouseMotion both keep x at 20, y at 24 (i32). Motion
              carries the held-button bitmask as u32 at 16; button events a u8
              button at 16. */
-          var mx = Math.floor((dv.getInt32(20, true) - dst.x) / dst.fit);
-          var my = Math.floor((dv.getInt32(24, true) - dst.y) / dst.fit);
-          if (mx < 0) mx = 0; if (mx >= pxW) mx = pxW - 1;
-          if (my < 0) my = 0; if (my >= pxH) my = pxH - 1;
+          var wx = dv.getInt32(20, true), wy = dv.getInt32(24, true);
+          var target = 'screen', mx, my;
+          if (tbH && wy < tbStrip) {
+            target = 'toolbar';
+            mx = Math.floor(wx / tbScale); my = Math.floor(wy / tbScale);
+          } else {
+            mx = Math.floor((wx - dst.x) / dst.fit);
+            my = Math.floor((wy - dst.y) / dst.fit);
+            if (mx < 0) mx = 0; if (mx >= pxW) mx = pxW - 1;
+            if (my < 0) my = 0; if (my >= pxH) my = pxH - 1;
+          }
           if (type === EV_MOUSEMOTION) {
             var held = dv.getUint32(16, true);
-            out.push({ type: held ? 'drag' : 'move', x: mx, y: my });
+            out.push({ type: held ? 'drag' : 'move', x: mx, y: my, target: target });
           } else {
-            out.push({ type: type === EV_MOUSEDOWN ? 'down' : 'up', x: mx, y: my, button: evBuf[16] });
+            out.push({ type: type === EV_MOUSEDOWN ? 'down' : 'up', x: mx, y: my, button: evBuf[16], target: target });
           }
         } else if (type === EV_MOUSEWHEEL) {
           /* y at 20 (i32): +1 away from the user. */
@@ -234,6 +270,7 @@ function createSdlWindow(pxW, pxH, opts) {
     },
 
     destroy: function () {
+      if (tbTex) lib.SDL_DestroyTexture(tbTex);
       lib.SDL_DestroyTexture(tex);
       lib.SDL_DestroyRenderer(ren);
       lib.SDL_DestroyWindow(win);
