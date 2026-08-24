@@ -27,14 +27,26 @@ function App() {
       </box>
 
       <box bg={UI.theme.panel} radius={6} pad={em(0.75)} gap={em(0.5)}>
-        <text text="GLYPHS" size={1} color={UI.theme.muted} />
-        <text text="ABCDEFGHIJKLM" size={1} color={UI.theme.text} />
-        <text text="NOPQRSTUVWXYZ" size={1} color={UI.theme.text} />
-        <text text="abcdefghijklm" size={2} color={UI.theme.text} />
-        <text text="nopqrstuvwxyz" size={2} color={UI.theme.text} />
-        <text text="Sphinx of black quartz" size={2} color={UI.theme.text} />
+        <text text="FULL CHARSET, SIZE 1" size={1} color={UI.theme.muted} />
+        <text text="ABCDEFGHIJKLMNOPQRSTUVWXYZ" size={1} color={UI.theme.text} />
+        <text text="abcdefghijklmnopqrstuvwxyz" size={1} color={UI.theme.text} />
         <text text="0123456789" size={1} color={UI.theme.text} />
-        <text text=".,:!?+-/()%'" size={1} color={UI.theme.text} />
+        <text text={'!"#$%&\'()*+,-./'} size={1} color={UI.theme.text} />
+        <text text={':;<=>?@'} size={1} color={UI.theme.text} />
+        <text text={'[\\]^_`{|}~'} size={1} color={UI.theme.text} />
+      </box>
+
+      <box bg={UI.theme.panel} radius={6} pad={em(0.75)} gap={em(0.5)}>
+        <text text="FULL CHARSET, SIZE 2" size={1} color={UI.theme.muted} />
+        <text text="ABCDEFGHIJKLMNOPQ" size={2} color={UI.theme.text} />
+        <text text="RSTUVWXYZ" size={2} color={UI.theme.text} />
+        <text text="abcdefghijklmnopq" size={2} color={UI.theme.text} />
+        <text text="rstuvwxyz" size={2} color={UI.theme.text} />
+        <text text="0123456789" size={2} color={UI.theme.text} />
+        <text text={'!"#$%&\'()*+,-./'} size={2} color={UI.theme.text} />
+        <text text={':;<=>?@'} size={2} color={UI.theme.text} />
+        <text text={'[\\]^_`{|}~'} size={2} color={UI.theme.text} />
+        <text text="Sphinx of black quartz, judge my vow" size={2} color={UI.theme.text} wrap={true} />
       </box>
 
       <text text="AUTO: EACH SIZE PICKS ITS FONT. FONT BTN / --FONT=NAME FORCES ONE." size={1} align="center" color={UI.theme.muted} wrap={true} />
