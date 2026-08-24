@@ -1,6 +1,94 @@
+# A parent repository's .gitignore does not apply here: git only reads ignore
+# files inside the repository it is operating on, so this repeats what matters.
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node / bun
 node_modules/
+npm-debug.log*
+*.log
+.npm/
+.cache/
+
+# Environment / local configuration
+.env
+.env.*
+!.env.example
+*.local
+secrets.*
+credentials.*
+wifi.*
+*.pem
+*.key
+
+# Build output
+dist/
+build/
 out/
+coverage/
+tmp/
+temp/
+.tmp/
+
+# Rendered frames / capture output
 *.ppm
 *.png
-.DS_Store
+*.mp4
+*.mov
+*.webm
+
+# WASM build output (reproduced by backends/wasm/Dockerfile)
 backends/wasm/dist/
+
+# C/C++ build systems
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+*.o
+*.a
+*.so
+*.dylib
+
+# Arduino / ESP32 / PlatformIO build artifacts
+*.elf
+*.hex
+*.bin
+*.map
+*.eep
+arduino_build_*/
+arduino_cache_*/
+.arduinoIDE/
+.pio/
+.pioenvs/
+.piolibdeps/
+sdkconfig.old
+
+# Generated MicroQuickJS tables (backends/esp32/engine/mjsx_stdlib.h,
+# mquickjs_atom.h) are committed ON PURPOSE — they must match the atom header
+# they were generated with, and regenerating them (tools/gen-stdlib.sh) is a
+# deliberate act. Host-side codegen intermediates are not.
+backends/esp32/tools/gen
+backends/esp32/tools/harness
+
+# Python (Pi utilities, test scripts)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors / IDEs / agents
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
