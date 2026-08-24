@@ -263,14 +263,16 @@ function draw(node, x, y, availW, forcedH) {
     gfx.circle(x + r, y + r, r, p.color === undefined ? UI.theme.muted : p.color, p.filled === undefined ? true : p.filled);
   } else if (t === 'line') {
     var lc = p.color === undefined ? UI.theme.muted : p.color;
-    gfx.line(x + (p.x1 || 0), y + (p.y1 || 0), x + (p.x2 || 0), y + (p.y2 || 0), lc);
-    if (p.w > 1) {
-      /* No thickness in the native call, so a heavier line is a second one
-         alongside — offset across the shorter axis, where it shows. */
-      var steep = Math.abs((p.y2 || 0) - (p.y1 || 0)) > Math.abs((p.x2 || 0) - (p.x1 || 0));
-      var ox = steep ? 1 : 0, oy = steep ? 0 : 1;
-      gfx.line(x + (p.x1 || 0) + ox, y + (p.y1 || 0) + oy,
-               x + (p.x2 || 0) + ox, y + (p.y2 || 0) + oy, lc);
+    /* No thickness in the native call, so a w-px line is w parallel 1px
+       lines, offset across the shorter axis (where the gap would show)
+       and centred on the nominal position. */
+    var lw = p.w || 1;
+    var steep = Math.abs((p.y2 || 0) - (p.y1 || 0)) > Math.abs((p.x2 || 0) - (p.x1 || 0));
+    var ox = steep ? 1 : 0, oy = steep ? 0 : 1;
+    for (var lq = 0; lq < lw; lq++) {
+      var loff = lq - ((lw - 1) >> 1);
+      gfx.line(x + (p.x1 || 0) + ox * loff, y + (p.y1 || 0) + oy * loff,
+               x + (p.x2 || 0) + ox * loff, y + (p.y2 || 0) + oy * loff, lc);
     }
     return 0;
   } else if (t === 'abs') {

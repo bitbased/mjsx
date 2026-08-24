@@ -73,14 +73,16 @@ function App() {
           the drag, so sliding never scrolls or taps anything else */}
       <box bg={0x223048} pad={em(0.5)} h={em(6)} gap={em(0.5)}>
         <row gap={em(0.5)}>{pal}</row>
-        <box bg={0x14161b} radius={6} h={em(1.8)} pad={em(0.25)} hitPad={4}
+        {/* the fill IS the preview: its height is the literal stroke width,
+            drawn in the current colour */}
+        <box bg={0x14161b} radius={6} h={em(1.8)} pad={em(0.25)} hitPad={4} vcenter={true}
              onDraw={function (phase, x) {
                var trackW = gfx.width() - em(1);
-               var w2 = 1 + Math.max(0, Math.min(1, x / trackW)) * 5;
+               var w2 = 1 + Math.max(0, Math.min(1, x / trackW)) * 7;
                UI.set({ width: Math.round(w2) });
              }}>
-          <box w={Math.max(em(0.8), Math.round((((UI.state.width || 2) - 1) / 5) * (gfx.width() - em(1.5))))}
-               bg={color} radius={4} h={em(1.3)} />
+          <box w={Math.max(em(0.8), Math.round((((UI.state.width || 2) - 1) / 7) * (gfx.width() - em(1.5))))}
+               bg={color} radius={2} h={UI.state.width || 2} />
         </box>
       </box>
     </box>
