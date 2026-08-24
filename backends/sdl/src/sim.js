@@ -75,10 +75,17 @@ var fontScale = 'vector';
 for (var fsi = 0; fsi < flagArgs.length; fsi++) {
   if (flagArgs[fsi].slice(0, 12) === '--fontscale=') fontScale = flagArgs[fsi].slice(12);
 }
-/* HD dpr covers the FULL path to the glass: window scale x the display's
-   device-pixels-per-point (2 on Retina), so one buffer pixel is one screen
-   pixel. Before the window exists the display factor reads as 1. */
-function dprNow() { return hd ? scale * (typeof win !== 'undefined' && win ? win.drawableScale() : 1) : 1; }
+/* HD dpr = the window scale. Full device-pixel HD (x the display's retina
+   factor) quadruples the pixels to rasterize and blows the frame budget
+   once a drawing has a few dozen strokes (measured 70ms/frame at dpr 6);
+   at dpr = scale the GPU's linear upscale covers the last 2x with no
+   visible cost. --hd2 opts into true device-pixel HD anyway. */
+var hd2 = flagArgs.indexOf('--hd2') !== -1;
+function dprNow() {
+  if (!hd) return 1;
+  var ds = hd2 && typeof win !== 'undefined' && win ? win.drawableScale() : 1;
+  return scale * ds;
+}
 
 /* Three font sizes, cycled by the toolbar's FONT button: tiny hand-drawn
    4x6, clear 6x8, large Scale2x-smoothed 12x16. --font=NAME picks the
