@@ -25,6 +25,7 @@ function Field(p) {
       <text text={p.label} size={1} color={UI.theme.muted} />
       <input id={p.id} size={p.size || 2} placeholder={p.placeholder}
              password={p.password} maxLen={p.maxLen}
+             label={p.label} exclusive={p.exclusive}
              onSubmit={function (v) { UI.set({ last: p.label + ': ' + v }); }} />
     </box>
   );
@@ -56,8 +57,11 @@ function PinPad() {
   return h('box', { bg: UI.theme.panel, pad: 4, gap: 2 }, kids);
 }
 
+var POSITIONS = ['bottom', 'top', 'inline'];
+
 function App() {
   var kb = UI.state.kb || 'qwerty';
+  var pos = UI.state.kbPos || 'bottom';
   var focused = UI.focused();
 
   var chips = [];
@@ -68,6 +72,14 @@ function App() {
       onTap: (function (l) { return function () { UI.set({ kb: l }); }; })(LAYOUTS[i])
     }));
   }
+  /* where the keyboard docks: bottom/top overlay the page (an inset keeps
+     revealed fields out from under them), inline flows like any child */
+  chips.push(h(Button, {
+    label: 'POS:' + pos.toUpperCase(), size: 1, pad: em(0.6), bg: UI.theme.panel,
+    onTap: function () {
+      UI.set({ kbPos: POSITIONS[(POSITIONS.indexOf(pos) + 1) % POSITIONS.length] });
+    }
+  }));
 
   var kids = [
     <text text="INPUT" size={2} align="center" color={UI.theme.accent} />,
@@ -81,11 +93,16 @@ function App() {
       <Field id="city" label="CITY" />
       <Field id="note" label="NOTE (long text scrolls in the field)" />
       <Field id="tag" label="TAG (tab reaches me below the fold)" />
+      <Field id="full" label="FULL (exclusive: keyboard takes the display)" exclusive={true} />
       <text text={UI.state.last || 'enter submits: results show here'}
             size={1} color={UI.theme.ok} wrap={true} />
     </box>
   ];
-  if (focused) kids.push(focused === 'pin' ? h(PinPad, {}) : h(Keyboard, { layout: kb }));
+  if (focused) {
+    /* height is a hint: the keys scale so the whole keyboard fits it */
+    kids.push(focused === 'pin' ? h(PinPad, {})
+            : h(Keyboard, { layout: kb, position: pos, height: Math.floor(gfx.height() / 2.6) }));
+  }
   return h('box', { h: gfx.height() }, kids);
 }
 

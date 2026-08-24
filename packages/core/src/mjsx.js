@@ -498,6 +498,10 @@ function draw(node, x, y, availW, forcedH) {
     var ih = ilh + ipd * 2;
     var iw = p.w && p.w < availW ? p.w : availW;
     var ifoc = UI._focus === iid;
+    /* focus() may have run before this field ever drew (programmatic
+       focus of something below the fold) -- honour its exclusive ask as
+       soon as it exists */
+    if (ifoc && p.exclusive && !UI._exclusive) { UI._exclusive = true; UI._dirty = true; }
     gfx.frect(x, y, iw, ih, p.bg === undefined ? UI.theme.key : p.bg, 6);
     gfx.rect(x, y, iw, ih,
              ifoc ? UI.theme.accent : (p.border === undefined ? UI.theme.muted : p.border), 6);
@@ -639,9 +643,17 @@ function draw(node, x, y, availW, forcedH) {
       }
       var maxOff = contentH - (boxH - padT(p) - padB(p));
       if (maxOff < 0) maxOff = 0;
+      /* An overlay covering part of this viewport makes the covered band
+         scrollable-past -- extra range at the bottom, negative offsets at
+         the top -- so every row can still be brought into the visible
+         part. The same idea as a native scroll view's content insets. */
+      var covB = (y + boxH) - (gfx.height() - UI._insetBot());
+      if (covB > 0) maxOff += covB;
+      var minOff = UI._insetTop() - y;
+      minOff = minOff > 0 ? -minOff : 0;
       var off = UI._scroll[p.scroll] || 0;
       if (off > maxOff) off = maxOff;
-      if (off < 0) off = 0;
+      if (off < minOff) off = minOff;
       UI._scroll[p.scroll] = off;
 
       /* The clip makes partially-visible rows end at the box edge instead of
@@ -666,7 +678,7 @@ function draw(node, x, y, availW, forcedH) {
       UI._clipHits(hits0, x, y, availW, boxH);
       /* The viewport is a swipe target; a fixed step, or its own height. */
       UI._swipeZone(x, y, availW, boxH, p.scroll,
-                    p.step === 'page' ? (boxH - padT(p) - padB(p)) : (p.step || 40), maxOff);
+                    p.step === 'page' ? (boxH - padT(p) - padB(p)) : (p.step || 40), maxOff, minOff);
     } else if (boxH) {
       /* A pinned height makes this a flex column: children marked `flex` (or
          flex:N) split whatever the fixed-height children leave over. */
@@ -1011,13 +1023,55 @@ function kbStrip(kh) {
 
 function Keyboard(p) {
   var layout = p.layout || 'qwerty';
-  var kh = p.keyH || (flh(2) + em(1));
+  /* height is a HINT for the whole keyboard: keys scale to fit it given
+     the layout's row count. keyH sets one key directly instead. */
+  var rowsN = layout === 'strip' ? 2 : (layout === 'qwerty' ? 4 : 5);
+  var kh;
+  if (p.height) kh = Math.floor((p.height - 8 - (rowsN - 1) * 2) / rowsN);
+  else kh = p.keyH || (flh(2) + em(1));
+  if (kh < 8) kh = 8;
   var rows;
   if (layout === 'numbers') rows = kbNumbers(kh);
   else if (layout === 't9') rows = kbT9(kh);
   else if (layout === 'strip') rows = kbStrip(kh);
   else rows = kbQwerty(kh);
-  return h('box', { bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2 }, rows);
+  /* The panel swallows taps: a press between keys must not fall through
+     to whatever the overlay is covering. */
+  var panel = h('box', {
+    bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2,
+    onTap: function () {}
+  }, rows);
+  if (UI.exclusive()) {
+    /* Full-display: a MIRROR of the focused input above the keys. Input
+       state is keyed by id, so a second input node with the same id IS
+       the same field -- same text, same caret; it types into the
+       original. focusable={false} keeps the mirror out of the focus
+       order and leaves the original's remembered position alone. */
+    var xst = UI._inputs[UI._focus];
+    var xp = (xst && xst.p) || {};
+    return h('abs', { x: 0, y: 0, w: gfx.width() },
+      h('box', { h: gfx.height(), bg: UI.theme.bg, pad: 6, gap: 6, onTap: function () {} }, [
+        h('text', { text: xp.label || xp.placeholder || UI._focus,
+                    size: 1, color: UI.theme.muted }),
+        h('input', { id: UI._focus, size: xp.size || 2, password: xp.password,
+                     maxLen: xp.maxLen, placeholder: xp.placeholder, label: xp.label,
+                     value: xp.value, onChange: xp.onChange, onSubmit: xp.onSubmit,
+                     focusable: false }),
+        h('box', { flex: 1 }),
+        h('box', { bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2 }, rows)
+      ]));
+  }
+  var pos = p.position || 'inline';
+  if (pos === 'bottom' || pos === 'top') {
+    /* Overlay: pinned to a screen edge, no flow space taken -- the page
+       keeps its full height and the keyboard draws over it. The inset
+       tells scroll-into-view how much of the screen the keyboard hides,
+       so a revealed field lands above it, not under it. */
+    var totalH = rowsN * kh + (rowsN - 1) * 2 + 8;
+    UI.inset(pos, totalH);
+    return h('abs', { x: 0, y: pos === 'top' ? 0 : gfx.height() - totalH, w: gfx.width() }, panel);
+  }
+  return panel;
 }
 
 var UI = {
@@ -1049,9 +1103,17 @@ var UI = {
   _inputs: {},     /* per-input engine state: text, caret, scroll, nav */
   _focusables: [], /* input ids registered by the current render, paint order */
   _reveal: null,   /* input id to scroll into view after this render */
+  _exclusive: false, /* keyboard should take the whole display and mirror
+                        the focused input -- set by the input's `exclusive`
+                        prop, or automatically when the field cannot be
+                        scrolled clear of the keyboard at all */
   _frame: 0,
   _blinkPh: 0,
   _curZone: null,  /* scroll zone being drawn into, for nav bookkeeping */
+  _insetT: 0,      /* screen bands covered by overlays this frame -- what */
+  _insetB: 0,      /* scroll-into-view must keep a revealed field out of */
+  _insetTP: 0,     /* last frame's insets: overlays draw AFTER the page, so */
+  _insetBP: 0,     /* the page's own layout reads the previous frame's */
   /* Host hook: called with the focused input's id (or null on blur). This
      is how a host that can present its own keyboard -- a browser focusing
      a real <input> to summon the phone's, native code outside the JS VM
@@ -1224,8 +1286,8 @@ var UI = {
     }
     return null;
   },
-  _swipeZone: function (x, y, w, hh, key, step, maxOff) {
-    this._swipes.push({ x: x, y: y, w: w, h: hh, key: key, step: step, maxOff: maxOff });
+  _swipeZone: function (x, y, w, hh, key, step, maxOff, minOff) {
+    this._swipes.push({ x: x, y: y, w: w, h: hh, key: key, step: step, maxOff: maxOff, minOff: minOff || 0 });
   },
 
   render: function () {
@@ -1235,6 +1297,10 @@ var UI = {
     this._focusables = [];
     this._frame++;
     this._curZone = null;
+    this._insetTP = this._insetT;
+    this._insetBP = this._insetB;
+    this._insetT = 0;
+    this._insetB = 0;
     gfx.clear(this.theme.bg);
     draw(h(this.root, {}), 0, 0, gfx.width(), gfx.height());
     if (this.modal) {
@@ -1276,8 +1342,9 @@ var UI = {
     if (sq > 1) off = Math.round(off / sq) * sq;
     var z = this._zone(key);
     var max = z ? z.maxOff : 0;
+    var min = z ? (z.minOff || 0) : 0;
     if (off > max) off = max;
-    if (off < 0) off = 0;
+    if (off < min) off = min;
     off = Math.round(off);
     if (off !== this._scroll[key]) {
       this._scroll[key] = off;
@@ -1400,15 +1467,27 @@ var UI = {
   },
 
   /* ---- focus: opt-out per input via focusable={false} ---- */
+  /* Reserve a band of the screen as covered by an overlay (a keyboard,
+     any docked panel). Cleared every render, so the thing reserving it
+     just calls this while it is on screen -- the built-in Keyboard does
+     for its 'top'/'bottom' positions, and a custom JSX keyboard may too. */
+  inset: function (side, px) {
+    if (side === 'top') { if (px > this._insetT) this._insetT = px; }
+    else if (px > this._insetB) this._insetB = px;
+  },
+  _insetTop: function () { return this._insetT > this._insetTP ? this._insetT : this._insetTP; },
+  _insetBot: function () { return this._insetB > this._insetBP ? this._insetB : this._insetBP; },
   focused: function () { return this._focus; },
   focus: function (id) {
     if (this._focus === id) return;
     this._focus = id;
+    this._exclusive = false;
     var st = this._inputs[id];
     if (st) {
       st.bt = sys.millis();
       st.follow = 1;
       if (st.cur > st.text.length) st.cur = st.text.length;
+      if (st.p && st.p.exclusive) this._exclusive = true;
     }
     this._reveal = id;
     this._dirty = true;
@@ -1417,6 +1496,7 @@ var UI = {
   blur: function () {
     if (!this._focus) return;
     this._focus = null;
+    this._exclusive = false;
     this._dirty = true;
     if (this.onFocusChange) this.onFocusChange(null);
   },
@@ -1440,11 +1520,26 @@ var UI = {
     this.focus(ids[((at + dir) % ids.length + ids.length) % ids.length]);
   },
   focusPrev: function () { this.focusNext(-1); },
+  /* Should the keyboard take over the display? True when the focused
+     input asked for it (exclusive prop) or when no amount of scrolling
+     can get the field clear of the keyboard. The built-in Keyboard
+     honours this; a custom JSX keyboard can read it and do the same. */
+  exclusive: function () { return !!(this._exclusive && this._focus); },
   _revealFocus: function () {
     var id = this._reveal;
     this._reveal = null;
     var st = this._inputs[id];
-    if (!st || !st.nav || !st.nav.zone) return;
+    if (!st || !st.nav) return;
+    if (!st.nav.zone) {
+      /* A fixed field is visible where it is or not at all: if an overlay
+         covers it, the only way to type into it is the exclusive
+         full-display keyboard with its mirror. */
+      if (st.nav.cy < this._insetTop() ||
+          st.nav.cy + st.nav.h > gfx.height() - this._insetBot()) {
+        if (!this._exclusive) { this._exclusive = true; this._dirty = true; }
+      }
+      return;
+    }
     var z = this._zone(st.nav.zone);
     if (!z) return;
     /* nav.cy is screen y plus the zone offset at draw time -- a content
@@ -1452,8 +1547,19 @@ var UI = {
        that keep the field a small margin inside the viewport. */
     var off = this._scroll[st.nav.zone] || 0;
     var m = 4;
-    var lo = st.nav.cy + st.nav.h - z.y - z.h + m;
-    var hi = st.nav.cy - z.y - m;
+    /* the zone's viewport, minus whatever an overlay is covering -- unless
+       the overlay leaves too little of it to be worth aiming for */
+    var visTop = z.y > this._insetTop() ? z.y : this._insetTop();
+    var gh = gfx.height() - this._insetBot();
+    var visBot = z.y + z.h < gh ? z.y + z.h : gh;
+    if (visBot - visTop < st.nav.h + m * 2) {
+      /* the overlay leaves less viewport than the field needs: scrolling
+         cannot help, the keyboard must take the display and mirror it */
+      if (!this._exclusive) { this._exclusive = true; this._dirty = true; }
+      return;
+    }
+    var lo = st.nav.cy + st.nav.h - visBot + m;
+    var hi = st.nav.cy - visTop - m;
     if (hi < lo) hi = lo;
     if (off < lo) this._scrollTo(st.nav.zone, lo);
     else if (off > hi) this._scrollTo(st.nav.zone, hi);
