@@ -1503,22 +1503,40 @@ var UI = {
     this._dirty = true;
   },
   /* The whole-stroke handler an input registers -- the same capture an
-     onDraw canvas uses, interpreted as: tap places the caret, a drag
-     scrolls overflowing text, press-and-hold then drag walks the caret. */
+     onDraw canvas uses, but classified rather than owned outright: the
+     DOMINANT AXIS at the moment the finger leaves the tap slop decides.
+     Mostly vertical hands the stroke to the field's enclosing scroll
+     zone (fling included), so a form full of fields still scrolls no
+     matter where the finger lands. Mostly horizontal scrolls the
+     field's own overflowing text; press-and-hold then drag walks the
+     caret; a stroke that stayed put was a tap, placing the caret. Focus
+     happens on tap or hold only -- a scroll passing over a field must
+     not focus it and summon a keyboard. */
   _inputStroke: function (iid) {
     var self = this;
     return function (phase, lx, ly, pid) {
       var st = self._inputs[iid];
       if (!st || !st.geom) return;
       var gm = st.geom;
+      var zn = st.nav && st.nav.zone;
       if (phase === 0) {
-        st.g = { x0: lx, o0: st.sx, t0: sys.millis(), mode: 0 };
-        self.focus(iid);
+        st.g = { x0: lx, y0: ly, o0: st.sx, t0: sys.millis(), mode: 0,
+                 zo0: zn ? (self._scroll[zn] || 0) : 0,
+                 ly: ly, lt: sys.millis(), v: 0 };
+        /* a press catches the zone if it is still gliding, like any
+           other press inside it would */
+        if (zn) {
+          var kept = [];
+          for (var fi = 0; fi < self._flings.length; fi++) {
+            if (self._flings[fi].key !== zn) kept.push(self._flings[fi]);
+          }
+          self._flings = kept;
+        }
         return;
       }
       var g = st.g;
       if (!g) return;
-      var dxs = lx - g.x0;
+      var dxs = lx - g.x0, dys = ly - g.y0;
       function place() {
         var ci = Math.round((lx - gm.pad + st.sx) / gm.adv);
         var n = st.text.length;
@@ -1527,9 +1545,13 @@ var UI = {
         st.follow = 1;
       }
       if (g.mode === 0) {
-        if (sys.millis() - g.t0 >= 400) g.mode = 2;
-        else if (dxs > DRAG_SLOP || dxs < -DRAG_SLOP) {
-          g.mode = st.text.length * gm.adv > gm.w - gm.pad * 2 ? 1 : 2;
+        if (sys.millis() - g.t0 >= 400) { g.mode = 2; self.focus(iid); }
+        else if (dxs > DRAG_SLOP || dxs < -DRAG_SLOP ||
+                 dys > DRAG_SLOP || dys < -DRAG_SLOP) {
+          var ax = dxs < 0 ? -dxs : dxs, ay = dys < 0 ? -dys : dys;
+          if (ay > ax && zn) g.mode = 3;
+          else if (st.text.length * gm.adv > gm.w - gm.pad * 2) g.mode = 1;
+          else { g.mode = 2; self.focus(iid); }
         }
       }
       if (g.mode === 1) {
@@ -1539,8 +1561,19 @@ var UI = {
         st.sx = ns < 0 ? 0 : (ns > mx ? mx : ns);
         st.follow = 0;
       } else if (g.mode === 2) place();
+      else if (g.mode === 3) {
+        /* absolute from the press, exactly as pointer() scrolls a zone --
+           deltas would accumulate rounding and drift */
+        self._scrollTo(zn, g.zo0 - dys);
+        var nw = sys.millis(), dt = nw - g.lt;
+        if (dt > 0) { g.v = (g.ly - ly) / dt * 16; g.lt = nw; }
+        g.ly = ly;
+      }
       if (phase === 2) {
-        if (g.mode === 0) place();
+        if (g.mode === 0) { self.focus(iid); place(); }
+        else if (g.mode === 3 && (g.v > 2 || g.v < -2)) {
+          self._flings.push({ key: zn, v: g.v });
+        }
         st.g = null;
       }
     };
