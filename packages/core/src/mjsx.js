@@ -312,13 +312,23 @@ function draw(node, x, y, availW, forcedH) {
        the height */
     var pl = padL(p), pr = padR(p);
     var gap3 = p.gap === undefined ? 4 : p.gap;
-    if (p.bg !== undefined) gfx.frect(x, y, availW, hgt, p.bg, p.radius || 0);
-    if (p.border !== undefined) {
-      /* Nested rectangles, because the native call draws one pixel. */
-      var bw = p.borderW || 1;
-      for (var q = 0; q < bw; q++) {
-        var rr = (p.radius || 0) - q;
-        gfx.rect(x + q, y + q, availW - q * 2, hgt - q * 2, p.border, rr > 0 ? rr : 0);
+    if (p.border !== undefined && p.bg !== undefined) {
+      /* Border AND fill: two nested rounded fills — the outer in the border
+         colour, the inner inset by the border width. Gap-free at any width
+         and radius, unlike stacked 1px outlines whose arcs tile poorly. */
+      var bw0 = p.borderW || 1;
+      gfx.frect(x, y, availW, hgt, p.border, p.radius || 0);
+      var ir = (p.radius || 0) - bw0;
+      gfx.frect(x + bw0, y + bw0, availW - bw0 * 2, hgt - bw0 * 2, p.bg, ir > 0 ? ir : 0);
+    } else {
+      if (p.bg !== undefined) gfx.frect(x, y, availW, hgt, p.bg, p.radius || 0);
+      if (p.border !== undefined) {
+        /* Outline-only box: stacked 1px rounded outlines. */
+        var bw = p.borderW || 1;
+        for (var q = 0; q < bw; q++) {
+          var rr = (p.radius || 0) - q;
+          gfx.rect(x + q, y + q, availW - q * 2, hgt - q * 2, p.border, rr > 0 ? rr : 0);
+        }
       }
     }
 

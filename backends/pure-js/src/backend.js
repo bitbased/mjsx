@@ -23,6 +23,7 @@
 /* Fonts come from the shared registry ('4x6' tiny, '6x8' clear, '12x16'
    large); an instance picks one at creation (opts.font) and reports its
    metrics as backend.font so the runner can hand them to mjsx-core. */
+var raster = require('./../../../packages/core/src/raster.js');
 var fontsMod = require('./../../../packages/core/src/fonts.js');
 var FONTS = fontsMod.FONTS, pickFont = fontsMod.pickFont;
 
@@ -94,14 +95,17 @@ function createPureJsBackend(w, h, opts) {
     clear: function (color) { fillRect(0, 0, w, h, toRGB(color)); },
     rect: function (x, y, ww, hh, color, radius) {
       var rgb = toRGB(color);
-      drawLine(x, y, x + ww - 1, y, rgb);
-      drawLine(x, y + hh - 1, x + ww - 1, y + hh - 1, rgb);
-      drawLine(x, y, x, y + hh - 1, rgb);
-      drawLine(x + ww - 1, y, x + ww - 1, y + hh - 1, rgb);
-      /* radius is accepted, not honoured — square corners are a legible,
-         zero-risk placeholder; a backend that cares can round them. */
+      raster.strokeRoundRect(
+        function (px2, py2) { setPixel(px2, py2, rgb); },
+        function (x0, y0, x1, y1) { drawLine(x0, y0, x1, y1, rgb); },
+        x, y, ww, hh, radius || 0);
     },
-    frect: function (x, y, ww, hh, color, radius) { fillRect(x, y, ww, hh, toRGB(color)); },
+    frect: function (x, y, ww, hh, color, radius) {
+      var rgb = toRGB(color);
+      raster.fillRoundRect(
+        function (fx, fy, fw, fh) { fillRect(fx, fy, fw, fh, rgb); },
+        x, y, ww, hh, radius || 0);
+    },
     circle: function (x, y, r, color, filled) { drawCircle(x, y, r, toRGB(color), filled); },
     line: function (x0, y0, x1, y1, color) { drawLine(x0, y0, x1, y1, toRGB(color)); },
     text: function (x, y, size, color, str) {

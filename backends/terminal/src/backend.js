@@ -11,6 +11,7 @@
  * terminal's own font — compact and legible rather than faithful.
  */
 
+var raster = require('../../../packages/core/src/raster.js');
 var fontsMod = require('../../../packages/core/src/fonts.js');
 var FONTS = fontsMod.FONTS, pickFont = fontsMod.pickFont;
 
@@ -85,10 +86,16 @@ function createTerminalBackend(cols, charH, opts) {
   var gfx = {
     clear: function (color) { fillRect(0, 0, w, h, color >>> 0); texts.length = 0; },
     rect: function (x, y, ww, hh, color, radius) {
-      drawLine(x, y, x + ww - 1, y, color); drawLine(x, y + hh - 1, x + ww - 1, y + hh - 1, color);
-      drawLine(x, y, x, y + hh - 1, color); drawLine(x + ww - 1, y, x + ww - 1, y + hh - 1, color);
+      raster.strokeRoundRect(
+        function (px2, py2) { setPixel(px2, py2, color); },
+        function (x0, y0, x1, y1) { drawLine(x0, y0, x1, y1, color); },
+        x, y, ww, hh, radius || 0);
     },
-    frect: function (x, y, ww, hh, color, radius) { fillRect(x, y, ww, hh, color); },
+    frect: function (x, y, ww, hh, color, radius) {
+      raster.fillRoundRect(
+        function (fx, fy, fw, fh) { fillRect(fx, fy, fw, fh, color); },
+        x, y, ww, hh, radius || 0);
+    },
     circle: function (x, y, r, color, filled) { drawCircle(x, y, r, color, filled); },
     line: function (x0, y0, x1, y1, color) { drawLine(x0, y0, x1, y1, color); },
     text: function (x, y, size, color, str) {
