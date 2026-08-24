@@ -20,6 +20,7 @@ var exampleName = numArgs[0] && !/^\d+$/.test(numArgs[0]) ? numArgs.shift() : nu
 var pxW = parseInt(numArgs[0] || '240', 10);
 var pxH = parseInt(numArgs[1] || '240', 10);
 var scale = parseInt(numArgs[2] || '3', 10);
+if (process.argv.indexOf('--landscape') !== -1 && pxH > pxW) { var _t = pxW; pxW = pxH; pxH = _t; }
 
 /* Rounded corners BY DEFAULT — that's what the simulated hardware looks
    like. --square turns it off, --circle previews a round display,
@@ -144,10 +145,22 @@ function toolbarFrame() {
     rebuild();
   });
   btn(pxW + 'X' + pxH, function () {
+    /* Advance through the presets, carrying the current orientation with
+       us — a preset matches whichever way round it is being shown. */
+    var landscape = pxW > pxH;
     var idx = 0;
-    for (var si = 0; si < SIZES.length; si++) if (SIZES[si][0] === pxW && SIZES[si][1] === pxH) idx = si;
+    for (var si = 0; si < SIZES.length; si++) {
+      if ((SIZES[si][0] === pxW && SIZES[si][1] === pxH) ||
+          (SIZES[si][0] === pxH && SIZES[si][1] === pxW)) idx = si;
+    }
     var next = SIZES[(idx + 1) % SIZES.length];
-    pxW = next[0]; pxH = next[1];
+    pxW = landscape ? Math.max(next[0], next[1]) : Math.min(next[0], next[1]);
+    pxH = landscape ? Math.min(next[0], next[1]) : Math.max(next[0], next[1]);
+    rebuild();
+  });
+  btn('ROT', function () {
+    /* Portrait <-> landscape: the same panel turned 90 degrees. */
+    var t = pxW; pxW = pxH; pxH = t;
     rebuild();
   });
   var ppm = tb.toPPM(), idx = 0, nl = 0;
