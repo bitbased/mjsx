@@ -242,6 +242,13 @@ function createPureJsBackend(w, h, opts) {
         textOps.push({
           x: x, y: y, color: color, str: '' + str,
           adv: (cf.w + 1) * cf.scale, h: cf.h * cf.scale, lineH: (cf.h + 2) * cf.scale,
+          /* sp: the cell's spacing column (right side) — hosts centre their
+             glyph in the INK width, not the full advance, or text drifts
+             right by half the spacing. base: the bitmap's true baseline
+             row — the 6x8 family's is row 7 of its 8-row cell (row 7 is
+             blank below caps), the 4x6's is the cell bottom. */
+          sp: cf.scale,
+          base: cf.scale * (cf.fam === '6x8' ? cf.h - cf.h / 8 : cf.h),
           clip: clipRect ? { x: clipRect.x / dpr, y: clipRect.y / dpr, w: clipRect.w / dpr, h: clipRect.h / dpr } : null
         });
         return;

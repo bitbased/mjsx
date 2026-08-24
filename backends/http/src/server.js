@@ -97,8 +97,9 @@ var PAGE = '<!doctype html><meta charset=utf-8><title>mjsx</title>' +
   '    ctx.font=fitFont(o.adv,o.h)+"px "+MONO;' +
   '    ctx.fillStyle="#"+("00000"+o.color.toString(16)).slice(-6);' +
   '    ctx.textAlign="center";ctx.textBaseline="alphabetic";' +
+  '    var inkW=o.adv-(o.sp||0);var baseY=(o.y+(o.base||o.h))*S;' +
   '    for(var j=0;j<o.str.length;j++){' +
-  '      ctx.fillText(o.str[j],(o.x+j*o.adv+o.adv/2)*S,(o.y+o.h)*S);' +
+  '      ctx.fillText(o.str[j],(o.x+j*o.adv+inkW/2)*S,baseY);' +
   '    }' +
   '    ctx.restore();' +
   '  }' +

@@ -130,7 +130,7 @@ function createTtfText(fontFile) {
     for (var oi = 0; oi < ops.length; oi++) {
       var op = ops[oi];
       var pt = fitPt(op.adv * dpr, op.h * dpr);
-      var baseY = Math.round((op.y + op.h) * dpr);
+      var baseY = Math.round((op.y + (op.base || op.h)) * dpr);
       var cr = op.color >> 16 & 255, cg = op.color >> 8 & 255, cb = op.color & 255;
       var cx0 = 0, cy0 = 0, cx1 = PW, cy1 = PH;
       if (op.clip) {
@@ -143,7 +143,8 @@ function createTtfText(fontFile) {
         var g = glyph(pt, ch);
         if (!g) continue;
         var cellX = (op.x + ci * op.adv) * dpr;
-        var gx0 = Math.round(cellX + (op.adv * dpr - g.w) / 2);
+        var inkW = (op.adv - (op.sp || 0)) * dpr;
+        var gx0 = Math.round(cellX + (inkW - g.w) / 2);
         var gy0 = baseY - g.ascent;
         for (var yy = 0; yy < g.h; yy++) {
           var fy = gy0 + yy;
