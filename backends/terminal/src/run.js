@@ -31,6 +31,7 @@ globalThis.em = core.em;
 core.FONT.advance = backend.font.advance;
 core.FONT.lineH = backend.font.lineH;
 core.FONT.quantum = backend.font.quantum;
+core.FONT.pick = backend.font.pick || null;
 core.UI.scrollQuantum = backend.ySub;
 
 require(path.resolve(exampleFile));

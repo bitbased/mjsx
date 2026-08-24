@@ -20,7 +20,7 @@ var path = require('path');
    a true preview of a pixel panel. Bare numbers are cols then rows. */
 var flagArgs = process.argv.slice(2).filter(function (a) { return a.slice(0, 2) === '--'; });
 var numArgs = process.argv.slice(2).filter(function (a) { return a.slice(0, 2) !== '--'; });
-var fontName = '4x6';
+var fontName = 'auto';
 for (var ffl = 0; ffl < flagArgs.length; ffl++) {
   if (flagArgs[ffl].slice(0, 7) === '--font=') fontName = flagArgs[ffl].slice(7);
 }
@@ -30,7 +30,7 @@ var MODE_CYCLE = ['pixel', 'block', 'char']; // half-block detail -> font-proof 
 var cols = parseInt(numArgs[0] || String(process.stdout.columns || 80), 10);
 var rows = parseInt(numArgs[1] || String((process.stdout.rows || 24) - 1), 10);
 
-var backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode, font: fontName });
+var backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode, font: fontName === 'auto' ? undefined : fontName });
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
@@ -56,6 +56,7 @@ function applyFont() {
   core.FONT.advance = backend.font.advance;
   core.FONT.lineH = backend.font.lineH;
   core.FONT.quantum = backend.font.quantum;
+  core.FONT.pick = backend.font.pick || null;
   UI.scrollQuantum = backend.ySub;
 }
 
@@ -117,7 +118,7 @@ showMenu();
    kept — a new one would restart the millis() epoch under pending timers. */
 function setMode(m) {
   pxMode = m;
-  backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode, font: fontName });
+  backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode, font: fontName === 'auto' ? undefined : fontName });
   globalThis.gfx = backend.gfx;
   applyFont();
   cx = Math.min(cx, gfx.width() - 1);
@@ -155,7 +156,7 @@ process.stdout.on('resize', function () {
   if (!sizeFromTty) return;
   cols = process.stdout.columns || cols;
   rows = (process.stdout.rows || rows + 1) - 1;
-  backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode, font: fontName });
+  backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode, font: fontName === 'auto' ? undefined : fontName });
   globalThis.gfx = backend.gfx;
   /* sys stays the original: a fresh backend restarts its millis() epoch,
      which would push every pending UI.setTimer deadline into the far

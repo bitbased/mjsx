@@ -43,8 +43,8 @@ var snapScale = flagArgs.indexOf('--free') === -1;
 /* Three font sizes, cycled by the toolbar's FONT button: tiny hand-drawn
    4x6, clear 6x8, large Scale2x-smoothed 12x16. --font=NAME picks the
    start. */
-var FONT_CYCLE = ['4x6', '6x8', '12x16'];
-var fontName = '4x6';
+var FONT_CYCLE = ['auto', '4x6', '6x8', '12x16'];
+var fontName = 'auto';
 for (var ffi = 0; ffi < flagArgs.length; ffi++) {
   if (flagArgs[ffi].slice(0, 7) === '--font=' && FONT_CYCLE.indexOf(flagArgs[ffi].slice(7)) !== -1) {
     fontName = flagArgs[ffi].slice(7);
@@ -74,7 +74,7 @@ try {
   process.exit(1);
 }
 
-var backend = createPureJsBackend(pxW, pxH, { font: fontName });
+var backend = createPureJsBackend(pxW, pxH, { font: fontName === 'auto' ? undefined : fontName });
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
@@ -100,6 +100,7 @@ function freshCore() {
   if (typeof backend !== 'undefined' && backend.font) {
     core.FONT.advance = backend.font.advance;
     core.FONT.lineH = backend.font.lineH;
+    core.FONT.pick = backend.font.pick || null;
   }
   return core;
 }
@@ -211,7 +212,7 @@ function toolbarFrame() {
 function rebuild() {
   win.setMask(SHAPES[shapeIdx].mask);
   win.setScreenSize(pxW, pxH);
-  backend = createPureJsBackend(pxW, pxH, { font: fontName });
+  backend = createPureJsBackend(pxW, pxH, { font: fontName === 'auto' ? undefined : fontName });
   globalThis.gfx = backend.gfx;
   if (current) loadExample(current); else showMenu();
   UI._dirty = true;

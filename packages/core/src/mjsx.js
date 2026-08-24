@@ -98,11 +98,18 @@ function em(n) {
   return v < q ? q : v;
 }
 
+/* Per-size metrics. A pixel backend installs FONT.pick(size) — the ladder
+ * picker from fonts.js — and every size gets its own font's real advance
+ * and line height. Without it, metrics scale linearly from FONT.advance /
+ * FONT.lineH exactly as before. */
+function fadv(size) { return FONT.pick ? FONT.pick(size).advance : FONT.advance * size; }
+function flh(size) { return FONT.pick ? FONT.pick(size).lineH - 2 : FONT.lineH * size; }
+
 /* Truncate to a width, marking the cut. Assumes no ellipsis glyph, so three
    dots stand in for one — matches every bitmap font this has run against. */
 function fitText(str, size, availW) {
   var s = '' + str;
-  var maxChars = Math.floor(availW / (FONT.advance * size));
+  var maxChars = Math.floor(availW / fadv(size));
   if (s.length <= maxChars) return s;
   if (maxChars <= 3) return s.substring(0, maxChars);
   return s.substring(0, maxChars - 3) + '...';
@@ -110,7 +117,7 @@ function fitText(str, size, availW) {
 
 function textLines(str, size, availW) {
   var s = '' + str;
-  var maxChars = Math.floor(availW / (FONT.advance * size));
+  var maxChars = Math.floor(availW / fadv(size));
   if (maxChars < 1) maxChars = 1;
   if (s.length <= maxChars) return [s];
   var words = s.split(' ');
@@ -152,7 +159,7 @@ function measureRaw(node, availW, forcedH) {
   if (t === 'text') {
     var size = p.size || 1;
     var lines = p.wrap ? textLines(p.text, size, availW - 0) : [fitText(p.text, size, availW)];
-    return lines.length * (FONT.lineH * size + 2) - 2;
+    return lines.length * (flh(size) + 2) - 2;
   }
   if (t === 'spacer') return p.h || 6;
   if (t === 'pbar') return p.h || 12;
@@ -229,10 +236,10 @@ function draw(node, x, y, availW, forcedH) {
     var ty = y;
     for (var li = 0; li < lines.length; li++) {
       var tx = x;
-      if (p.align === 'center') tx = x + Math.floor((availW - lines[li].length * FONT.advance * size) / 2);
-      if (p.align === 'right') tx = x + availW - lines[li].length * FONT.advance * size;
+      if (p.align === 'center') tx = x + Math.floor((availW - lines[li].length * fadv(size)) / 2);
+      if (p.align === 'right') tx = x + availW - lines[li].length * fadv(size);
       gfx.text(tx, ty, size, color, lines[li]);
-      ty += FONT.lineH * size + 2;
+      ty += flh(size) + 2;
     }
   } else if (t === 'spacer') {
     /* nothing to draw */

@@ -34,7 +34,7 @@ function App() {
         <text text=".,:!?+-/()%'" size={1} color={UI.theme.text} />
       </box>
 
-      <text text="SWAP: FONT BUTTON / --FONT=6X8" size={1} align="center" color={UI.theme.muted} wrap={true} />
+      <text text="AUTO: EACH SIZE PICKS ITS FONT. FONT BTN / --FONT=NAME FORCES ONE." size={1} align="center" color={UI.theme.muted} wrap={true} />
     </box>
   );
 }

@@ -11,7 +11,8 @@
  * terminal's own font — compact and legible rather than faithful.
  */
 
-var FONTS = require('../../../packages/core/src/fonts.js').FONTS;
+var fontsMod = require('../../../packages/core/src/fonts.js');
+var FONTS = fontsMod.FONTS, pickFont = fontsMod.pickFont;
 
 var HALF_BLOCK = '\u2584'; /* ▄ LOWER half block: foreground carries the BOTTOM
    sub-pixel, background the top. Lower, not upper, deliberately: in many
@@ -36,7 +37,11 @@ function createTerminalBackend(cols, charH, opts) {
   /* Which bitmap font pixel/block modes rasterize with — '4x6' default
      (terminal cells are already big); '6x8' / '12x16' when clearer text
      matters more than space. */
-  var bfont = FONTS[opts.font] || FONTS['4x6'];
+  var bfixed = opts.font ? (FONTS[opts.font] || FONTS['4x6']) : null;
+  function bfontFor(size) {
+    if (!bfixed) return pickFont(size);
+    return { glyphs: bfixed.glyphs, w: bfixed.w, h: bfixed.h, scale: size };
+  }
   var ySub = mode === 'pixel' ? 2 : 1; // sub-pixel rows per character row
   var xSub = mode === 'block' ? 2 : 1; // character columns per pixel
   var w = Math.floor(cols / xSub), h = charH * ySub;
@@ -91,16 +96,17 @@ function createTerminalBackend(cols, charH, opts) {
         /* Rasterized like every other shape — setPixel honours the active
            clip, so scrolled-out glyphs clip themselves. No terminal text
            in this mode, at all. */
+        var bf = bfontFor(size);
         var s2 = ('' + str).toUpperCase();
         for (var gi = 0; gi < s2.length; gi++) {
-          var rows = bfont.glyphs[s2[gi]];
-          var gx = x + gi * (bfont.w + 1) * size;
+          var rows = bf.glyphs[s2[gi]];
+          var gx = x + gi * (bf.w + 1) * bf.scale;
           if (!rows) continue; // unknown glyph: skip rather than draw noise
-          for (var gr = 0; gr < bfont.h; gr++) {
+          for (var gr = 0; gr < bf.h; gr++) {
             var bits = rows[gr];
-            for (var gc = 0; gc < bfont.w; gc++) {
-              if (bits & (1 << (bfont.w - 1 - gc))) {
-                fillRect(gx + gc * size, y + gr * size, size, size, color >>> 0);
+            for (var gc = 0; gc < bf.w; gc++) {
+              if (bits & (1 << (bf.w - 1 - gc))) {
+                fillRect(gx + gc * bf.scale, y + gr * bf.scale, bf.scale, bf.scale, color >>> 0);
               }
             }
           }
@@ -225,9 +231,10 @@ function createTerminalBackend(cols, charH, opts) {
   /* font: what a runner should copy onto mjsx-core's FONT for this mode —
      pixel text has real glyph metrics, char text is one cell per char and
      one row per line. quantum keeps em() spacing on whole character rows. */
+  var bbase = bfontFor(1);
   var font = mode === 'char'
-    ? { advance: 1, lineH: 1, quantum: 1 }
-    : { advance: bfont.w + 1, lineH: bfont.h + 2, quantum: ySub };
+    ? { advance: 1, lineH: 1, quantum: 1, pick: null }
+    : { advance: bbase.w + 1, lineH: bbase.h + 2, quantum: ySub, pick: bfixed ? null : pickFont };
   return { gfx: gfx, sys: sys, toAnsi: toAnsi, width: w, height: charH, mode: mode, ySub: ySub, xSub: xSub, font: font };
 }
 

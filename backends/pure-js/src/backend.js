@@ -23,7 +23,8 @@
 /* Fonts come from the shared registry ('4x6' tiny, '6x8' clear, '12x16'
    large); an instance picks one at creation (opts.font) and reports its
    metrics as backend.font so the runner can hand them to mjsx-core. */
-var FONTS = require('./../../../packages/core/src/fonts.js').FONTS;
+var fontsMod = require('./../../../packages/core/src/fonts.js');
+var FONTS = fontsMod.FONTS, pickFont = fontsMod.pickFont;
 
 /* Creates a fresh backend bound to one W x H canvas. Multiple backends can
    coexist in the same process (each with its own gfx/sys/UI trio via
@@ -31,8 +32,14 @@ var FONTS = require('./../../../packages/core/src/fonts.js').FONTS;
    one up. */
 function createPureJsBackend(w, h, opts) {
   opts = opts || {};
-  var font = FONTS[opts.font] || FONTS['4x6'];
-  var GLYPHS = font.glyphs, GLYPH_W = font.w, GLYPH_H = font.h;
+  /* Default is the AUTO ladder: every text size picks its own closest
+     native font (see fonts.pickFont). opts.font pins one font for all
+     sizes, scaled linearly — the old behaviour, kept as an override. */
+  var fixed = opts.font ? (FONTS[opts.font] || FONTS['4x6']) : null;
+  function fontFor(size) {
+    if (!fixed) return pickFont(size);
+    return { glyphs: fixed.glyphs, w: fixed.w, h: fixed.h, scale: size };
+  }
   var px = new Uint8Array(w * h * 3); // RGB, 3 bytes/pixel
   var clipRect = null;
   var storeMap = {};
@@ -99,16 +106,17 @@ function createPureJsBackend(w, h, opts) {
     line: function (x0, y0, x1, y1, color) { drawLine(x0, y0, x1, y1, toRGB(color)); },
     text: function (x, y, size, color, str) {
       var rgb = toRGB(color);
+      var f = fontFor(size);
       var s = ('' + str).toUpperCase();
       for (var i = 0; i < s.length; i++) {
-        var rows = GLYPHS[s[i]];
-        var gx = x + i * (GLYPH_W + 1) * size;
+        var rows = f.glyphs[s[i]];
+        var gx = x + i * (f.w + 1) * f.scale;
         if (!rows) continue; // unknown glyph: skip rather than draw noise
-        for (var row = 0; row < GLYPH_H; row++) {
+        for (var row = 0; row < f.h; row++) {
           var bits = rows[row];
-          for (var col = 0; col < GLYPH_W; col++) {
-            if (bits & (1 << (GLYPH_W - 1 - col))) {
-              fillRect(gx + col * size, y + row * size, size, size, rgb);
+          for (var col = 0; col < f.w; col++) {
+            if (bits & (1 << (f.w - 1 - col))) {
+              fillRect(gx + col * f.scale, y + row * f.scale, f.scale, f.scale, rgb);
             }
           }
         }
@@ -138,8 +146,10 @@ function createPureJsBackend(w, h, opts) {
     return Buffer.concat([headerBytes, Buffer.from(px.buffer, px.byteOffset, px.byteLength)]);
   }
 
+  var base = fontFor(1);
   return { gfx: gfx, sys: sys, toPPM: toPPM, width: w, height: h,
-           font: { advance: GLYPH_W + 1, lineH: GLYPH_H + 2 } };
+           font: { advance: base.advance || (base.w + 1), lineH: (base.h + 2) * (fixed ? 1 : 1),
+                   pick: fixed ? null : pickFont } };
 }
 
 if (typeof module !== 'undefined' && module.exports) {
