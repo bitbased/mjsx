@@ -23,10 +23,11 @@ var pxH = parseInt(numArgs[2] || '240', 10);
 var scale = parseInt(numArgs[3] || '3', 10);
 /* --circle previews a round display; --radius=N rounded corners; --free
    disables integer scale snapping when the window is resized. */
-var mask;
+var mask, fontName = '4x6';
 for (var fi = 0; fi < flagArgs.length; fi++) {
   if (flagArgs[fi] === '--circle') mask = 'circle';
   else if (flagArgs[fi].slice(0, 9) === '--radius=') mask = parseInt(flagArgs[fi].slice(9), 10);
+  else if (flagArgs[fi].slice(0, 7) === '--font=') fontName = flagArgs[fi].slice(7);
 }
 var snapScale = flagArgs.indexOf('--free') === -1;
 
@@ -49,7 +50,7 @@ try {
   process.exit(1);
 }
 
-var backend = require('../../pure-js/src/backend.js').createPureJsBackend(pxW, pxH);
+var backend = require('../../pure-js/src/backend.js').createPureJsBackend(pxW, pxH, { font: fontName });
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
@@ -59,6 +60,8 @@ globalThis.UI = core.UI;
 globalThis.Button = core.Button;
 globalThis.Swatch = core.Swatch;
 globalThis.em = core.em;
+core.FONT.advance = backend.font.advance;
+core.FONT.lineH = backend.font.lineH;
 
 require(path.resolve(exampleFile));
 

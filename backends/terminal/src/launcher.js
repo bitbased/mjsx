@@ -20,13 +20,17 @@ var path = require('path');
    a true preview of a pixel panel. Bare numbers are cols then rows. */
 var flagArgs = process.argv.slice(2).filter(function (a) { return a.slice(0, 2) === '--'; });
 var numArgs = process.argv.slice(2).filter(function (a) { return a.slice(0, 2) !== '--'; });
+var fontName = '4x6';
+for (var ffl = 0; ffl < flagArgs.length; ffl++) {
+  if (flagArgs[ffl].slice(0, 7) === '--font=') fontName = flagArgs[ffl].slice(7);
+}
 var pxMode = (flagArgs.indexOf('--char') !== -1 || flagArgs.indexOf('--cell') !== -1) ? 'char'
            : (flagArgs.indexOf('--block') !== -1 ? 'block' : 'pixel');
 var MODE_CYCLE = ['pixel', 'block', 'char']; // half-block detail -> font-proof blocks -> terminal text
 var cols = parseInt(numArgs[0] || String(process.stdout.columns || 80), 10);
 var rows = parseInt(numArgs[1] || String((process.stdout.rows || 24) - 1), 10);
 
-var backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode });
+var backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode, font: fontName });
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
@@ -113,7 +117,7 @@ showMenu();
    kept — a new one would restart the millis() epoch under pending timers. */
 function setMode(m) {
   pxMode = m;
-  backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode });
+  backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode, font: fontName });
   globalThis.gfx = backend.gfx;
   applyFont();
   cx = Math.min(cx, gfx.width() - 1);
@@ -151,7 +155,7 @@ process.stdout.on('resize', function () {
   if (!sizeFromTty) return;
   cols = process.stdout.columns || cols;
   rows = (process.stdout.rows || rows + 1) - 1;
-  backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode });
+  backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode, font: fontName });
   globalThis.gfx = backend.gfx;
   /* sys stays the original: a fresh backend restarts its millis() epoch,
      which would push every pending UI.setTimer deadline into the far

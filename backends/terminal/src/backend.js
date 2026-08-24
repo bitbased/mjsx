@@ -11,7 +11,7 @@
  * terminal's own font — compact and legible rather than faithful.
  */
 
-var f4 = require('../../../packages/core/src/font4x6.js');
+var FONTS = require('../../../packages/core/src/fonts.js').FONTS;
 
 var HALF_BLOCK = '\u2584'; /* ▄ LOWER half block: foreground carries the BOTTOM
    sub-pixel, background the top. Lower, not upper, deliberately: in many
@@ -33,6 +33,10 @@ function createTerminalBackend(cols, charH, opts) {
        font — compact and legible, not a pixel preview. */
   var mode = (opts.mode === 'char' || opts.mode === 'cell') ? 'char'
            : (opts.mode === 'block' ? 'block' : 'pixel');
+  /* Which bitmap font pixel/block modes rasterize with — '4x6' default
+     (terminal cells are already big); '6x8' / '12x16' when clearer text
+     matters more than space. */
+  var bfont = FONTS[opts.font] || FONTS['4x6'];
   var ySub = mode === 'pixel' ? 2 : 1; // sub-pixel rows per character row
   var xSub = mode === 'block' ? 2 : 1; // character columns per pixel
   var w = Math.floor(cols / xSub), h = charH * ySub;
@@ -89,13 +93,13 @@ function createTerminalBackend(cols, charH, opts) {
            in this mode, at all. */
         var s2 = ('' + str).toUpperCase();
         for (var gi = 0; gi < s2.length; gi++) {
-          var rows = f4.FONT4x6[s2[gi]];
-          var gx = x + gi * (f4.GLYPH_W + 1) * size;
+          var rows = bfont.glyphs[s2[gi]];
+          var gx = x + gi * (bfont.w + 1) * size;
           if (!rows) continue; // unknown glyph: skip rather than draw noise
-          for (var gr = 0; gr < f4.GLYPH_H; gr++) {
+          for (var gr = 0; gr < bfont.h; gr++) {
             var bits = rows[gr];
-            for (var gc = 0; gc < f4.GLYPH_W; gc++) {
-              if (bits & (1 << (f4.GLYPH_W - 1 - gc))) {
+            for (var gc = 0; gc < bfont.w; gc++) {
+              if (bits & (1 << (bfont.w - 1 - gc))) {
                 fillRect(gx + gc * size, y + gr * size, size, size, color >>> 0);
               }
             }
@@ -223,7 +227,7 @@ function createTerminalBackend(cols, charH, opts) {
      one row per line. quantum keeps em() spacing on whole character rows. */
   var font = mode === 'char'
     ? { advance: 1, lineH: 1, quantum: 1 }
-    : { advance: f4.GLYPH_W + 1, lineH: f4.GLYPH_H + 2, quantum: ySub };
+    : { advance: bfont.w + 1, lineH: bfont.h + 2, quantum: ySub };
   return { gfx: gfx, sys: sys, toAnsi: toAnsi, width: w, height: charH, mode: mode, ySub: ySub, xSub: xSub, font: font };
 }
 

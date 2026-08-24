@@ -40,6 +40,17 @@ for (var fi = 0; fi < flagArgs.length; fi++) {
 var SIZES = [[240, 240], [240, 320], [172, 320], [128, 128], [320, 480]];
 var snapScale = flagArgs.indexOf('--free') === -1;
 
+/* Three font sizes, cycled by the toolbar's FONT button: tiny hand-drawn
+   4x6, clear 6x8, large Scale2x-smoothed 12x16. --font=NAME picks the
+   start. */
+var FONT_CYCLE = ['4x6', '6x8', '12x16'];
+var fontName = '4x6';
+for (var ffi = 0; ffi < flagArgs.length; ffi++) {
+  if (flagArgs[ffi].slice(0, 7) === '--font=' && FONT_CYCLE.indexOf(flagArgs[ffi].slice(7)) !== -1) {
+    fontName = flagArgs[ffi].slice(7);
+  }
+}
+
 var TB_H = 12, TB_SCALE = 2;
 var createSdlWindow = require('./window.js').createSdlWindow;
 var createPureJsBackend = require('../../pure-js/src/backend.js').createPureJsBackend;
@@ -63,7 +74,7 @@ try {
   process.exit(1);
 }
 
-var backend = createPureJsBackend(pxW, pxH);
+var backend = createPureJsBackend(pxW, pxH, { font: fontName });
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
@@ -84,6 +95,12 @@ function freshCore() {
   globalThis.Button = core.Button;
   globalThis.Swatch = core.Swatch;
   globalThis.em = core.em;
+  /* Every fresh core learns the current font's metrics, so em() spacing and
+     fitText widths always match what the backend actually rasterizes. */
+  if (typeof backend !== 'undefined' && backend.font) {
+    core.FONT.advance = backend.font.advance;
+    core.FONT.lineH = backend.font.lineH;
+  }
   return core;
 }
 freshCore();
@@ -177,6 +194,10 @@ function toolbarFrame() {
     var t = pxW; pxW = pxH; pxH = t;
     rebuild();
   });
+  btn('FONT:' + fontName.toUpperCase(), function () {
+    fontName = FONT_CYCLE[(FONT_CYCLE.indexOf(fontName) + 1) % FONT_CYCLE.length];
+    rebuild();
+  });
   var ppm = tb.toPPM(), idx = 0, nl = 0;
   while (nl < 3) { if (ppm[idx++] === 10) nl++; }
   return ppm.subarray(idx);
@@ -190,7 +211,7 @@ function toolbarFrame() {
 function rebuild() {
   win.setMask(SHAPES[shapeIdx].mask);
   win.setScreenSize(pxW, pxH);
-  backend = createPureJsBackend(pxW, pxH);
+  backend = createPureJsBackend(pxW, pxH, { font: fontName });
   globalThis.gfx = backend.gfx;
   if (current) loadExample(current); else showMenu();
   UI._dirty = true;

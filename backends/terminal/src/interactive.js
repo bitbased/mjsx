@@ -20,6 +20,10 @@ var path = require('path');
    half-block sub-pixels. Bare args are <example.jsx> [cols] [rows]. */
 var flagArgs = process.argv.slice(2).filter(function (a) { return a.slice(0, 2) === '--'; });
 var numArgs = process.argv.slice(2).filter(function (a) { return a.slice(0, 2) !== '--'; });
+var fontName = '4x6';
+for (var ffl = 0; ffl < flagArgs.length; ffl++) {
+  if (flagArgs[ffl].slice(0, 7) === '--font=') fontName = flagArgs[ffl].slice(7);
+}
 var pxMode = (flagArgs.indexOf('--char') !== -1 || flagArgs.indexOf('--cell') !== -1) ? 'char'
            : (flagArgs.indexOf('--block') !== -1 ? 'block' : 'pixel');
 var exampleFile = numArgs[0];
@@ -31,7 +35,7 @@ if (!exampleFile) {
   process.exit(1);
 }
 
-var backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode });
+var backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode, font: fontName });
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
@@ -78,7 +82,7 @@ process.stdout.on('resize', function () {
   if (!sizeFromTty) return;
   cols = process.stdout.columns || cols;
   rows = (process.stdout.rows || rows + 1) - 1;
-  backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode });
+  backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: pxMode, font: fontName });
   globalThis.gfx = backend.gfx;
   cx = Math.min(cx, gfx.width() - 1);
   cy = Math.min(cy, gfx.height() - 1);

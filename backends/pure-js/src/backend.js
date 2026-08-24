@@ -20,14 +20,19 @@
  * font has no lowercase table, not because mjsx cares about case.
  */
 
-var f4 = require('./../../../packages/core/src/font4x6.js');
-var FONT4x6 = f4.FONT4x6, GLYPH_W = f4.GLYPH_W, GLYPH_H = f4.GLYPH_H;
+/* Fonts come from the shared registry ('4x6' tiny, '6x8' clear, '12x16'
+   large); an instance picks one at creation (opts.font) and reports its
+   metrics as backend.font so the runner can hand them to mjsx-core. */
+var FONTS = require('./../../../packages/core/src/fonts.js').FONTS;
 
 /* Creates a fresh backend bound to one W x H canvas. Multiple backends can
    coexist in the same process (each with its own gfx/sys/UI trio via
    mjsx.createInstance-style usage) — see run.js for how an example wires
    one up. */
-function createPureJsBackend(w, h) {
+function createPureJsBackend(w, h, opts) {
+  opts = opts || {};
+  var font = FONTS[opts.font] || FONTS['4x6'];
+  var GLYPHS = font.glyphs, GLYPH_W = font.w, GLYPH_H = font.h;
   var px = new Uint8Array(w * h * 3); // RGB, 3 bytes/pixel
   var clipRect = null;
   var storeMap = {};
@@ -96,7 +101,7 @@ function createPureJsBackend(w, h) {
       var rgb = toRGB(color);
       var s = ('' + str).toUpperCase();
       for (var i = 0; i < s.length; i++) {
-        var rows = FONT4x6[s[i]];
+        var rows = GLYPHS[s[i]];
         var gx = x + i * (GLYPH_W + 1) * size;
         if (!rows) continue; // unknown glyph: skip rather than draw noise
         for (var row = 0; row < GLYPH_H; row++) {
@@ -133,7 +138,8 @@ function createPureJsBackend(w, h) {
     return Buffer.concat([headerBytes, Buffer.from(px.buffer, px.byteOffset, px.byteLength)]);
   }
 
-  return { gfx: gfx, sys: sys, toPPM: toPPM, width: w, height: h };
+  return { gfx: gfx, sys: sys, toPPM: toPPM, width: w, height: h,
+           font: { advance: GLYPH_W + 1, lineH: GLYPH_H + 2 } };
 }
 
 if (typeof module !== 'undefined' && module.exports) {
