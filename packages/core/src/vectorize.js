@@ -81,7 +81,40 @@ function vectorize(rows, w, h) {
       if (ink(x, y) && !cov(x, y)) dots.push([x + 0.5, y + 0.5]);
     }
   }
-  return { s: segs, d: dots };
+
+  /* Corner connectors: where two stroke ends (or dots) sit EXACTLY
+     diagonal-adjacent with an empty corner cell between them, join them
+     with a 45-degree stroke. Deterministic and uniform — this is what
+     closes O/8/D bowls into consistent octagonal corners and gives the
+     comma its tail, without inventing arbitrary angles anywhere. */
+  var pts = [];
+  for (var pi = 0; pi < segs.length; pi++) {
+    pts.push([segs[pi][0], segs[pi][1]]);
+    pts.push([segs[pi][2], segs[pi][3]]);
+  }
+  var dotUsed = [];
+  for (pi = 0; pi < dots.length; pi++) { pts.push(dots[pi]); dotUsed.push(false); }
+  var segN = segs.length * 2;
+  for (var ai = 0; ai < pts.length; ai++) {
+    for (var bi = ai + 1; bi < pts.length; bi++) {
+      /* both ends of the same segment can never be diagonal-adjacent
+         except for a 45 stub, which needs no connector */
+      if (ai < segN && bi < segN && (ai >> 1) === (bi >> 1)) continue;
+      var adx = pts[bi][0] - pts[ai][0], ady = pts[bi][1] - pts[ai][1];
+      if (Math.abs(Math.abs(adx) - 1) > 0.01 || Math.abs(Math.abs(ady) - 1) > 0.01) continue;
+      /* the two corner cells of the diagonal step */
+      var c1x = Math.floor(pts[ai][0] + adx), c1y = Math.floor(pts[ai][1]);
+      var c2x = Math.floor(pts[ai][0]), c2y = Math.floor(pts[ai][1] + ady);
+      if (ink(c1x, c1y) && ink(c2x, c2y)) continue; /* solid corner: already joined by ink */
+      segs.push([pts[ai][0], pts[ai][1], pts[bi][0], pts[bi][1]]);
+      if (ai >= segN) dotUsed[ai - segN] = true;
+      if (bi >= segN) dotUsed[bi - segN] = true;
+    }
+  }
+  var keptDots = [];
+  for (pi = 0; pi < dots.length; pi++) if (!dotUsed[pi]) keptDots.push(dots[pi]);
+
+  return { s: segs, d: keptDots };
 }
 
 if (typeof module !== 'undefined' && module.exports) {

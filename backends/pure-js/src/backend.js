@@ -118,10 +118,11 @@ function createPureJsBackend(w, h, opts) {
      them with rounded caps and true diagonals. Vectorizations are memoised
      per glyph table. */
   var _vecCache = new Map();
-  function vecGlyph(glyphs, ch, w2, h2) {
-    var tbl = _vecCache.get(glyphs);
-    if (!tbl) { tbl = {}; _vecCache.set(glyphs, tbl); }
-    if (!tbl[ch]) tbl[ch] = vectorize(glyphs[ch], w2, h2);
+  function vecGlyph(fnt, ch) {
+    if (fnt.strokes && fnt.strokes[ch]) return fnt.strokes[ch]; /* authored wins */
+    var tbl = _vecCache.get(fnt.glyphs);
+    if (!tbl) { tbl = {}; _vecCache.set(fnt.glyphs, tbl); }
+    if (!tbl[ch]) tbl[ch] = vectorize(fnt.glyphs[ch], fnt.w, fnt.h);
     return tbl[ch];
   }
   function drawVecGlyph(vg, ox, oy, u, rgb) {
@@ -224,7 +225,7 @@ function createPureJsBackend(w, h, opts) {
         var s2v = ('' + str).toUpperCase();
         for (var vi = 0; vi < s2v.length; vi++) {
           if (!vbase.glyphs[s2v[vi]]) continue; // unknown glyph: skip, like the bitmap path
-          drawVecGlyph(vecGlyph(vbase.glyphs, s2v[vi], vbase.w, vbase.h),
+          drawVecGlyph(vecGlyph(vbase, s2v[vi]),
                        x * dpr + vi * cellAdv2, y * dpr, u, rgb);
         }
         return;

@@ -13,6 +13,7 @@
  */
 var f4 = require('./font4x6.js');
 var f6 = require('./font6x8.js');
+var STROKES = require('./strokes.js').STROKES;
 
 function bit(rows, w, x, y, h) {
   if (x < 0 || y < 0 || x >= w || y >= h) return 0;
@@ -95,8 +96,8 @@ function scale3x(glyphs, w, h) {
 }
 
 var FONTS = {
-  '4x6': { glyphs: f4.FONT4x6, w: f4.GLYPH_W, h: f4.GLYPH_H, d: 6, fam: '4x6' },
-  '6x8': { glyphs: f6.FONT6x8, w: f6.GLYPH_W, h: f6.GLYPH_H, d: 8, fam: '6x8' }
+  '4x6': { glyphs: f4.FONT4x6, w: f4.GLYPH_W, h: f4.GLYPH_H, d: 6, fam: '4x6', strokes: STROKES['4x6'] },
+  '6x8': { glyphs: f6.FONT6x8, w: f6.GLYPH_W, h: f6.GLYPH_H, d: 8, fam: '6x8', strokes: STROKES['6x8'] }
 };
 FONTS['8x12'] = { glyphs: scale2x(FONTS['4x6'].glyphs, 4, 6), w: 8, h: 12, d: 6, fam: '4x6' };
 FONTS['12x16'] = { glyphs: scale2x(FONTS['6x8'].glyphs, 6, 8), w: 12, h: 16, d: 8, fam: '6x8' };
