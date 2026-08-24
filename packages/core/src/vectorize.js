@@ -75,6 +75,23 @@ function vectorize(rows, w, h) {
       }
     }
   }
+  /* Diagonal strokes extend one 45-degree step into adjacent ink, so a
+     leg sampled as a short stair (N's middle, K's legs, R's leg) attaches
+     to the stem the bitmap implies it meets — deterministic, same angle
+     the stroke already has. */
+  for (var di2 = 0; di2 < segs.length; di2++) {
+    var sg2 = segs[di2];
+    var sdx = sg2[2] - sg2[0], sdy = sg2[3] - sg2[1];
+    if (sdx === 0 || sdy === 0) continue;
+    var ux = sdx > 0 ? 1 : -1, uy = sdy > 0 ? 1 : -1;
+    /* forward end */
+    var fx = Math.floor(sg2[2]) + ux, fy = Math.floor(sg2[3]) + uy;
+    if (ink(fx, fy) && cov(fx, fy)) { sg2[2] = fx + 0.5; sg2[3] = fy + 0.5; }
+    /* backward end */
+    var bx = Math.floor(sg2[0]) - ux, by = Math.floor(sg2[1]) - uy;
+    if (ink(bx, by) && cov(bx, by)) { sg2[0] = bx + 0.5; sg2[1] = by + 0.5; }
+  }
+
   /* whatever is still uncovered is a dot */
   for (y = 0; y < h; y++) {
     for (x = 0; x < w; x++) {
