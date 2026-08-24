@@ -67,12 +67,26 @@ var backend = createPureJsBackend(pxW, pxH);
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
-var core = require('../../../packages/core/src/mjsx.js');
-globalThis.h = core.h;
-globalThis.UI = core.UI;
-globalThis.Button = core.Button;
-globalThis.Swatch = core.Swatch;
-globalThis.em = core.em;
+/* Each example gets a FRESH core module — a brand-new UI singleton, so no
+   JS state (UI.state, scroll offsets, onTick/onKey handlers, timers) can
+   cross from one example to the next. The only remaining shared surface is
+   globalThis itself, exactly like flashing a new script to a device. On
+   MicroQuickJS hosts the same two levels exist: UI.reset() within one
+   persistent context (cheap), or tearing the context down and calling
+   JS_NewContext on a fresh arena (hard isolation — the engine supports it,
+   and even several arenas at once; RAM is the only real budget). */
+var CORE = require.resolve('../../../packages/core/src/mjsx.js');
+function freshCore() {
+  delete require.cache[CORE];
+  var core = require(CORE);
+  globalThis.h = core.h;
+  globalThis.UI = core.UI;
+  globalThis.Button = core.Button;
+  globalThis.Swatch = core.Swatch;
+  globalThis.em = core.em;
+  return core;
+}
+freshCore();
 
 var EXAMPLES_DIR = path.resolve(__dirname, '../../../examples');
 var examples = fs.readdirSync(EXAMPLES_DIR).filter(function (name) {
@@ -82,6 +96,7 @@ var examples = fs.readdirSync(EXAMPLES_DIR).filter(function (name) {
 /* Same fresh-require trick as the terminal launcher: repeat picks must
    re-run the example's top-level UI.mount. */
 function loadExample(name) {
+  freshCore();
   var file = path.join(EXAMPLES_DIR, name, 'app.jsx');
   delete require.cache[require.resolve(file)];
   require(file);
@@ -103,7 +118,7 @@ function Menu() {
   return h('box', { pad: em(2), gap: em(0.75), h: gfx.height(), scroll: 'menu' }, kids);
 }
 
-function showMenu() { current = null; UI.mount(Menu); }
+function showMenu() { current = null; freshCore(); UI.mount(Menu); }
 var current = null;
 if (exampleName) {
   if (examples.indexOf(exampleName) === -1) {
@@ -136,7 +151,6 @@ function toolbarFrame() {
     x += bw + 4;
   }
   btn('RESTART', function () {
-    UI.state = {};
     if (current) loadExample(current); else showMenu();
   });
   btn('MENU', showMenu);
@@ -178,7 +192,6 @@ function rebuild() {
   win.setScreenSize(pxW, pxH);
   backend = createPureJsBackend(pxW, pxH);
   globalThis.gfx = backend.gfx;
-  UI.state = {};
   if (current) loadExample(current); else showMenu();
   UI._dirty = true;
 }

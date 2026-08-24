@@ -30,13 +30,22 @@ var backend = require('./backend.js').createTerminalBackend(cols, rows, { mode: 
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
-var core = require('../../../packages/core/src/mjsx.js');
-globalThis.h = core.h;
-globalThis.UI = core.UI;
-globalThis.Button = core.Button;
-globalThis.Swatch = core.Swatch;
-globalThis.em = core.em;
-applyFont();
+/* Fresh core per example — a brand-new UI singleton so nothing (state,
+   scroll offsets, handlers, timers) crosses between examples. Font metrics
+   are re-applied each time since they live on the new module's FONT. */
+var CORE = require.resolve('../../../packages/core/src/mjsx.js');
+var core;
+function freshCore() {
+  delete require.cache[CORE];
+  core = require(CORE);
+  globalThis.h = core.h;
+  globalThis.UI = core.UI;
+  globalThis.Button = core.Button;
+  globalThis.Swatch = core.Swatch;
+  globalThis.em = core.em;
+  applyFont();
+}
+freshCore();
 function applyFont() {
   /* The backend knows its own text metrics — pixel mode has real glyph
      dimensions, char mode is one cell per char, one row per line. */
@@ -61,6 +70,7 @@ var examples = fs.readdirSync(EXAMPLES_DIR).filter(function (name) {
  * top-level code calls it, exactly as it does run standalone.
  */
 function loadExample(name) {
+  freshCore();
   var file = path.join(EXAMPLES_DIR, name, 'app.jsx');
   var resolved = require.resolve(file);
   delete require.cache[resolved];
@@ -95,7 +105,7 @@ function Menu() {
   return h('box', { pad: em(1), gap: em(0.5), h: gfx.height(), scroll: 'menu' }, kids);
 }
 
-function showMenu() { UI.mount(Menu); }
+function showMenu() { freshCore(); UI.mount(Menu); }
 showMenu();
 
 /* Swap pixel density live: a fresh backend at the same cols/rows, the font

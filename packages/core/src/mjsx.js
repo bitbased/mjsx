@@ -510,6 +510,30 @@ var UI = {
     this._listeners = {};
     this._dirty = true;
   },
+
+  /* Boot boundary: return the singleton to power-on state before handing
+     the UI to a DIFFERENT script. mount() alone deliberately keeps
+     app-owned things (state, scroll positions, onTick/onKey) so a script
+     can remount its own root; reset() is for hosts swapping scripts in one
+     persistent context — an ESP32 loading a new bundle, a launcher
+     switching examples. Everything app-visible goes back to nothing. */
+  reset: function () {
+    this.root = null;
+    this.modal = null;
+    this.state = {};
+    this._hits = [];
+    this._scroll = {};
+    this._swipes = [];
+    this._ptrs = {};
+    this._flings = [];
+    this._timers = [];
+    this._listeners = {};
+    this.onTick = null;
+    this.onKey = null;
+    this.onPatch = null;
+    this.onLongPressFeedback = null;
+    this._dirty = true;
+  },
   /* A modal is just a component drawn last. Pages open one instead of
      routing to a page, so the thing being edited stays on screen behind it
      and no page has to know it can be interrupted. */
