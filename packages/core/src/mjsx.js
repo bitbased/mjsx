@@ -105,14 +105,15 @@ function em(n) {
 function fadv(size) { return FONT.pick ? FONT.pick(size).advance : FONT.advance * size; }
 function flh(size) { return FONT.pick ? FONT.pick(size).lineH - 2 : FONT.lineH * size; }
 
-/* Truncate to a width, marking the cut. Assumes no ellipsis glyph, so three
-   dots stand in for one — matches every bitmap font this has run against. */
+/* Truncate to a width, marking the cut with the fonts' ellipsis glyph —
+   one character instead of three dots, so truncation keeps two more
+   characters of the actual text. */
 function fitText(str, size, availW) {
   var s = '' + str;
   var maxChars = Math.floor(availW / fadv(size));
   if (s.length <= maxChars) return s;
-  if (maxChars <= 3) return s.substring(0, maxChars);
-  return s.substring(0, maxChars - 3) + '...';
+  if (maxChars <= 1) return s.substring(0, maxChars);
+  return s.substring(0, maxChars - 1) + '\u2026';
 }
 
 function textLines(str, size, availW) {
