@@ -276,33 +276,71 @@ function draw(node, x, y, availW, forcedH) {
     }
     return 0;
   } else if (t === 'path') {
-    /* A connected polyline stroke. Thickness works like the line mark
-       (w parallel 1px lines per segment), and the joins and caps are
-       rounded with filled discs at every point - the portable way to a
-       clean joined path with only line() and circle() in the contract.
-       (True miter joins need polygon fill, which the native contract
-       deliberately does not have.) */
-    var pts5 = p.pts || [];
+    /* A polyline stroke, and optionally an SVG-style filled shape.
+       `pts` is a point list, or a list of point lists (subpaths). `fill`
+       scanline-fills with the EVEN-ODD rule - alternating spans, so
+       self-intersecting shapes and multi-subpath holes (a donut) fill the
+       way SVG's fill-rule=evenodd does - decomposed into 1px frect spans,
+       which is all the native contract needs. `close` strokes the closing
+       segment of each subpath (filling implies closed GEOMETRY either
+       way). Stroke thickness works like the line mark (w parallel lines)
+       with filled discs at points for rounded joins and caps; true miter
+       joins would need polygon stroking the contract does not have. */
+    var subs5 = (p.pts && p.pts.length && p.pts[0] && p.pts[0].length !== undefined) ? p.pts : [p.pts || []];
     var pc5 = p.color === undefined ? UI.theme.muted : p.color;
     var pw5 = p.w || 1;
-    for (var pi5 = 1; pi5 < pts5.length; pi5++) {
-      var ax5 = pts5[pi5 - 1].x, ay5 = pts5[pi5 - 1].y;
-      var bx5 = pts5[pi5].x, by5 = pts5[pi5].y;
-      var steep5 = Math.abs(by5 - ay5) > Math.abs(bx5 - ax5);
-      var ox5 = steep5 ? 1 : 0, oy5 = steep5 ? 0 : 1;
-      for (var lq5 = 0; lq5 < pw5; lq5++) {
-        var lo5 = lq5 - ((pw5 - 1) >> 1);
-        gfx.line(x + ax5 + ox5 * lo5, y + ay5 + oy5 * lo5,
-                 x + bx5 + ox5 * lo5, y + by5 + oy5 * lo5, pc5);
+    if (p.fill !== undefined) {
+      var minY5 = 1e9, maxY5 = -1e9, e5 = [];
+      for (var sp5 = 0; sp5 < subs5.length; sp5++) {
+        var sq5 = subs5[sp5];
+        for (var se5 = 0; se5 < sq5.length; se5++) {
+          var pA5 = sq5[se5], pB5 = sq5[(se5 + 1) % sq5.length];
+          if (pA5.y !== pB5.y) e5.push([pA5.x, pA5.y, pB5.x, pB5.y]);
+          if (pA5.y < minY5) minY5 = pA5.y;
+          if (pA5.y > maxY5) maxY5 = pA5.y;
+        }
+      }
+      for (var sy5 = Math.floor(minY5); sy5 <= Math.ceil(maxY5); sy5++) {
+        var cy5 = sy5 + 0.5, xs5 = [];
+        for (var ei5 = 0; ei5 < e5.length; ei5++) {
+          var ed5 = e5[ei5];
+          var lo9 = ed5[1] < ed5[3] ? ed5[1] : ed5[3];
+          var hi9 = ed5[1] < ed5[3] ? ed5[3] : ed5[1];
+          if (cy5 >= lo9 && cy5 < hi9) {
+            xs5.push(ed5[0] + (ed5[2] - ed5[0]) * (cy5 - ed5[1]) / (ed5[3] - ed5[1]));
+          }
+        }
+        xs5.sort(function (a5, b5) { return a5 - b5; });
+        for (var xp5 = 0; xp5 + 1 < xs5.length; xp5 += 2) {
+          var fx5 = Math.round(xs5[xp5]), tx5 = Math.round(xs5[xp5 + 1]);
+          if (tx5 > fx5) gfx.frect(x + fx5, y + sy5, tx5 - fx5, 1, p.fill, 0);
+        }
       }
     }
-    if (pw5 >= 3) {
-      var jr5 = pw5 >> 1;
-      for (var pj5 = 0; pj5 < pts5.length; pj5++) {
-        gfx.circle(x + pts5[pj5].x, y + pts5[pj5].y, jr5, pc5, true);
+    for (var sp6 = 0; sp6 < subs5.length; sp6++) {
+      var pts5 = subs5[sp6];
+      var segN5 = (p.close || p.fill !== undefined) && pts5.length > 2 ? pts5.length : pts5.length - 1;
+      if (p.color !== undefined || p.fill === undefined) {
+        for (var pi5 = 0; pi5 < segN5; pi5++) {
+          var ax5 = pts5[pi5].x, ay5 = pts5[pi5].y;
+          var bx5 = pts5[(pi5 + 1) % pts5.length].x, by5 = pts5[(pi5 + 1) % pts5.length].y;
+          var steep5 = Math.abs(by5 - ay5) > Math.abs(bx5 - ax5);
+          var ox5 = steep5 ? 1 : 0, oy5 = steep5 ? 0 : 1;
+          for (var lq5 = 0; lq5 < pw5; lq5++) {
+            var lo5 = lq5 - ((pw5 - 1) >> 1);
+            gfx.line(x + ax5 + ox5 * lo5, y + ay5 + oy5 * lo5,
+                     x + bx5 + ox5 * lo5, y + by5 + oy5 * lo5, pc5);
+          }
+        }
+        if (pw5 >= 3) {
+          var jr5 = pw5 >> 1;
+          for (var pj5 = 0; pj5 < pts5.length; pj5++) {
+            gfx.circle(x + pts5[pj5].x, y + pts5[pj5].y, jr5, pc5, true);
+          }
+        } else if (pts5.length === 1) {
+          gfx.line(x + pts5[0].x, y + pts5[0].y, x + pts5[0].x, y + pts5[0].y, pc5);
+        }
       }
-    } else if (pts5.length === 1) {
-      gfx.line(x + pts5[0].x, y + pts5[0].y, x + pts5[0].x, y + pts5[0].y, pc5);
     }
     return 0;
   } else if (t === 'abs') {
