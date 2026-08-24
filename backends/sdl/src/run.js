@@ -23,13 +23,13 @@ var pxH = parseInt(numArgs[2] || '240', 10);
 var scale = parseInt(numArgs[3] || '3', 10);
 /* --circle previews a round display; --radius=N rounded corners; --free
    disables integer scale snapping when the window is resized. */
-var mask, fontName = 'auto', dpr = 1, fontScale = 'smooth';
+var mask, fontName = 'auto', dpr = 1, fontScale = 'vector';
 for (var fi = 0; fi < flagArgs.length; fi++) {
   if (flagArgs[fi] === '--circle') mask = 'circle';
   else if (flagArgs[fi].slice(0, 9) === '--radius=') mask = parseInt(flagArgs[fi].slice(9), 10);
   else if (flagArgs[fi].slice(0, 7) === '--font=') fontName = flagArgs[fi].slice(7);
   else if (flagArgs[fi].slice(0, 6) === '--dpr=') dpr = parseInt(flagArgs[fi].slice(6), 10) || 1;
-  else if (flagArgs[fi] === '--fontscale=pixel') fontScale = 'pixel';
+  else if (flagArgs[fi].slice(0, 12) === '--fontscale=') fontScale = flagArgs[fi].slice(12);
 }
 var snapScale = flagArgs.indexOf('--free') === -1;
 

@@ -43,7 +43,7 @@ var snapScale = flagArgs.indexOf('--free') === -1;
    scale, so shapes rasterize with real sub-pixel geometry instead of
    blown-up pixels. Toggled from the toolbar; --hd starts on. */
 var hd = flagArgs.indexOf('--hd') !== -1;
-var fontScale = flagArgs.indexOf('--fontscale=pixel') !== -1 ? 'pixel' : 'smooth';
+var fontScale = flagArgs.indexOf('--fontscale=pixel') !== -1 ? 'pixel' : (flagArgs.indexOf('--fontscale=smooth') !== -1 ? 'smooth' : 'vector');
 function dprNow() { return hd ? scale : 1; }
 
 /* Three font sizes, cycled by the toolbar's FONT button: tiny hand-drawn

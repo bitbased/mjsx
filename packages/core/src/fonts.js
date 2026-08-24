@@ -56,6 +56,44 @@ function scale2x(glyphs, w, h) {
    (dpr) rendering upgrades resolution WITHIN a family — same face, smoother
    — so a 4x6-class text keeps looking like the 4x6, never silently swaps
    to another face. A future vector family slots in here the same way. */
+/* Scale3x (AdvMAME3x): the 3x sibling of scale2x, so families have exact
+   1x/2x/3x/4x members and precise mode can hit every dpr without falling
+   back to blocky stamping. */
+function scale3x(glyphs, w, h) {
+  var out = {};
+  for (var ch in glyphs) {
+    var src = glyphs[ch];
+    var rows = [];
+    for (var i = 0; i < h * 3; i++) rows.push(0);
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var E = bit(src, w, x, y, h);
+        var A = bit(src, w, x - 1, y - 1, h), B = bit(src, w, x, y - 1, h), C = bit(src, w, x + 1, y - 1, h);
+        var D = bit(src, w, x - 1, y, h), F = bit(src, w, x + 1, y, h);
+        var G = bit(src, w, x - 1, y + 1, h), H = bit(src, w, x, y + 1, h), I = bit(src, w, x + 1, y + 1, h);
+        var e = [E, E, E, E, E, E, E, E, E];
+        if (B !== H && D !== F) {
+          e[0] = D === B ? D : E;
+          e[1] = (D === B && E !== C) || (B === F && E !== A) ? B : E;
+          e[2] = B === F ? F : E;
+          e[3] = (D === B && E !== G) || (D === H && E !== A) ? D : E;
+          e[4] = E;
+          e[5] = (B === F && E !== I) || (H === F && E !== C) ? F : E;
+          e[6] = D === H ? D : E;
+          e[7] = (D === H && E !== I) || (H === F && E !== G) ? H : E;
+          e[8] = H === F ? F : E;
+        }
+        var w3 = w * 3;
+        for (var q = 0; q < 9; q++) {
+          if (e[q]) rows[y * 3 + Math.floor(q / 3)] |= 1 << (w3 - 1 - (x * 3 + (q % 3)));
+        }
+      }
+    }
+    out[ch] = rows;
+  }
+  return out;
+}
+
 var FONTS = {
   '4x6': { glyphs: f4.FONT4x6, w: f4.GLYPH_W, h: f4.GLYPH_H, d: 6, fam: '4x6' },
   '6x8': { glyphs: f6.FONT6x8, w: f6.GLYPH_W, h: f6.GLYPH_H, d: 8, fam: '6x8' }
@@ -65,6 +103,10 @@ FONTS['12x16'] = { glyphs: scale2x(FONTS['6x8'].glyphs, 6, 8), w: 12, h: 16, d: 
 FONTS['16x24'] = { glyphs: scale2x(FONTS['8x12'].glyphs, 8, 12), w: 16, h: 24, d: 6, fam: '4x6' };
 FONTS['24x32'] = { glyphs: scale2x(FONTS['12x16'].glyphs, 12, 16), w: 24, h: 32, d: 8, fam: '6x8' };
 FONTS['32x48'] = { glyphs: scale2x(FONTS['16x24'].glyphs, 16, 24), w: 32, h: 48, d: 6, fam: '4x6' };
+FONTS['12x18'] = { glyphs: scale3x(FONTS['4x6'].glyphs, 4, 6), w: 12, h: 18, d: 6, fam: '4x6' };
+FONTS['18x24'] = { glyphs: scale3x(FONTS['6x8'].glyphs, 6, 8), w: 18, h: 24, d: 8, fam: '6x8' };
+FONTS['24x36'] = { glyphs: scale2x(FONTS['12x18'].glyphs, 12, 18), w: 24, h: 36, d: 6, fam: '4x6' };
+FONTS['36x48'] = { glyphs: scale2x(FONTS['18x24'].glyphs, 18, 24), w: 36, h: 48, d: 8, fam: '6x8' };
 
 /* Per-size font selection — the point of having several fonts at all. A
  * text size names a TARGET height (6px per step, the historic 4x6 ladder)

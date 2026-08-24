@@ -24,6 +24,7 @@
    large); an instance picks one at creation (opts.font) and reports its
    metrics as backend.font so the runner can hand them to mjsx-core. */
 var raster = require('./../../../packages/core/src/raster.js');
+var VEC = require('./../../../packages/core/src/vecfont.js').VEC;
 var fontsMod = require('./../../../packages/core/src/fonts.js');
 var FONTS = fontsMod.FONTS, pickFont = fontsMod.pickFont;
 
@@ -37,11 +38,13 @@ function createPureJsBackend(w, h, opts) {
      native font (see fonts.pickFont). opts.font pins one font for all
      sizes, scaled linearly — the old behaviour, kept as an override. */
   var fixed = opts.font ? (FONTS[opts.font] || FONTS['4x6']) : null;
-  /* How text sharpens in precise (dpr) mode: 'smooth' (default) upgrades to
-     the same FAMILY's higher-resolution face — identical letterforms, real
-     detail; 'pixel' stamps the logical font at dpr for the authentic chunky
-     device look. */
-  var fontScaleMode = opts.fontScale === 'pixel' ? 'pixel' : 'smooth';
+  /* How text sharpens in precise (dpr) mode:
+       'vector' (default) — the designed stroke face, same grid and metrics
+         as the bitmap class, rasterized with a round pen at any dpr;
+       'smooth' — the same family's higher-resolution bitmap member;
+       'pixel'  — stamp the logical font at dpr, authentic chunky look. */
+  var fontScaleMode = opts.fontScale === 'pixel' ? 'pixel'
+                    : (opts.fontScale === 'smooth' ? 'smooth' : 'vector');
   function fontFor(size) {
     if (!fixed) return pickFont(size);
     return { glyphs: fixed.glyphs, w: fixed.w, h: fixed.h, scale: size, fam: fixed.fam };
@@ -109,6 +112,40 @@ function createPureJsBackend(w, h, opts) {
     }
   }
 
+  /* Round-pen stroke rasterizer for the vector face: every glyph stroke is
+     sampled along its length and stamped with a filled disc — smooth joins
+     and rounded caps come free. The pen is one glyph-grid pixel of the
+     active font class, so stroke weight matches the bitmap's. */
+  function drawVecGlyph(glyph, ox, oy, gw, gh, penR, rgb) {
+    function disc(cx2, cy2) {
+      var r = penR, ri = Math.ceil(r);
+      for (var dy = -ri; dy <= ri; dy++) {
+        for (var dx = -ri; dx <= ri; dx++) {
+          if (dx * dx + dy * dy <= r * r) setPixel(Math.round(cx2 + dx), Math.round(cy2 + dy), rgb);
+        }
+      }
+    }
+    var pi, k;
+    for (pi = 0; pi < glyph.p.length; pi++) {
+      var pts = glyph.p[pi];
+      for (k = 0; k + 3 < pts.length; k += 2) {
+        var x0 = ox + pts[k] * gw, y0 = oy + pts[k + 1] * gh;
+        var x1 = ox + pts[k + 2] * gw, y1 = oy + pts[k + 3] * gh;
+        var len = Math.max(1, Math.hypot(x1 - x0, y1 - y0));
+        var steps = Math.ceil(len / Math.max(1, penR * 0.6));
+        for (var t = 0; t <= steps; t++) {
+          disc(x0 + (x1 - x0) * (t / steps), y0 + (y1 - y0) * (t / steps));
+        }
+      }
+    }
+    for (pi = 0; pi < glyph.d.length; pi++) {
+      var d0 = glyph.d[pi];
+      var save = penR; penR = penR * 1.35;
+      disc(ox + d0[0] * gw, oy + d0[1] * gh);
+      penR = save;
+    }
+  }
+
   /* The highest-resolution member of the SAME FAMILY as the logical font,
      fitting the dpr-scaled cell budget (height AND advance, so precise text
      can never outgrow the space layout reserved for it). Same letterforms,
@@ -125,8 +162,12 @@ function createPureJsBackend(w, h, opts) {
         for (var sc = 1; sc <= dpr; sc++) {
           var hh = f.h * sc, aa = (f.w + 1) * sc;
           if (hh > budgetH || aa > budgetAdv) continue;
-          if (!best || hh > best.h * best.scale ||
-              (hh === best.h * best.scale && f.h > best.h)) {
+          /* Native resolution FIRST — a smooth 12x18 at 1x beats a blocky
+             4x6 stamped 3x even though both land at 18 — then rendered
+             height, then the least scaling. */
+          if (!best || f.h > best.h ||
+              (f.h === best.h && (hh > best.h * best.scale ||
+               (hh === best.h * best.scale && sc < best.scale)))) {
             best = { glyphs: f.glyphs, w: f.w, h: f.h, scale: sc };
           }
         }
@@ -165,6 +206,24 @@ function createPureJsBackend(w, h, opts) {
     },
     text: function (x, y, size, color, str) {
       var rgb = toRGB(color);
+      if (dpr > 1 && fontScaleMode === 'vector') {
+        /* Vector face in the logical font's exact cell: same advance, same
+           height, designed curves instead of scaled pixels. Glyphs the
+           stroke face lacks fall through to the bitmap path below. */
+        var lf2 = fontFor(size);
+        var cellAdv2 = (lf2.w + 1) * lf2.scale * dpr;
+        var gw = lf2.w * lf2.scale * dpr, gh = lf2.h * lf2.scale * dpr;
+        var penR = (gh / lf2.h) * 0.5;
+        var s2v = ('' + str).toUpperCase();
+        var allKnown = true;
+        for (var vi = 0; vi < s2v.length; vi++) if (!VEC[s2v[vi]]) { allKnown = false; break; }
+        if (allKnown) {
+          for (vi = 0; vi < s2v.length; vi++) {
+            drawVecGlyph(VEC[s2v[vi]], x * dpr + vi * cellAdv2, y * dpr, gw, gh, penR, rgb);
+          }
+          return;
+        }
+      }
       var f = dpr === 1 ? fontFor(size) : fontForPrecise(size);
       var cellAdv = f.cellAdv || (f.w + 1) * f.scale;
       var pad2 = Math.floor((cellAdv - (f.w + 1) * f.scale) / 2);
