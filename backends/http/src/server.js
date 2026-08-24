@@ -17,17 +17,24 @@
  *   bun server.js <example.jsx> [port] [width] [height]
  */
 var path = require('path');
-var exampleFile = process.argv[2];
-var port = parseInt(process.argv[3] || '8737', 10);
-var W = parseInt(process.argv[4] || '240', 10);
-var H = parseInt(process.argv[5] || '280', 10);
+var flagArgs = process.argv.slice(2).filter(function (a) { return a.slice(0, 2) === '--'; });
+var numArgs = process.argv.slice(2).filter(function (a) { return a.slice(0, 2) !== '--'; });
+var exampleFile = numArgs[0];
+var port = parseInt(numArgs[1] || '8737', 10);
+var W = parseInt(numArgs[2] || '240', 10);
+var H = parseInt(numArgs[3] || '280', 10);
+/* --hostfont: text is NOT rasterized into the pixel frame; the browser
+   draws it with a real monospace font, fitted to the mjsx grid (advance =
+   op.adv, line box within op.lineH, baseline on the cell bottom so
+   descenders use the leading rows). Layout is identical either way. */
+var hostFont = flagArgs.indexOf('--hostfont') !== -1;
 
 if (!exampleFile) {
   console.error('usage: bun server.js <example.jsx> [port] [width] [height]');
   process.exit(1);
 }
 
-var backend = require('../../pure-js/src/backend.js').createPureJsBackend(W, H);
+var backend = require('../../pure-js/src/backend.js').createPureJsBackend(W, H, hostFont ? { textMode: 'capture' } : {});
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
@@ -61,26 +68,56 @@ function rgbaFrame() {
   return rgba;
 }
 
+var S = hostFont ? 2 : 1; /* host-font pages upscale so real glyphs are crisp */
 var PAGE = '<!doctype html><meta charset=utf-8><title>mjsx</title>' +
   '<style>body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;height:100vh}' +
-  'canvas{image-rendering:pixelated;border:1px solid #333;touch-action:none}</style>' +
-  '<canvas id=c width=' + W + ' height=' + H + '></canvas><script>' +
+  'canvas{image-rendering:pixelated;border:1px solid #333;touch-action:none;width:' + (W * S) + 'px;height:' + (H * S) + 'px}</style>' +
+  '<canvas id=c width=' + (W * S) + ' height=' + (H * S) + '></canvas><script>' +
+  'var S=' + S + ',W=' + W + ',H=' + H + ';' +
   'var cv=document.getElementById("c"),ctx=cv.getContext("2d");' +
+  'var off=document.createElement("canvas");off.width=W;off.height=H;var octx=off.getContext("2d");' +
+  'var textOps=[];' +
+  '// Fit a real monospace font to the mjsx grid: one glyph advance = adv,\n' +
+  '// ascent+descent within lineH, baseline on the cell bottom - descenders\n' +
+  '// drop into the leading rows exactly like the bitmap fonts.\n' +
+  'var MONO="ui-monospace,Menlo,Consolas,monospace";var fitCache={};' +
+  'function fitFont(adv,lineH){var k=adv+"x"+lineH;if(fitCache[k])return fitCache[k];' +
+  '  ctx.font="100px "+MONO;var m=ctx.measureText("M");' +
+  '  var rw=m.width/100;var rh=((m.fontBoundingBoxAscent||80)+(m.fontBoundingBoxDescent||20))/100;' +
+  '  var px=Math.min(adv*S/rw,lineH*S/rh);' +
+  '  return fitCache[k]=Math.floor(px);}' +
+  'function redraw(){' +
+  '  ctx.imageSmoothingEnabled=false;' +
+  '  ctx.drawImage(off,0,0,W*S,H*S);' +
+  '  for(var i=0;i<textOps.length;i++){var o=textOps[i];' +
+  '    ctx.save();' +
+  '    if(o.clip){ctx.beginPath();ctx.rect(o.clip.x*S,o.clip.y*S,o.clip.w*S,o.clip.h*S);ctx.clip();}' +
+  '    ctx.font=fitFont(o.adv,o.lineH)+"px "+MONO;' +
+  '    ctx.fillStyle="#"+("00000"+o.color.toString(16)).slice(-6);' +
+  '    ctx.textAlign="center";ctx.textBaseline="alphabetic";' +
+  '    for(var j=0;j<o.str.length;j++){' +
+  '      ctx.fillText(o.str[j],(o.x+j*o.adv+o.adv/2)*S,(o.y+o.h)*S);' +
+  '    }' +
+  '    ctx.restore();' +
+  '  }' +
+  '}' +
   'var ws=new WebSocket("ws://"+location.host+"/ws");' +
   'ws.binaryType="arraybuffer";' +
   'ws.onmessage=function(e){' +
+  '  if(typeof e.data==="string"){try{var m=JSON.parse(e.data);if(m.t==="text"){textOps=m.ops;redraw();}}catch(x){}return;}' +
   '  var u8=new Uint8Array(e.data);' +
-  '  var img=ctx.createImageData(' + W + ',' + H + ');' +
-  '  img.data.set(u8); ctx.putImageData(img,0,0);' +
+  '  var img=octx.createImageData(W,H);' +
+  '  img.data.set(u8); octx.putImageData(img,0,0);' +
+  '  redraw();' +
   '};' +
   'function send(o){ if(ws.readyState===1) ws.send(JSON.stringify(o)); }' +
   '// Mouse: pointer id "mouse", one contact.\n' +
-  'cv.addEventListener("mousedown",function(e){send({t:"ptr",id:"mouse",phase:0,x:e.offsetX,y:e.offsetY});});' +
-  'cv.addEventListener("mousemove",function(e){if(e.buttons)send({t:"ptr",id:"mouse",phase:1,x:e.offsetX,y:e.offsetY});});' +
-  'window.addEventListener("mouseup",function(e){send({t:"ptr",id:"mouse",phase:2,x:e.offsetX||0,y:e.offsetY||0});});' +
+  'cv.addEventListener("mousedown",function(e){send({t:"ptr",id:"mouse",phase:0,x:e.offsetX/S,y:e.offsetY/S});});' +
+  'cv.addEventListener("mousemove",function(e){if(e.buttons)send({t:"ptr",id:"mouse",phase:1,x:e.offsetX/S,y:e.offsetY/S});});' +
+  'window.addEventListener("mouseup",function(e){send({t:"ptr",id:"mouse",phase:2,x:(e.offsetX||0)/S,y:(e.offsetY||0)/S});});' +
   '// Touch: each finger\'s own identifier passes straight through as the\n' +
   '// pointer id — real multitouch, not simulated.\n' +
-  'function touchXY(t){var r=cv.getBoundingClientRect();return {x:t.clientX-r.left,y:t.clientY-r.top};}' +
+  'function touchXY(t){var r=cv.getBoundingClientRect();return {x:(t.clientX-r.left)/S,y:(t.clientY-r.top)/S};}' +
   'function onTouch(phase){return function(e){e.preventDefault();' +
   '  var list=e.changedTouches;' +
   '  for(var i=0;i<list.length;i++){var p=touchXY(list[i]);send({t:"ptr",id:"t"+list[i].identifier,phase:phase,x:p.x,y:p.y});}' +
@@ -101,8 +138,12 @@ var sockets = [];
 
 function broadcastFrame() {
   var buf = rgbaFrame();
+  var ops = hostFont ? JSON.stringify({ t: 'text', ops: backend.textOps }) : null;
   for (var i = 0; i < sockets.length; i++) {
-    if (sockets[i].readyState === 1) sockets[i].send(buf);
+    if (sockets[i].readyState === 1) {
+      sockets[i].send(buf);
+      if (ops) sockets[i].send(ops); /* after the frame: TCP keeps the order */
+    }
   }
 }
 
@@ -120,6 +161,7 @@ var server = Bun.serve({
     open: function (ws) {
       sockets.push(ws);
       ws.send(rgbaFrame()); // the frame already on screen, immediately
+      if (hostFont) ws.send(JSON.stringify({ t: 'text', ops: backend.textOps }));
     },
     close: function (ws) {
       var i = sockets.indexOf(ws);

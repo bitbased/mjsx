@@ -59,6 +59,16 @@ function createPureJsBackend(w, h, opts) {
      scaled cell, so it gains detail rather than blockiness. */
   var dpr = opts.dpr || 1;
   var PW = w * dpr, PH = h * dpr;
+  /* textMode 'capture': text is NOT rasterized into the pixel buffer.
+     Instead each gfx.text call is recorded on backend.textOps — logical
+     coordinates plus the resolved per-size cell metrics and the active
+     clip — for a host that draws text itself with a REAL font (the
+     browser's canvas, a future SDL_ttf, a remote renderer). The contract:
+     fit the ORIGINAL grid — one glyph advance equals op.adv, the line box
+     fits op.lineH (= glyph height + 2, so descenders may use the leading
+     rows exactly as the bitmap fonts do), baseline on the cell bottom. */
+  var textCapture = opts.textMode === 'capture';
+  var textOps = [];
   var px = new Uint8Array(PW * PH * 3); // RGB, 3 bytes/pixel, PHYSICAL
   var clipRect = null;
   var storeMap = {};
@@ -189,7 +199,7 @@ function createPureJsBackend(w, h, opts) {
   /* The gfx facade takes LOGICAL coordinates and scales into the physical
      buffer; at dpr 1 the scaling is all identity arithmetic. */
   var gfx = {
-    clear: function (color) { fillRect(0, 0, PW, PH, toRGB(color)); },
+    clear: function (color) { fillRect(0, 0, PW, PH, toRGB(color)); textOps.length = 0; },
     rect: function (x, y, ww, hh, color, radius) {
       var rgb = toRGB(color);
       raster.strokeRoundRect(
@@ -201,6 +211,20 @@ function createPureJsBackend(w, h, opts) {
         x * dpr, y * dpr, ww * dpr, hh * dpr, (radius || 0) * dpr);
     },
     frect: function (x, y, ww, hh, color, radius) {
+      if (textCapture) {
+        /* z-order: a fill painted AFTER a text op sits on top of it (a
+           modal over page text). Pixels get that for free; captured ops
+           must be pruned or the covered text would resurface above the
+           fill on the host. Fully-covered ops go; partial overlaps are the
+           op-stream backend's problem, not this hybrid's. */
+        for (var oi = textOps.length - 1; oi >= 0; oi--) {
+          var op = textOps[oi];
+          var ow = op.str.length * op.adv;
+          if (op.x >= x && op.y >= y && op.x + ow <= x + ww && op.y + op.h <= y + hh) {
+            textOps.splice(oi, 1);
+          }
+        }
+      }
       var rgb = toRGB(color);
       raster.fillRoundRect(
         function (fx, fy, fw, fh) { fillRect(fx, fy, fw, fh, rgb); },
@@ -213,6 +237,15 @@ function createPureJsBackend(w, h, opts) {
       drawLineStamped(x0 * dpr, y0 * dpr, x1 * dpr, y1 * dpr, toRGB(color));
     },
     text: function (x, y, size, color, str) {
+      if (textCapture) {
+        var cf = fontFor(size);
+        textOps.push({
+          x: x, y: y, color: color, str: '' + str,
+          adv: (cf.w + 1) * cf.scale, h: cf.h * cf.scale, lineH: (cf.h + 2) * cf.scale,
+          clip: clipRect ? { x: clipRect.x / dpr, y: clipRect.y / dpr, w: clipRect.w / dpr, h: clipRect.h / dpr } : null
+        });
+        return;
+      }
       var rgb = toRGB(color);
       if (dpr > 1 && (fontScaleMode === 'vector' || fontScaleMode === 'exact')) {
         /* The logical font's own glyphs, vectorized: stroke centrelines on
@@ -295,7 +328,7 @@ function createPureJsBackend(w, h, opts) {
   }
 
   var base = fontFor(1);
-  return { gfx: gfx, sys: sys, toPPM: toPPM, width: w, height: h, dpr: dpr,
+  return { gfx: gfx, sys: sys, toPPM: toPPM, width: w, height: h, dpr: dpr, textOps: textOps,
            font: { advance: base.advance || (base.w + 1), lineH: (base.h + 2) * (fixed ? 1 : 1),
                    pick: fixed ? null : pickFont } };
 }
