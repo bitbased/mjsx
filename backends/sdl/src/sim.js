@@ -51,10 +51,22 @@ var fontFile;
 for (var hfi = 0; hfi < flagArgs.length; hfi++) {
   if (flagArgs[hfi].slice(0, 11) === '--fontfile=') fontFile = flagArgs[hfi].slice(11);
 }
+var ttfMod = require('./ttf.js');
+var ttfFaces = null, faceIdx = 0;
 var ttf = null;
 function ttfReady() {
   if (ttf === null) {
-    ttf = require('./ttf.js').createTtfText(fontFile);
+    if (!ttfFaces) {
+      ttfFaces = ttfMod.availableFaces();
+      /* --fontface=NAME picks the starting face; --fontfile beats both */
+      for (var tfi = 0; tfi < flagArgs.length; tfi++) {
+        if (flagArgs[tfi].slice(0, 11) === '--fontface=') {
+          var want = flagArgs[tfi].slice(11).toUpperCase();
+          for (var wj = 0; wj < ttfFaces.length; wj++) if (ttfFaces[wj].name === want) faceIdx = wj;
+        }
+      }
+    }
+    ttf = ttfMod.createTtfText(fontFile || (ttfFaces[faceIdx] && ttfFaces[faceIdx].file));
     if (!ttf.ok) console.error('host font unavailable: ' + ttf.err);
   }
   return ttf.ok;
@@ -243,6 +255,14 @@ function toolbarFrame() {
     hostText = !hostText;
     rebuild();
   });
+  if (hostText && ttfFaces && ttfFaces.length > 1 && !fontFile) {
+    btn('FACE:' + ttfFaces[faceIdx].name, function () {
+      faceIdx = (faceIdx + 1) % ttfFaces.length;
+      ttf = ttfMod.createTtfText(ttfFaces[faceIdx].file);
+      if (!ttf.ok) console.error('host font unavailable: ' + ttf.err);
+      UI._dirty = true;
+    });
+  }
   var ppm = tb.toPPM(), idx = 0, nl = 0;
   while (nl < 3) { if (ppm[idx++] === 10) nl++; }
   return ppm.subarray(idx);

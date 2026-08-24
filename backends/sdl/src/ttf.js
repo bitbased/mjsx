@@ -24,13 +24,45 @@ function libPath() {
   return cands[0];
 }
 
-var FONT_CANDIDATES = [
-  '/System/Library/Fonts/Menlo.ttc',
-  '/System/Library/Fonts/Monaco.ttf',
-  '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf',
-  '/usr/share/fonts/TTF/DejaVuSansMono.ttf',
-  'C:\\Windows\\Fonts\\consola.ttf'
+/* Face discovery, two tiers. First: any .ttf/.ttc dropped into the repo's
+   fonts/ directory (JetBrains Mono and Roboto Mono Bold ship there; add
+   whatever you like). Then per-platform system fallbacks, best first. The
+   sim's FACE button cycles everything found. */
+var path = require('path');
+var FONTS_DIR = path.resolve(__dirname, '../../../fonts');
+var SYSTEM_FACES = [
+  { name: 'SF MONO', candidates: ['/System/Library/Fonts/SFNSMono.ttf'] },
+  { name: 'PT MONO', candidates: ['/System/Library/Fonts/Supplemental/PTMono.ttc'] },
+  { name: 'MENLO', candidates: [
+    '/System/Library/Fonts/Menlo.ttc',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf',
+    '/usr/share/fonts/TTF/DejaVuSansMono.ttf',
+    'C:\\Windows\\Fonts\\consola.ttf'
+  ] }
 ];
+
+function availableFaces() {
+  var out = [];
+  try {
+    var files = fs.readdirSync(FONTS_DIR).sort();
+    for (var fi = 0; fi < files.length; fi++) {
+      if (/\.(ttf|ttc|otf)$/i.test(files[fi])) {
+        var nm = files[fi].replace(/\.(ttf|ttc|otf)$/i, '').replace(/-Regular$/i, '')
+                          .replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase();
+        out.push({ name: nm, file: path.join(FONTS_DIR, files[fi]) });
+      }
+    }
+  } catch (e) { /* no fonts dir: system faces only */ }
+  for (var i = 0; i < SYSTEM_FACES.length; i++) {
+    for (var j = 0; j < SYSTEM_FACES[i].candidates.length; j++) {
+      if (fs.existsSync(SYSTEM_FACES[i].candidates[j])) {
+        out.push({ name: SYSTEM_FACES[i].name, file: SYSTEM_FACES[i].candidates[j] });
+        break;
+      }
+    }
+  }
+  return out;
+}
 
 function createTtfText(fontFile) {
   var lib;
@@ -52,10 +84,14 @@ function createTtfText(fontFile) {
   if (lib.TTF_Init() !== 0) return { ok: false, err: 'TTF_Init failed' };
 
   var file = fontFile;
+  if (file && !fs.existsSync(file)) {
+    /* a face NAME rather than a path */
+    var byName = availableFaces().filter(function (f) { return f.name === ('' + file).toUpperCase(); });
+    file = byName.length ? byName[0].file : null;
+  }
   if (!file) {
-    for (var i = 0; i < FONT_CANDIDATES.length; i++) {
-      if (fs.existsSync(FONT_CANDIDATES[i])) { file = FONT_CANDIDATES[i]; break; }
-    }
+    var av = availableFaces();
+    file = av.length ? av[0].file : null;
   }
   if (!file || !fs.existsSync(file)) return { ok: false, err: 'no monospace font file found' };
 
@@ -168,5 +204,5 @@ function createTtfText(fontFile) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { createTtfText: createTtfText };
+  module.exports = { createTtfText: createTtfText, availableFaces: availableFaces };
 }
