@@ -109,7 +109,7 @@ function createTerminalBackend(cols, charH, opts) {
           var rows = bf.glyphs[s2[gi]] || bf.glyphs[s2[gi].toUpperCase()];
           var gx = x + gi * (bf.w + 1) * bf.scale;
           if (!rows) continue; // unknown glyph: skip rather than draw noise
-          for (var gr = 0; gr < bf.h; gr++) {
+          for (var gr = 0; gr < rows.length; gr++) {
             var bits = rows[gr];
             for (var gc = 0; gc < bf.w; gc++) {
               if (bits & (1 << (bf.w - 1 - gc))) {

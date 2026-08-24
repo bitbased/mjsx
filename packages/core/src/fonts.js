@@ -26,13 +26,14 @@ function scale2x(glyphs, w, h) {
   var out = {};
   for (var ch in glyphs) {
     var src = glyphs[ch];
+    var gh = src.length; /* per glyph — descenders make tables variable-length */
     var rows = [];
-    for (var y = 0; y < h; y++) { rows.push(0); rows.push(0); }
-    for (var y2 = 0; y2 < h; y2++) {
+    for (var y = 0; y < gh; y++) { rows.push(0); rows.push(0); }
+    for (var y2 = 0; y2 < gh; y2++) {
       for (var x = 0; x < w; x++) {
-        var E = bit(src, w, x, y2, h);
-        var B = bit(src, w, x, y2 - 1, h), D = bit(src, w, x - 1, y2, h);
-        var F = bit(src, w, x + 1, y2, h), H = bit(src, w, x, y2 + 1, h);
+        var E = bit(src, w, x, y2, gh);
+        var B = bit(src, w, x, y2 - 1, gh), D = bit(src, w, x - 1, y2, gh);
+        var F = bit(src, w, x + 1, y2, gh), H = bit(src, w, x, y2 + 1, gh);
         var e0 = (D === B && B !== F && D !== H) ? D : E;
         var e1 = (B === F && B !== D && F !== H) ? F : E;
         var e2 = (D === H && D !== B && H !== F) ? D : E;
@@ -64,14 +65,15 @@ function scale3x(glyphs, w, h) {
   var out = {};
   for (var ch in glyphs) {
     var src = glyphs[ch];
+    var gh = src.length; /* per glyph, same as scale2x */
     var rows = [];
-    for (var i = 0; i < h * 3; i++) rows.push(0);
-    for (var y = 0; y < h; y++) {
+    for (var i = 0; i < gh * 3; i++) rows.push(0);
+    for (var y = 0; y < gh; y++) {
       for (var x = 0; x < w; x++) {
-        var E = bit(src, w, x, y, h);
-        var A = bit(src, w, x - 1, y - 1, h), B = bit(src, w, x, y - 1, h), C = bit(src, w, x + 1, y - 1, h);
-        var D = bit(src, w, x - 1, y, h), F = bit(src, w, x + 1, y, h);
-        var G = bit(src, w, x - 1, y + 1, h), H = bit(src, w, x, y + 1, h), I = bit(src, w, x + 1, y + 1, h);
+        var E = bit(src, w, x, y, gh);
+        var A = bit(src, w, x - 1, y - 1, gh), B = bit(src, w, x, y - 1, gh), C = bit(src, w, x + 1, y - 1, gh);
+        var D = bit(src, w, x - 1, y, gh), F = bit(src, w, x + 1, y, gh);
+        var G = bit(src, w, x - 1, y + 1, gh), H = bit(src, w, x, y + 1, gh), I = bit(src, w, x + 1, y + 1, gh);
         var e = [E, E, E, E, E, E, E, E, E];
         if (B !== H && D !== F) {
           e[0] = D === B ? D : E;

@@ -126,7 +126,7 @@ function createPureJsBackend(w, h, opts) {
     }
     var tbl = _vecCache.get(fnt.glyphs);
     if (!tbl) { tbl = {}; _vecCache.set(fnt.glyphs, tbl); }
-    if (!tbl[ch]) tbl[ch] = vectorize(fnt.glyphs[ch], fnt.w, fnt.h);
+    if (!tbl[ch]) tbl[ch] = vectorize(fnt.glyphs[ch], fnt.w, fnt.glyphs[ch].length);
     return tbl[ch];
   }
   function drawVecGlyph(vg, ox, oy, u, rgb) {
@@ -246,7 +246,7 @@ function createPureJsBackend(w, h, opts) {
         var rows = f.glyphs[s[i]] || f.glyphs[s[i].toUpperCase()];
         var gx = x * dpr + i * cellAdv + pad2;
         if (!rows) continue; // unknown glyph: skip rather than draw noise
-        for (var row = 0; row < f.h; row++) {
+        for (var row = 0; row < rows.length; row++) {
           var bits = rows[row];
           for (var col = 0; col < f.w; col++) {
             if (bits & (1 << (f.w - 1 - col))) {
