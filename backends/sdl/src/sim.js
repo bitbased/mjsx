@@ -142,6 +142,7 @@ function freshCore() {
   globalThis.Button = core.Button;
   globalThis.Swatch = core.Swatch;
   globalThis.em = core.em;
+  globalThis.Modal = core.Modal;
   /* Every fresh core learns the current font's metrics, so em() spacing and
      fitText widths always match what the backend actually rasterizes. */
   if (typeof backend !== 'undefined' && backend.font) {

@@ -465,6 +465,31 @@ function Swatch(p) {
   return h('box', { w: p.size || 24, h: p.size || 24, bg: p.color, radius: 4, border: UI.theme.muted });
 }
 
+/* A centred overlay panel for UI.openModal. Margins are MINIMUMS: the
+ * panel centres vertically in the leftover space while its content fits,
+ * and when the content would not fit inside the minimum margins the panel
+ * pins to the available height and scrolls inside instead of overflowing
+ * the screen. Usage: UI.openModal(function () { return h(Modal, {}, ...kids); })
+ */
+function Modal(p) {
+  var margin = p.margin === undefined ? em(1.5) : p.margin;
+  var innerW = gfx.width() - margin * 2;
+  var availH = gfx.height() - margin * 2;
+  var panel = h('box', {
+    bg: p.bg === undefined ? UI.theme.panel : p.bg,
+    border: p.border === undefined ? UI.theme.accent : p.border,
+    borderW: p.borderW || 2,
+    radius: p.radius === undefined ? 10 : p.radius,
+    pad: p.pad === undefined ? em(1) : p.pad,
+    gap: p.gap === undefined ? em(0.75) : p.gap
+  }, p.children);
+  if (measure(panel, innerW) > availH) {
+    panel.props.h = availH;
+    panel.props.scroll = p.scroll || '_modal';
+  }
+  return h('box', { h: gfx.height(), pad: margin, vcenter: true }, panel);
+}
+
 /* How far a finger may wander before the stroke stops being a tap. Small
    enough that a deliberate drag scrolls at once, large enough that a firm
    press on a button is not read as a one-pixel flick. */
@@ -905,7 +930,7 @@ var UI = {
    forms see the identical ES5 source — nothing here branches on the host. */
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    h: h, UI: UI, FONT: FONT, em: em, Button: Button, Swatch: Swatch,
+    h: h, UI: UI, FONT: FONT, em: em, Button: Button, Swatch: Swatch, Modal: Modal,
     measure: measure, draw: draw, fitText: fitText, textLines: textLines
   };
 }

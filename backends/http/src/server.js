@@ -44,6 +44,7 @@ globalThis.UI = core.UI;
 globalThis.Button = core.Button;
 globalThis.Swatch = core.Swatch;
 globalThis.em = core.em;
+globalThis.Modal = core.Modal;
 
 require(path.resolve(exampleFile));
 UI.render();

@@ -47,6 +47,7 @@ function freshCore() {
   globalThis.Button = core.Button;
   globalThis.Swatch = core.Swatch;
   globalThis.em = core.em;
+  globalThis.Modal = core.Modal;
   applyFont();
 }
 freshCore();
