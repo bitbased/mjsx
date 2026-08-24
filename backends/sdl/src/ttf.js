@@ -53,6 +53,7 @@ function availableFaces() {
       }
     }
   } catch (e) { /* no fonts dir: system faces only */ }
+  if (out.length) return out; /* shipped faces ARE the list; system is fallback only */
   for (var i = 0; i < SYSTEM_FACES.length; i++) {
     for (var j = 0; j < SYSTEM_FACES[i].candidates.length; j++) {
       if (fs.existsSync(SYSTEM_FACES[i].candidates[j])) {
