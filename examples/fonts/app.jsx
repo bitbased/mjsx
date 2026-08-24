@@ -49,6 +49,13 @@ function App() {
         <text text="Sphinx of black quartz, judge my vow" size={2} color={UI.theme.text} wrap={true} />
       </box>
 
+      <box bg={UI.theme.panel} radius={6} pad={em(0.75)} gap={em(0.5)}>
+        <text text="SIZE 3+ IS DERIVED" size={1} color={UI.theme.muted} />
+        <text text="Same glyphs as size 2, scaled from the 6x8 - no separate charset. Sample:" size={1} color={UI.theme.muted} wrap={true} />
+        <text text="Aa Gg 42" size={3} color={UI.theme.text} />
+        <text text={'{x:9}'} size={3} color={UI.theme.text} />
+      </box>
+
       <text text="AUTO: EACH SIZE PICKS ITS FONT. FONT BTN / --FONT=NAME FORCES ONE." size={1} align="center" color={UI.theme.muted} wrap={true} />
     </box>
   );
