@@ -57,6 +57,11 @@ function createSdlWindow(pxW, pxH, opts) {
      dark), a number previews rounded corners of that pixel radius. */
   var snapScale = opts.snapScale !== false;
   var mask = opts.mask;
+  /* texScale: the presented buffer is pxW*ts x pxH*ts physical pixels for
+     the same logical panel — precise (dpr) rendering. Everything logical
+     (window size, mouse mapping, letterbox) is untouched; only the texture
+     and the mask math live in physical space. */
+  var ts = opts.texScale || 1;
   /* Everything that is not the simulated screen — the letterbox around it
      and the masked-off corners — is bezel: dark but NOT black, so the
      screen's boundary and shape stay visible even when the app itself draws
@@ -116,7 +121,7 @@ function createSdlWindow(pxW, pxH, opts) {
   if (!win) fail('SDL_CreateWindow');
   var ren = lib.SDL_CreateRenderer(win, -1, 0);
   if (!ren) fail('SDL_CreateRenderer');
-  var tex = lib.SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, pxW, pxH);
+  var tex = lib.SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, pxW * ts, pxH * ts);
   if (!tex) fail('SDL_CreateTexture');
 
   /* One reusable event buffer; SDL_Event is a 56-byte union. The pointer is
@@ -159,7 +164,7 @@ function createSdlWindow(pxW, pxH, opts) {
      pixel space, before upload — portable to every other backend (the web
      preview can do the same with border-radius, a panel simply is round). */
   var scratch = null;
-  function remask(m) { mask = m; scratch = mask ? new Uint8Array(pxW * pxH * 3) : null; }
+  function remask(m) { mask = m; scratch = mask ? new Uint8Array(pxW * ts * pxH * ts * 3) : null; }
   remask(mask);
   function applyMask(rgb) {
     if (!mask) return rgb;
@@ -168,18 +173,19 @@ function createSdlWindow(pxW, pxH, opts) {
        which is an exact circle on a square panel and a stadium (pill) on a
        rectangular one — never a circle forced onto a rectangle. A numeric
        mask is that same shape at a smaller corner radius. */
-    var r = mask === 'circle' ? Math.min(pxW, pxH) / 2 : mask;
-    var cxs = [r, pxW - r, r, pxW - r], cys = [r, r, pxH - r, pxH - r];
-    for (var y = 0; y < pxH; y++) {
-      for (var x = 0; x < pxW; x++) {
+    var mw = pxW * ts, mh = pxH * ts;
+    var r = (mask === 'circle' ? Math.min(pxW, pxH) / 2 : mask) * ts;
+    var cxs = [r, mw - r, r, mw - r], cys = [r, r, mh - r, mh - r];
+    for (var y = 0; y < mh; y++) {
+      for (var x = 0; x < mw; x++) {
         var out = false;
         /* corner boxes: outside the quarter-circle -> bezel */
-        if ((x < r || x >= pxW - r) && (y < r || y >= pxH - r)) {
+        if ((x < r || x >= mw - r) && (y < r || y >= mh - r)) {
           var ci = (x < r ? 0 : 1) + (y < r ? 0 : 2);
           var ddx = x + 0.5 - cxs[ci], ddy = y + 0.5 - cys[ci];
           out = ddx * ddx + ddy * ddy > r * r;
         }
-        if (out) { var i = (y * pxW + x) * 3; scratch[i] = bezel[0]; scratch[i + 1] = bezel[1]; scratch[i + 2] = bezel[2]; }
+        if (out) { var i = (y * mw + x) * 3; scratch[i] = bezel[0]; scratch[i + 1] = bezel[1]; scratch[i + 2] = bezel[2]; }
       }
     }
     return scratch;
@@ -189,7 +195,7 @@ function createSdlWindow(pxW, pxH, opts) {
     /* Blit an RGB (3 bytes/pixel, pxW*pxH) buffer and show it, contained
        and letterboxed in the current window. */
     present: function (rgb, toolbarRgb) {
-      if (lib.SDL_UpdateTexture(tex, null, fptr(applyMask(rgb)), pxW * 3) !== 0) fail('SDL_UpdateTexture');
+      if (lib.SDL_UpdateTexture(tex, null, fptr(applyMask(rgb)), pxW * ts * 3) !== 0) fail('SDL_UpdateTexture');
       lib.SDL_SetRenderDrawColor(ren, bezel[0], bezel[1], bezel[2], 255);
       lib.SDL_RenderClear(ren);
       if (tbH && toolbarRgb) {
@@ -211,10 +217,11 @@ function createSdlWindow(pxW, pxH, opts) {
     /* Change the simulated panel WITHOUT touching the OS window — the same
        window simply letterboxes the new screen. The next present() must
        supply a buffer of the new size. */
-    setScreenSize: function (w2, h2) {
+    setScreenSize: function (w2, h2, ts2) {
       pxW = w2; pxH = h2;
+      if (ts2) ts = ts2;
       lib.SDL_DestroyTexture(tex);
-      tex = lib.SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, pxW, pxH);
+      tex = lib.SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, pxW * ts, pxH * ts);
       if (!tex) fail('SDL_CreateTexture');
       remask(mask);
       refit();

@@ -39,6 +39,12 @@ for (var fi = 0; fi < flagArgs.length; fi++) {
 }
 var SIZES = [[240, 240], [240, 320], [172, 320], [128, 128], [320, 480]];
 var snapScale = flagArgs.indexOf('--free') === -1;
+/* HD: precise rendering — same virtual panel, backing buffer at the window
+   scale, so shapes rasterize with real sub-pixel geometry instead of
+   blown-up pixels. Toggled from the toolbar; --hd starts on. */
+var hd = flagArgs.indexOf('--hd') !== -1;
+var fontScale = flagArgs.indexOf('--fontscale=pixel') !== -1 ? 'pixel' : 'smooth';
+function dprNow() { return hd ? scale : 1; }
 
 /* Three font sizes, cycled by the toolbar's FONT button: tiny hand-drawn
    4x6, clear 6x8, large Scale2x-smoothed 12x16. --font=NAME picks the
@@ -58,7 +64,7 @@ var createPureJsBackend = require('../../pure-js/src/backend.js').createPureJsBa
 function openWindow() {
   return createSdlWindow(pxW, pxH, {
     scale: scale, snapScale: snapScale, mask: SHAPES[shapeIdx].mask,
-    toolbarH: TB_H, toolbarScale: TB_SCALE,
+    toolbarH: TB_H, toolbarScale: TB_SCALE, texScale: dprNow(),
     title: 'mjsx sim ' + pxW + 'x' + pxH
   });
 }
@@ -74,7 +80,7 @@ try {
   process.exit(1);
 }
 
-var backend = createPureJsBackend(pxW, pxH, { font: fontName === 'auto' ? undefined : fontName });
+var backend = createPureJsBackend(pxW, pxH, { font: fontName === 'auto' ? undefined : fontName, dpr: dprNow(), fontScale: fontScale });
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
@@ -199,6 +205,10 @@ function toolbarFrame() {
     fontName = FONT_CYCLE[(FONT_CYCLE.indexOf(fontName) + 1) % FONT_CYCLE.length];
     rebuild();
   });
+  btn('HD:' + (hd ? 'ON' : 'OFF'), function () {
+    hd = !hd;
+    rebuild();
+  });
   var ppm = tb.toPPM(), idx = 0, nl = 0;
   while (nl < 3) { if (ppm[idx++] === 10) nl++; }
   return ppm.subarray(idx);
@@ -211,8 +221,8 @@ function toolbarFrame() {
    dimensions, exactly as it would boot on that panel. */
 function rebuild() {
   win.setMask(SHAPES[shapeIdx].mask);
-  win.setScreenSize(pxW, pxH);
-  backend = createPureJsBackend(pxW, pxH, { font: fontName === 'auto' ? undefined : fontName });
+  win.setScreenSize(pxW, pxH, dprNow());
+  backend = createPureJsBackend(pxW, pxH, { font: fontName === 'auto' ? undefined : fontName, dpr: dprNow(), fontScale: fontScale });
   globalThis.gfx = backend.gfx;
   if (current) loadExample(current); else showMenu();
   UI._dirty = true;

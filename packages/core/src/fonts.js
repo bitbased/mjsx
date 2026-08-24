@@ -52,13 +52,19 @@ function scale2x(glyphs, w, h) {
    is smoother than plain doubling but carries no more real detail than the
    font it came from — the picker uses d to prefer a genuinely sharper font
    over a bigger-but-blockier one. */
+/* fam = the hand-drawn FAMILY a font's letterforms come from. Precise
+   (dpr) rendering upgrades resolution WITHIN a family — same face, smoother
+   — so a 4x6-class text keeps looking like the 4x6, never silently swaps
+   to another face. A future vector family slots in here the same way. */
 var FONTS = {
-  '4x6': { glyphs: f4.FONT4x6, w: f4.GLYPH_W, h: f4.GLYPH_H, d: 6 },
-  '6x8': { glyphs: f6.FONT6x8, w: f6.GLYPH_W, h: f6.GLYPH_H, d: 8 }
+  '4x6': { glyphs: f4.FONT4x6, w: f4.GLYPH_W, h: f4.GLYPH_H, d: 6, fam: '4x6' },
+  '6x8': { glyphs: f6.FONT6x8, w: f6.GLYPH_W, h: f6.GLYPH_H, d: 8, fam: '6x8' }
 };
-FONTS['8x12'] = { glyphs: scale2x(FONTS['4x6'].glyphs, 4, 6), w: 8, h: 12, d: 6 };
-FONTS['12x16'] = { glyphs: scale2x(FONTS['6x8'].glyphs, 6, 8), w: 12, h: 16, d: 8 };
-FONTS['16x24'] = { glyphs: scale2x(FONTS['8x12'].glyphs, 8, 12), w: 16, h: 24, d: 6 };
+FONTS['8x12'] = { glyphs: scale2x(FONTS['4x6'].glyphs, 4, 6), w: 8, h: 12, d: 6, fam: '4x6' };
+FONTS['12x16'] = { glyphs: scale2x(FONTS['6x8'].glyphs, 6, 8), w: 12, h: 16, d: 8, fam: '6x8' };
+FONTS['16x24'] = { glyphs: scale2x(FONTS['8x12'].glyphs, 8, 12), w: 16, h: 24, d: 6, fam: '4x6' };
+FONTS['24x32'] = { glyphs: scale2x(FONTS['12x16'].glyphs, 12, 16), w: 24, h: 32, d: 8, fam: '6x8' };
+FONTS['32x48'] = { glyphs: scale2x(FONTS['16x24'].glyphs, 16, 24), w: 32, h: 48, d: 6, fam: '4x6' };
 
 /* Per-size font selection — the point of having several fonts at all. A
  * text size names a TARGET height (6px per step, the historic 4x6 ladder)
@@ -93,11 +99,11 @@ function pickFont(size) {
       }
       if (better) {
         bestKey = key;
-        best = { glyphs: f.glyphs, w: f.w, h: f.h, scale: sc };
+        best = { glyphs: f.glyphs, w: f.w, h: f.h, scale: sc, fam: f.fam };
       }
     }
   }
-  if (!best) { var f0 = LADDER[0]; best = { glyphs: f0.glyphs, w: f0.w, h: f0.h, scale: 1 }; }
+  if (!best) { var f0 = LADDER[0]; best = { glyphs: f0.glyphs, w: f0.w, h: f0.h, scale: 1, fam: f0.fam }; }
   best.advance = (best.w + 1) * best.scale;
   best.lineH = best.h * best.scale + 2;
   _pickMemo[size] = best;
