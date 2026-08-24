@@ -61,13 +61,33 @@ function createTtfText(fontFile) {
 
   function cstr(s) { return fptr(Buffer.from(s + '\0', 'utf8')); }
 
-  /* Reference metrics at 64pt: everything scales linearly from these. */
+  /* Reference metrics at 64pt: everything scales linearly from these. The
+     crucial one is MEASURED cap height (the 'M' ink's rise above the
+     baseline), not the font's nominal line box — monospace faces carry
+     line boxes far taller than their caps (~1.17em for Menlo), and fitting
+     the whole box shrinks the visible glyphs well below the bitmap's.
+     Caps fill the cell; descenders spill into the leading rows, exactly
+     like the bitmap fonts. */
   var ref = lib.TTF_OpenFont(cstr(file), 64);
   if (!ref) return { ok: false, err: 'cannot open font ' + file };
   var wBuf = new Int32Array(1), hBuf = new Int32Array(1);
   lib.TTF_SizeUTF8(ref, cstr('M'), fptr(wBuf), fptr(hBuf));
   var refAdv = wBuf[0];
-  var refLine = lib.TTF_FontAscent(ref) - lib.TTF_FontDescent(ref); /* descent is negative */
+  var refAscent = lib.TTF_FontAscent(ref);
+  var refCap = refAscent * 0.75; /* fallback if the ink scan fails */
+  var mSurf = lib.TTF_RenderUTF8_Blended(ref, cstr('M'), 0xFFFFFFFF);
+  if (mSurf) {
+    var mw = read.i32(mSurf, 16), mh = read.i32(mSurf, 20), mp = read.i32(mSurf, 24);
+    var mpx = new Uint8Array(toArrayBuffer(read.ptr(mSurf, 32), 0, mp * mh).slice(0));
+    var inkTop = -1;
+    for (var sy = 0; sy < mh && inkTop < 0; sy++) {
+      for (var sx = 0; sx < mw; sx++) {
+        if (mpx[sy * mp + sx * 4 + 3] > 32) { inkTop = sy; break; }
+      }
+    }
+    if (inkTop >= 0) refCap = refAscent - inkTop;
+    lib.SDL_FreeSurface(mSurf);
+  }
   lib.TTF_CloseFont(ref);
 
   var fonts = {};   /* pt -> font handle */
@@ -78,10 +98,12 @@ function createTtfText(fontFile) {
     return fonts[pt];
   }
 
-  /* Fit the grid: the largest pt whose advance fits op.adv AND whose line
-     box fits op.lineH — width fit first-class, as agreed. */
-  function fitPt(advPx, linePx) {
-    var pt = Math.floor(Math.min(64 * advPx / refAdv, 64 * linePx / refLine));
+  /* Fit the grid: the largest pt whose advance fits op.adv AND whose CAP
+     HEIGHT fits the glyph cell — width fit as agreed, cap fit so letters
+     stand as tall as the bitmap's instead of shrinking to make room for a
+     line box nothing here uses. */
+  function fitPt(advPx, cellHPx) {
+    var pt = Math.floor(Math.min(64 * advPx / refAdv, 64 * cellHPx / refCap));
     return pt < 4 ? 4 : pt;
   }
 
@@ -107,7 +129,7 @@ function createTtfText(fontFile) {
   function composite(frame, PW, PH, ops, dpr) {
     for (var oi = 0; oi < ops.length; oi++) {
       var op = ops[oi];
-      var pt = fitPt(op.adv * dpr, op.lineH * dpr);
+      var pt = fitPt(op.adv * dpr, op.h * dpr);
       var baseY = Math.round((op.y + op.h) * dpr);
       var cr = op.color >> 16 & 255, cg = op.color >> 8 & 255, cb = op.color & 255;
       var cx0 = 0, cy0 = 0, cx1 = PW, cy1 = PH;

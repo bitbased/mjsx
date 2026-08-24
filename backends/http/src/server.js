@@ -78,13 +78,15 @@ var PAGE = '<!doctype html><meta charset=utf-8><title>mjsx</title>' +
   'var off=document.createElement("canvas");off.width=W;off.height=H;var octx=off.getContext("2d");' +
   'var textOps=[];' +
   '// Fit a real monospace font to the mjsx grid: one glyph advance = adv,\n' +
-  '// ascent+descent within lineH, baseline on the cell bottom - descenders\n' +
+  '// and CAP HEIGHT within the glyph cell (h) - fitting the nominal line\n' +
+  '// box would shrink the glyphs, since monospace faces carry boxes far\n' +
+  '// taller than their caps. Baseline sits on the cell bottom; descenders\n' +
   '// drop into the leading rows exactly like the bitmap fonts.\n' +
   'var MONO="ui-monospace,Menlo,Consolas,monospace";var fitCache={};' +
-  'function fitFont(adv,lineH){var k=adv+"x"+lineH;if(fitCache[k])return fitCache[k];' +
+  'function fitFont(adv,cellH){var k=adv+"x"+cellH;if(fitCache[k])return fitCache[k];' +
   '  ctx.font="100px "+MONO;var m=ctx.measureText("M");' +
-  '  var rw=m.width/100;var rh=((m.fontBoundingBoxAscent||80)+(m.fontBoundingBoxDescent||20))/100;' +
-  '  var px=Math.min(adv*S/rw,lineH*S/rh);' +
+  '  var rw=m.width/100;var rc=(m.actualBoundingBoxAscent||72)/100;' +
+  '  var px=Math.min(adv*S/rw,cellH*S/rc);' +
   '  return fitCache[k]=Math.floor(px);}' +
   'function redraw(){' +
   '  ctx.imageSmoothingEnabled=false;' +
@@ -92,7 +94,7 @@ var PAGE = '<!doctype html><meta charset=utf-8><title>mjsx</title>' +
   '  for(var i=0;i<textOps.length;i++){var o=textOps[i];' +
   '    ctx.save();' +
   '    if(o.clip){ctx.beginPath();ctx.rect(o.clip.x*S,o.clip.y*S,o.clip.w*S,o.clip.h*S);ctx.clip();}' +
-  '    ctx.font=fitFont(o.adv,o.lineH)+"px "+MONO;' +
+  '    ctx.font=fitFont(o.adv,o.h)+"px "+MONO;' +
   '    ctx.fillStyle="#"+("00000"+o.color.toString(16)).slice(-6);' +
   '    ctx.textAlign="center";ctx.textBaseline="alphabetic";' +
   '    for(var j=0;j<o.str.length;j++){' +
