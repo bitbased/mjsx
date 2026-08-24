@@ -41,7 +41,7 @@ var SYSTEM_FACES = [
   ] }
 ];
 
-function availableFaces() {
+function availableFaces(includeSystem) {
   var out = [];
   try {
     var files = fs.readdirSync(FONTS_DIR).sort();
@@ -52,13 +52,16 @@ function availableFaces() {
         out.push({ name: nm, file: path.join(FONTS_DIR, files[fi]) });
       }
     }
-  } catch (e) { /* no fonts dir: system faces only */ }
-  if (out.length) return out; /* shipped faces ARE the list; system is fallback only */
-  for (var i = 0; i < SYSTEM_FACES.length; i++) {
-    for (var j = 0; j < SYSTEM_FACES[i].candidates.length; j++) {
-      if (fs.existsSync(SYSTEM_FACES[i].candidates[j])) {
-        out.push({ name: SYSTEM_FACES[i].name, file: SYSTEM_FACES[i].candidates[j] });
-        break;
+  } catch (e) { /* no fonts dir */ }
+  /* System faces are OPT-IN (--systemfonts): the shipped, redistributable
+     set is the default and the whole default. */
+  if (includeSystem) {
+    for (var i = 0; i < SYSTEM_FACES.length; i++) {
+      for (var j = 0; j < SYSTEM_FACES[i].candidates.length; j++) {
+        if (fs.existsSync(SYSTEM_FACES[i].candidates[j])) {
+          out.push({ name: SYSTEM_FACES[i].name, file: SYSTEM_FACES[i].candidates[j] });
+          break;
+        }
       }
     }
   }

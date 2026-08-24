@@ -1,9 +1,9 @@
 # fonts/
 
 Drop any `.ttf` / `.ttc` / `.otf` monospace font in here and the sim's FACE
-button (host-font text mode, `TXT:TTF`) picks it up automatically. When this
-directory has fonts, they ARE the face list; system faces (SF Mono / Menlo /
-DejaVu / Consolas) are only discovered as a fallback when it is empty.
+button (host-font text mode, `TXT:TTF`) picks it up automatically. The
+shipped fonts are the whole default face list; pass `--systemfonts` to also
+scan the OS for SF Mono / Menlo / DejaVu / Consolas.
 
 Shipped - all freely redistributable, attribution:
 

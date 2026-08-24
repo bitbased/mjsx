@@ -57,7 +57,7 @@ var ttf = null;
 function ttfReady() {
   if (ttf === null) {
     if (!ttfFaces) {
-      ttfFaces = ttfMod.availableFaces();
+      ttfFaces = ttfMod.availableFaces(flagArgs.indexOf('--systemfonts') !== -1);
       /* --fontface=NAME picks the starting face; --fontfile beats both */
       for (var tfi = 0; tfi < flagArgs.length; tfi++) {
         if (flagArgs[tfi].slice(0, 11) === '--fontface=') {
