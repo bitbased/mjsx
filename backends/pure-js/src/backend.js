@@ -220,16 +220,20 @@ function createPureJsBackend(w, h, opts) {
            letterforms to non-HD, just smooth. u = physical px per glyph px. */
         var lf2 = fontFor(size);
         var cellAdv2 = (lf2.w + 1) * lf2.scale * dpr;
+        var vgl = (lf2.fam && FONTS[lf2.fam] ? FONTS[lf2.fam] : lf2).glyphs;
         /* Vectorize the family's hand-drawn BASE bitmap and scale the
            strokes — a derived (Scale2x) member's pre-rounded corners would
            smooth twice and mush letterforms like D towards O. Same cell,
            same size; only the stroke source is the crispest original. */
         var vbase = (lf2.fam && FONTS[lf2.fam]) || lf2;
         var u = lf2.scale * dpr * (lf2.h / vbase.h);
-        var s2v = ('' + str).toUpperCase();
+        var s2v = '' + str;
         for (var vi = 0; vi < s2v.length; vi++) {
-          if (!vbase.glyphs[s2v[vi]]) continue; // unknown glyph: skip, like the bitmap path
-          drawVecGlyph(vecGlyph(vbase, s2v[vi]),
+          /* real lowercase where the font has it; case-fold where it
+             does not (the 4x6 family) */
+          var vch = vbase.glyphs[s2v[vi]] ? s2v[vi] : s2v[vi].toUpperCase();
+          if (!vbase.glyphs[vch]) continue; // unknown glyph: skip, like the bitmap path
+          drawVecGlyph(vecGlyph(vbase, vch),
                        x * dpr + vi * cellAdv2, y * dpr, u, rgb);
         }
         return;
@@ -237,9 +241,9 @@ function createPureJsBackend(w, h, opts) {
       var f = dpr === 1 ? fontFor(size) : fontForPrecise(size);
       var cellAdv = f.cellAdv || (f.w + 1) * f.scale;
       var pad2 = Math.floor((cellAdv - (f.w + 1) * f.scale) / 2);
-      var s = ('' + str).toUpperCase();
+      var s = '' + str;
       for (var i = 0; i < s.length; i++) {
-        var rows = f.glyphs[s[i]];
+        var rows = f.glyphs[s[i]] || f.glyphs[s[i].toUpperCase()];
         var gx = x * dpr + i * cellAdv + pad2;
         if (!rows) continue; // unknown glyph: skip rather than draw noise
         for (var row = 0; row < f.h; row++) {

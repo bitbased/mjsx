@@ -104,9 +104,9 @@ function createTerminalBackend(cols, charH, opts) {
            clip, so scrolled-out glyphs clip themselves. No terminal text
            in this mode, at all. */
         var bf = bfontFor(size);
-        var s2 = ('' + str).toUpperCase();
+        var s2 = '' + str;
         for (var gi = 0; gi < s2.length; gi++) {
-          var rows = bf.glyphs[s2[gi]];
+          var rows = bf.glyphs[s2[gi]] || bf.glyphs[s2[gi].toUpperCase()];
           var gx = x + gi * (bf.w + 1) * bf.scale;
           if (!rows) continue; // unknown glyph: skip rather than draw noise
           for (var gr = 0; gr < bf.h; gr++) {

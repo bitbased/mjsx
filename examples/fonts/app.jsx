@@ -30,6 +30,9 @@ function App() {
         <text text="GLYPHS" size={1} color={UI.theme.muted} />
         <text text="ABCDEFGHIJKLM" size={1} color={UI.theme.text} />
         <text text="NOPQRSTUVWXYZ" size={1} color={UI.theme.text} />
+        <text text="abcdefghijklm" size={2} color={UI.theme.text} />
+        <text text="nopqrstuvwxyz" size={2} color={UI.theme.text} />
+        <text text="Sphinx of black quartz" size={2} color={UI.theme.text} />
         <text text="0123456789" size={1} color={UI.theme.text} />
         <text text=".,:!?+-/()%'" size={1} color={UI.theme.text} />
       </box>
