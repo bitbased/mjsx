@@ -296,6 +296,52 @@ function createPureJsBackend(w, h, opts) {
         }
       }
     },
+    /* Optional extended op (not part of the 10-call contract): fill
+       polygons given in LOGICAL float coordinates, scanline at DEVICE
+       resolution. mjsx-core's path node hands its stroke outlines and
+       shape fills here when present, so curves and joins sharpen with
+       dpr exactly the way precise text does. rule: 'nonzero' (stroke
+       outlines - absorbs offset self-overlaps) or 'evenodd' (SVG fill).
+       Cores on backends without this op fall back to their own
+       logical-resolution fill. */
+    poly: function (polys, color, rule) {
+      var rgb = toRGB(color), nonzero = rule === 'nonzero';
+      var edges = [], minY = 1e9, maxY = -1e9;
+      for (var pi = 0; pi < polys.length; pi++) {
+        var ring = polys[pi];
+        for (var vi = 0; vi < ring.length; vi++) {
+          var va = ring[vi], vb = ring[(vi + 1) % ring.length];
+          var ax = va.x * dpr, ay = va.y * dpr, bx = vb.x * dpr, by = vb.y * dpr;
+          if (ay !== by) edges.push([ax, ay, bx, by, ay < by ? 1 : -1]);
+          if (ay < minY) minY = ay;
+          if (ay > maxY) maxY = ay;
+        }
+      }
+      for (var sy = Math.max(0, Math.floor(minY)); sy <= Math.min(PH - 1, Math.ceil(maxY)); sy++) {
+        var cy = sy + 0.5, xs = [];
+        for (var ei = 0; ei < edges.length; ei++) {
+          var ed = edges[ei];
+          var lo = ed[1] < ed[3] ? ed[1] : ed[3], hi = ed[1] < ed[3] ? ed[3] : ed[1];
+          if (cy >= lo && cy < hi) xs.push([ed[0] + (ed[2] - ed[0]) * (cy - ed[1]) / (ed[3] - ed[1]), ed[4]]);
+        }
+        xs.sort(function (a, b) { return a[0] - b[0]; });
+        if (nonzero) {
+          var wind = 0, openX = 0;
+          for (var xi = 0; xi < xs.length; xi++) {
+            var was = wind !== 0;
+            wind += xs[xi][1];
+            if (!was && wind !== 0) openX = xs[xi][0];
+            else if (was && wind === 0) {
+              for (var fx = Math.round(openX); fx < Math.round(xs[xi][0]); fx++) setPixel(fx, sy, rgb);
+            }
+          }
+        } else {
+          for (var xp = 0; xp + 1 < xs.length; xp += 2) {
+            for (var fx2 = Math.round(xs[xp][0]); fx2 < Math.round(xs[xp + 1][0]); fx2++) setPixel(fx2, sy, rgb);
+          }
+        }
+      }
+    },
     clip: function (x, y, ww, hh) { clipRect = { x: x * dpr, y: y * dpr, w: ww * dpr, h: hh * dpr }; },
     unclip: function () { clipRect = null; },
     width: function () { return w; },

@@ -278,25 +278,39 @@ function draw(node, x, y, availW, forcedH) {
   } else if (t === 'path') {
     /* A polyline stroke, and optionally an SVG-style filled shape.
        `pts` is a point list, or a list of point lists (subpaths). `fill`
-       scanline-fills with the EVEN-ODD rule - alternating spans, so
-       self-intersecting shapes and multi-subpath holes fill the way
-       SVG's fill-rule=evenodd does. Strokes are TRUE thick strokes: each
-       segment is a perpendicular-offset quad filled by the same scanline,
-       so width is uniform at every angle (no axis-flip notches on
-       near-45-degree segments). Joins are round (flush discs, never wider
-       than the stroke) or `join="miter"` for sharp corners; open ends get
-       round caps. */
+       scanline-fills with the EVEN-ODD rule (SVG fill-rule=evenodd:
+       alternating spans, self-intersections and subpath holes included).
+       Strokes are OUTLINE strokes: the stroke's boundary polygon is built
+       by offsetting the path both ways with real join geometry (round
+       arcs by default, `join="miter"` for sharp corners, round caps on
+       open ends) and filled in ONE pass with NONZERO winding, which
+       absorbs the self-overlaps offsetting creates at inner corners. One
+       polygon means no seams, no gaps, uniform width at every angle. */
     var subs5 = (p.pts && p.pts.length && p.pts[0] && p.pts[0].length !== undefined) ? p.pts : [p.pts || []];
     var pc5 = p.color === undefined ? UI.theme.muted : p.color;
     var pw5 = p.w || 1;
 
-    function fillEO5(polys, colr) {
+    function scanFill5(polys, colr, nonzero) {
+      if (gfx.poly) {
+        /* Backend can fill float polygons at its own (device) resolution
+           - hand the geometry over untouched except for tree position. */
+        var tp5 = [];
+        for (var tq5 = 0; tq5 < polys.length; tq5++) {
+          var tr5 = [];
+          for (var ts5 = 0; ts5 < polys[tq5].length; ts5++) {
+            tr5.push({ x: x + polys[tq5][ts5].x, y: y + polys[tq5][ts5].y });
+          }
+          tp5.push(tr5);
+        }
+        gfx.poly(tp5, colr, nonzero ? 'nonzero' : 'evenodd');
+        return;
+      }
       var minY5 = 1e9, maxY5 = -1e9, e5 = [];
       for (var sp5 = 0; sp5 < polys.length; sp5++) {
         var sq5 = polys[sp5];
         for (var se5 = 0; se5 < sq5.length; se5++) {
           var pA5 = sq5[se5], pB5 = sq5[(se5 + 1) % sq5.length];
-          if (pA5.y !== pB5.y) e5.push([pA5.x, pA5.y, pB5.x, pB5.y]);
+          if (pA5.y !== pB5.y) e5.push([pA5.x, pA5.y, pB5.x, pB5.y, pA5.y < pB5.y ? 1 : -1]);
           if (pA5.y < minY5) minY5 = pA5.y;
           if (pA5.y > maxY5) maxY5 = pA5.y;
         }
@@ -308,88 +322,144 @@ function draw(node, x, y, availW, forcedH) {
           var lo9 = ed5[1] < ed5[3] ? ed5[1] : ed5[3];
           var hi9 = ed5[1] < ed5[3] ? ed5[3] : ed5[1];
           if (cy5 >= lo9 && cy5 < hi9) {
-            xs5.push(ed5[0] + (ed5[2] - ed5[0]) * (cy5 - ed5[1]) / (ed5[3] - ed5[1]));
+            xs5.push([ed5[0] + (ed5[2] - ed5[0]) * (cy5 - ed5[1]) / (ed5[3] - ed5[1]), ed5[4]]);
           }
         }
-        xs5.sort(function (a5, b5) { return a5 - b5; });
-        for (var xp5 = 0; xp5 + 1 < xs5.length; xp5 += 2) {
-          var fx5 = Math.round(xs5[xp5]), tx5 = Math.round(xs5[xp5 + 1]);
-          if (tx5 > fx5) gfx.frect(x + fx5, y + sy5, tx5 - fx5, 1, colr, 0);
+        xs5.sort(function (a5, b5) { return a5[0] - b5[0]; });
+        if (nonzero) {
+          var wind5 = 0, open5 = -1;
+          for (var xw5 = 0; xw5 < xs5.length; xw5++) {
+            var was5 = wind5 !== 0;
+            wind5 += xs5[xw5][1];
+            var is5 = wind5 !== 0;
+            if (!was5 && is5) open5 = xs5[xw5][0];
+            else if (was5 && !is5 && open5 !== null) {
+              var fz5 = Math.round(open5), tz5 = Math.round(xs5[xw5][0]);
+              if (tz5 > fz5) gfx.frect(x + fz5, y + sy5, tz5 - fz5, 1, colr, 0);
+            }
+          }
+        } else {
+          for (var xp5 = 0; xp5 + 1 < xs5.length; xp5 += 2) {
+            var fx5 = Math.round(xs5[xp5][0]), tx5 = Math.round(xs5[xp5 + 1][0]);
+            if (tx5 > fx5) gfx.frect(x + fx5, y + sy5, tx5 - fx5, 1, colr, 0);
+          }
         }
       }
     }
 
-    if (p.fill !== undefined) fillEO5(subs5, p.fill);
+    if (p.fill !== undefined) scanFill5(subs5, p.fill, false);
 
     if (p.color !== undefined || p.fill === undefined) {
       var hw5 = pw5 / 2;
+      var miter5 = p.join === 'miter';
+
+      function arc5(out5, cx6, cy6, a0, a1, viaA) {
+        /* sample from angle a0 to a1, sweeping in the direction that
+           passes nearest viaA when given, else the short way */
+        var d6 = a1 - a0;
+        while (d6 > Math.PI) d6 -= 2 * Math.PI;
+        while (d6 < -Math.PI) d6 += 2 * Math.PI;
+        if (viaA !== undefined) {
+          var mid6 = a0 + d6 / 2;
+          var dm6 = mid6 - viaA;
+          while (dm6 > Math.PI) dm6 -= 2 * Math.PI;
+          while (dm6 < -Math.PI) dm6 += 2 * Math.PI;
+          if (Math.abs(dm6) > Math.PI / 2) d6 = d6 > 0 ? d6 - 2 * Math.PI : d6 + 2 * Math.PI;
+        }
+        var n6 = Math.max(2, Math.ceil(Math.abs(d6) / (Math.PI / 8)));
+        for (var k6 = 1; k6 < n6; k6++) {
+          var a6 = a0 + (d6 * k6) / n6;
+          out5.push({ x: cx6 + Math.cos(a6) * hw5, y: cy6 + Math.sin(a6) * hw5 });
+        }
+      }
+
+      function sideJoin5(out5, pt6, nA, nB, cross6, sgn6) {
+        out5.push({ x: pt6.x + nA.x * sgn6, y: pt6.y + nA.y * sgn6 });
+        var outside6 = sgn6 * cross6 < 0;
+        if (outside6) {
+          if (miter5) {
+            var bx6 = (nA.x + nB.x) * sgn6, by6 = (nA.y + nB.y) * sgn6;
+            var bl6 = Math.sqrt(bx6 * bx6 + by6 * by6);
+            if (bl6 > 0.0001) {
+              /* miter length hw/cos(half-angle) = 2*hw^2/|nA+nB|, limit 3x */
+              var ml6 = Math.min(2 * hw5 * hw5 / bl6, hw5 * 3);
+              out5.push({ x: pt6.x + bx6 / bl6 * ml6, y: pt6.y + by6 / bl6 * ml6 });
+            }
+          } else {
+            arc5(out5, pt6.x, pt6.y,
+                 Math.atan2(nA.y * sgn6, nA.x * sgn6),
+                 Math.atan2(nB.y * sgn6, nB.x * sgn6));
+          }
+        }
+        out5.push({ x: pt6.x + nB.x * sgn6, y: pt6.y + nB.y * sgn6 });
+      }
+
       for (var sp6 = 0; sp6 < subs5.length; sp6++) {
         var pts5 = subs5[sp6];
         var closed5 = (p.close || p.fill !== undefined) && pts5.length > 2;
-        var segN5 = closed5 ? pts5.length : pts5.length - 1;
         if (pts5.length === 1) {
-          if (pw5 >= 2) gfx.circle(x + pts5[0].x, y + pts5[0].y, Math.max(1, Math.floor(hw5)), pc5, true);
+          if (pw5 >= 2) gfx.circle(x + pts5[0].x, y + pts5[0].y, Math.max(1, Math.round(hw5)), pc5, true);
           else gfx.line(x + pts5[0].x, y + pts5[0].y, x + pts5[0].x, y + pts5[0].y, pc5);
           continue;
         }
-        var norms5 = [];
-        for (var pi5 = 0; pi5 < segN5; pi5++) {
-          var a6 = pts5[pi5], b6 = pts5[(pi5 + 1) % pts5.length];
-          var dx6 = b6.x - a6.x, dy6 = b6.y - a6.y;
-          var ln6 = Math.sqrt(dx6 * dx6 + dy6 * dy6);
-          if (ln6 < 0.0001) { norms5.push(null); continue; }
-          var nx6 = -dy6 / ln6 * hw5, ny6 = dx6 / ln6 * hw5;
-          norms5.push({ x: nx6, y: ny6 });
-          /* Bresenham parallel lines are the BASE: they guarantee gapless
-             connected coverage (scanline quads alone leave rounding gaps
-             on thin near-45-degree segments). The quad on top evens the
-             width out at every angle - only needed once the stroke is
-             thick enough for the axis-aligned error to show. */
-          var steep6 = Math.abs(b6.y - a6.y) > Math.abs(b6.x - a6.x);
-          var pox6 = steep6 ? 1 : 0, poy6 = steep6 ? 0 : 1;
-          for (var lq6 = 0; lq6 < pw5; lq6++) {
-            var lo6 = lq6 - ((pw5 - 1) >> 1);
-            gfx.line(x + a6.x + pox6 * lo6, y + a6.y + poy6 * lo6,
-                     x + b6.x + pox6 * lo6, y + b6.y + poy6 * lo6, pc5);
+        if (pw5 <= 1 && !gfx.poly) {
+          var segN7 = closed5 ? pts5.length : pts5.length - 1;
+          for (var pl7 = 0; pl7 < segN7; pl7++) {
+            var a7 = pts5[pl7], b7 = pts5[(pl7 + 1) % pts5.length];
+            gfx.line(x + a7.x, y + a7.y, x + b7.x, y + b7.y, pc5);
           }
-          if (pw5 >= 3) {
-            fillEO5([[
-              { x: a6.x + nx6, y: a6.y + ny6 }, { x: b6.x + nx6, y: b6.y + ny6 },
-              { x: b6.x - nx6, y: b6.y - ny6 }, { x: a6.x - nx6, y: a6.y - ny6 }
-            ]], pc5);
-          }
+          continue;
         }
-        if (pw5 >= 2) {
-          var jr6 = Math.max(1, Math.floor(hw5));
-          for (var pj5 = 0; pj5 < pts5.length; pj5++) {
-            var isJoin5 = closed5 || (pj5 > 0 && pj5 < pts5.length - 1);
-            var prev5 = norms5[(pj5 + segN5 - 1) % segN5], next5 = norms5[pj5 % segN5];
-            if (isJoin5 && p.join === 'miter' && prev5 && next5) {
-              /* the miter wedge: both offset corners plus the outer miter
-                 point on the angle bisector, limited to 3x the half-width */
-              var bxm = prev5.x + next5.x, bym = prev5.y + next5.y;
-              var bl = Math.sqrt(bxm * bxm + bym * bym);
-              if (bl > 0.0001) {
-                var cosH = bl / 2 / hw5;
-                var ml = Math.min(hw5 / Math.max(cosH, 0.34), hw5 * 3);
-                var mx = bxm / bl * ml, my = bym / bl * ml;
-                var pt6 = pts5[pj5];
-                fillEO5([[
-                  { x: pt6.x + prev5.x, y: pt6.y + prev5.y },
-                  { x: pt6.x + mx, y: pt6.y + my },
-                  { x: pt6.x + next5.x, y: pt6.y + next5.y },
-                  pt6,
-                  { x: pt6.x - next5.x, y: pt6.y - next5.y },
-                  { x: pt6.x - mx, y: pt6.y - my },
-                  { x: pt6.x - prev5.x, y: pt6.y - prev5.y }
-                ]], pc5);
-              }
-            } else if (isJoin5 || !closed5) {
-              /* round join, and round caps on open ends - the disc radius
-                 equals the half-width, so it is flush, never a bulge */
-              gfx.circle(x + pts5[pj5].x, y + pts5[pj5].y, jr6, pc5, true);
-            }
+        /* segment normals (left side, half-width length) */
+        var segs5 = [];
+        for (var si5 = 0; si5 < (closed5 ? pts5.length : pts5.length - 1); si5++) {
+          var pA6 = pts5[si5], pB6 = pts5[(si5 + 1) % pts5.length];
+          var dx7 = pB6.x - pA6.x, dy7 = pB6.y - pA6.y;
+          var ln7 = Math.sqrt(dx7 * dx7 + dy7 * dy7);
+          if (ln7 < 0.0001) continue;
+          segs5.push({ a: pA6, b: pB6, dx: dx7 / ln7, dy: dy7 / ln7,
+                       n: { x: -dy7 / ln7 * hw5, y: dx7 / ln7 * hw5 } });
+        }
+        if (!segs5.length) continue;
+        if (closed5) {
+          /* two rings: left offsets forward, right offsets forward (the
+             scan uses winding, so orientation handles the hole) */
+          var ringL = [], ringR = [];
+          for (var jj5 = 0; jj5 < segs5.length; jj5++) {
+            var sA5 = segs5[jj5], sB5 = segs5[(jj5 + 1) % segs5.length];
+            var cr5 = sA5.dx * sB5.dy - sA5.dy * sB5.dx;
+            sideJoin5(ringL, sA5.b, sA5.n, sB5.n, cr5, 1);
+            sideJoin5(ringR, sA5.b, sA5.n, sB5.n, cr5, -1);
           }
+          ringR.reverse();
+          scanFill5([ringL, ringR], pc5, true);
+        } else {
+          var out6 = [];
+          out6.push({ x: segs5[0].a.x + segs5[0].n.x, y: segs5[0].a.y + segs5[0].n.y });
+          for (var jf5 = 0; jf5 + 1 < segs5.length; jf5++) {
+            var c5 = segs5[jf5].dx * segs5[jf5 + 1].dy - segs5[jf5].dy * segs5[jf5 + 1].dx;
+            sideJoin5(out6, segs5[jf5].b, segs5[jf5].n, segs5[jf5 + 1].n, c5, 1);
+          }
+          var lastS5 = segs5[segs5.length - 1];
+          out6.push({ x: lastS5.b.x + lastS5.n.x, y: lastS5.b.y + lastS5.n.y });
+          /* end cap: half circle through the forward direction */
+          arc5(out6, lastS5.b.x, lastS5.b.y,
+               Math.atan2(lastS5.n.y, lastS5.n.x),
+               Math.atan2(-lastS5.n.y, -lastS5.n.x),
+               Math.atan2(lastS5.dy, lastS5.dx));
+          out6.push({ x: lastS5.b.x - lastS5.n.x, y: lastS5.b.y - lastS5.n.y });
+          for (var jb5 = segs5.length - 1; jb5 > 0; jb5--) {
+            var c6 = segs5[jb5 - 1].dx * segs5[jb5].dy - segs5[jb5 - 1].dy * segs5[jb5].dx;
+            sideJoin5(out6, segs5[jb5 - 1].b, segs5[jb5].n, segs5[jb5 - 1].n, -c6, -1);
+          }
+          var firstS5 = segs5[0];
+          out6.push({ x: firstS5.a.x - firstS5.n.x, y: firstS5.a.y - firstS5.n.y });
+          /* start cap: half circle through the backward direction */
+          arc5(out6, firstS5.a.x, firstS5.a.y,
+               Math.atan2(-firstS5.n.y, -firstS5.n.x),
+               Math.atan2(firstS5.n.y, firstS5.n.x),
+               Math.atan2(-firstS5.dy, -firstS5.dx));
+          scanFill5([out6], pc5, true);
         }
       }
     }
