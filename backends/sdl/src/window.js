@@ -164,22 +164,20 @@ function createSdlWindow(pxW, pxH, opts) {
   function applyMask(rgb) {
     if (!mask) return rgb;
     scratch.set(rgb);
+    /* 'circle' = fully rounded on the SHORT side: corner radius pxMin/2,
+       which is an exact circle on a square panel and a stadium (pill) on a
+       rectangular one — never a circle forced onto a rectangle. A numeric
+       mask is that same shape at a smaller corner radius. */
     var r = mask === 'circle' ? Math.min(pxW, pxH) / 2 : mask;
     var cxs = [r, pxW - r, r, pxW - r], cys = [r, r, pxH - r, pxH - r];
     for (var y = 0; y < pxH; y++) {
       for (var x = 0; x < pxW; x++) {
-        var out;
-        if (mask === 'circle') {
-          var dx = x + 0.5 - pxW / 2, dy = y + 0.5 - pxH / 2;
-          out = dx * dx + dy * dy > r * r;
-        } else {
-          out = false;
-          /* corner boxes: outside the quarter-circle -> dark */
-          if ((x < r || x >= pxW - r) && (y < r || y >= pxH - r)) {
-            var ci = (x < r ? 0 : 1) + (y < r ? 0 : 2);
-            var ddx = x + 0.5 - cxs[ci], ddy = y + 0.5 - cys[ci];
-            out = ddx * ddx + ddy * ddy > r * r;
-          }
+        var out = false;
+        /* corner boxes: outside the quarter-circle -> bezel */
+        if ((x < r || x >= pxW - r) && (y < r || y >= pxH - r)) {
+          var ci = (x < r ? 0 : 1) + (y < r ? 0 : 2);
+          var ddx = x + 0.5 - cxs[ci], ddy = y + 0.5 - cys[ci];
+          out = ddx * ddx + ddy * ddy > r * r;
         }
         if (out) { var i = (y * pxW + x) * 3; scratch[i] = bezel[0]; scratch[i + 1] = bezel[1]; scratch[i + 2] = bezel[2]; }
       }
