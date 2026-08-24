@@ -44,7 +44,10 @@ var snapScale = flagArgs.indexOf('--free') === -1;
    blown-up pixels. Toggled from the toolbar; --hd starts on. */
 var hd = flagArgs.indexOf('--hd') !== -1;
 var fontScale = flagArgs.indexOf('--fontscale=pixel') !== -1 ? 'pixel' : (flagArgs.indexOf('--fontscale=smooth') !== -1 ? 'smooth' : 'vector');
-function dprNow() { return hd ? scale : 1; }
+/* HD dpr covers the FULL path to the glass: window scale x the display's
+   device-pixels-per-point (2 on Retina), so one buffer pixel is one screen
+   pixel. Before the window exists the display factor reads as 1. */
+function dprNow() { return hd ? scale * (typeof win !== 'undefined' && win ? win.drawableScale() : 1) : 1; }
 
 /* Three font sizes, cycled by the toolbar's FONT button: tiny hand-drawn
    4x6, clear 6x8, large Scale2x-smoothed 12x16. --font=NAME picks the
@@ -80,6 +83,9 @@ try {
   process.exit(1);
 }
 
+/* The window exists now, so dprNow() includes the real drawable scale —
+   retune the texture before the first present. */
+if (hd) win.setScreenSize(pxW, pxH, dprNow());
 var backend = createPureJsBackend(pxW, pxH, { font: fontName === 'auto' ? undefined : fontName, dpr: dprNow(), fontScale: fontScale });
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;

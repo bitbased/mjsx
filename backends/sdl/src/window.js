@@ -33,7 +33,7 @@ function libPath() {
 
 var SDL_INIT_VIDEO = 0x20;
 var SDL_WINDOWPOS_CENTERED = 0x2FFF0000;
-var SDL_WINDOW_SHOWN = 0x4, SDL_WINDOW_RESIZABLE = 0x20;
+var SDL_WINDOW_SHOWN = 0x4, SDL_WINDOW_RESIZABLE = 0x20, SDL_WINDOW_ALLOW_HIGHDPI = 0x2000;
 var SDL_PIXELFORMAT_RGB24 = 0x17101803;
 var SDL_TEXTUREACCESS_STREAMING = 1;
 
@@ -83,6 +83,8 @@ function createSdlWindow(pxW, pxH, opts) {
     SDL_CreateWindow: { args: ['ptr', 'i32', 'i32', 'i32', 'i32', 'u32'], returns: 'ptr' },
     SDL_DestroyWindow: { args: ['ptr'], returns: 'void' },
     SDL_CreateRenderer: { args: ['ptr', 'i32', 'u32'], returns: 'ptr' },
+    SDL_GetRendererOutputSize: { args: ['ptr', 'ptr', 'ptr'], returns: 'i32' },
+    SDL_SetTextureScaleMode: { args: ['ptr', 'u32'], returns: 'i32' },
     SDL_DestroyRenderer: { args: ['ptr'], returns: 'void' },
     SDL_CreateTexture: { args: ['ptr', 'u32', 'i32', 'i32', 'i32'], returns: 'ptr' },
     SDL_DestroyTexture: { args: ['ptr'], returns: 'void' },
@@ -117,12 +119,28 @@ function createSdlWindow(pxW, pxH, opts) {
   if (('' + fmtName) !== 'SDL_PIXELFORMAT_RGB24') fail('pixel format constant mismatch (' + fmtName + ')');
 
   var win = lib.SDL_CreateWindow(cstr(title), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                 pxW * scale, pxH * scale + tbStrip, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+                                 pxW * scale, pxH * scale + tbStrip, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
   if (!win) fail('SDL_CreateWindow');
   var ren = lib.SDL_CreateRenderer(win, -1, 0);
   if (!ren) fail('SDL_CreateRenderer');
+  /* Retina/HiDPI: window units are POINTS, the drawable is ds x larger in
+     device pixels. Every rect handed to RenderCopy must be in drawable
+     pixels — without this, macOS upscales the whole frame 2x and even a
+     high-dpr texture comes out soft. Mouse events stay in points. */
+  var dsBufA = new Int32Array(1), dsBufB = new Int32Array(1);
+  var ds = 1;
+  function readDrawableScale() {
+    if (!ren) return;
+    if (lib.SDL_GetRendererOutputSize(ren, fptr(dsBufA), fptr(dsBufB)) === 0 && winW > 0) {
+      ds = dsBufA[0] / winW || 1;
+    }
+  }
+
   var tex = lib.SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, pxW * ts, pxH * ts);
   if (!tex) fail('SDL_CreateTexture');
+  /* HD textures upscale linearly (smooth); 1:1 pixel textures stay nearest
+     (crisp chunky pixels). 0 = nearest, 1 = linear. */
+  lib.SDL_SetTextureScaleMode(tex, ts > 1 ? 1 : 0);
 
   /* One reusable event buffer; SDL_Event is a 56-byte union. The pointer is
      taken FRESH on every native call — a cached ptr() can go stale across
@@ -139,9 +157,11 @@ function createSdlWindow(pxW, pxH, opts) {
      the window has been dragged to. Recomputed on every size change; mouse
      coordinates are mapped back through the same rectangle. */
   var winW = pxW * scale, winH = pxH * scale + tbStrip;
+  /* ds read after refit is defined; winW is set so the ratio is computable. */
   var tbW = 0, tbTex = null;
   var dst = { x: 0, y: 0, w: 0, h: 0, fit: scale };
   function refit() {
+    readDrawableScale();
     var availH = winH - tbStrip;
     var fit = Math.min(winW / pxW, availH / pxH);
     if (snapScale && fit >= 1) fit = Math.floor(fit);
@@ -202,10 +222,11 @@ function createSdlWindow(pxW, pxH, opts) {
         if (!tbTex) tbTex = lib.SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, tbW, tbH);
         if (!tbTex) fail('SDL_CreateTexture (toolbar)');
         if (lib.SDL_UpdateTexture(tbTex, null, fptr(toolbarRgb), tbW * 3) !== 0) fail('SDL_UpdateTexture (toolbar)');
-        rectBuf[0] = 0; rectBuf[1] = 0; rectBuf[2] = tbW * tbScale; rectBuf[3] = tbStrip;
+        rectBuf[0] = 0; rectBuf[1] = 0; rectBuf[2] = Math.round(tbW * tbScale * ds); rectBuf[3] = Math.round(tbStrip * ds);
         lib.SDL_RenderCopy(ren, tbTex, null, fptr(rectBuf));
       }
-      rectBuf[0] = dst.x; rectBuf[1] = dst.y; rectBuf[2] = dst.w; rectBuf[3] = dst.h;
+      rectBuf[0] = Math.round(dst.x * ds); rectBuf[1] = Math.round(dst.y * ds);
+      rectBuf[2] = Math.round(dst.w * ds); rectBuf[3] = Math.round(dst.h * ds);
       lib.SDL_RenderCopy(ren, tex, null, fptr(rectBuf));
       lib.SDL_RenderPresent(ren);
     },
@@ -223,9 +244,14 @@ function createSdlWindow(pxW, pxH, opts) {
       lib.SDL_DestroyTexture(tex);
       tex = lib.SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, pxW * ts, pxH * ts);
       if (!tex) fail('SDL_CreateTexture');
+      lib.SDL_SetTextureScaleMode(tex, ts > 1 ? 1 : 0);
       remask(mask);
       refit();
     },
+
+    /* Device pixels per window point (2 on Retina) — what an HD caller
+       multiplies its dpr by to land 1:1 on the physical display. */
+    drawableScale: function () { return ds; },
     setMask: function (m) { remask(m); },
 
     /* Drain the event queue into plain objects, coordinates already in
