@@ -43,6 +43,22 @@ var snapScale = flagArgs.indexOf('--free') === -1;
    scale, so shapes rasterize with real sub-pixel geometry instead of
    blown-up pixels. Toggled from the toolbar; --hd starts on. */
 var hd = flagArgs.indexOf('--hd') !== -1;
+/* Host-font text: captured text ops composited with a real system
+   monospace via SDL2_ttf, fitted to the mjsx grid. --hostfont starts on;
+   the TXT toolbar button toggles live; --fontfile=path picks the face. */
+var hostText = flagArgs.indexOf('--hostfont') !== -1;
+var fontFile;
+for (var hfi = 0; hfi < flagArgs.length; hfi++) {
+  if (flagArgs[hfi].slice(0, 11) === '--fontfile=') fontFile = flagArgs[hfi].slice(11);
+}
+var ttf = null;
+function ttfReady() {
+  if (ttf === null) {
+    ttf = require('./ttf.js').createTtfText(fontFile);
+    if (!ttf.ok) console.error('host font unavailable: ' + ttf.err);
+  }
+  return ttf.ok;
+}
 var fontScale = 'vector';
 for (var fsi = 0; fsi < flagArgs.length; fsi++) {
   if (flagArgs[fsi].slice(0, 12) === '--fontscale=') fontScale = flagArgs[fsi].slice(12);
@@ -89,7 +105,11 @@ try {
 /* The window exists now, so dprNow() includes the real drawable scale —
    retune the texture before the first present. */
 if (hd) win.setScreenSize(pxW, pxH, dprNow());
-var backend = createPureJsBackend(pxW, pxH, { font: fontName === 'auto' ? undefined : fontName, dpr: dprNow(), fontScale: fontScale });
+function backendOpts() {
+  return { font: fontName === 'auto' ? undefined : fontName, dpr: dprNow(), fontScale: fontScale,
+           textMode: hostText ? 'capture' : undefined };
+}
+var backend = createPureJsBackend(pxW, pxH, backendOpts());
 globalThis.gfx = backend.gfx;
 globalThis.sys = backend.sys;
 
@@ -218,6 +238,11 @@ function toolbarFrame() {
     hd = !hd;
     rebuild();
   });
+  btn('TXT:' + (hostText ? 'TTF' : 'BMP'), function () {
+    if (!hostText && !ttfReady()) return; /* stay on bitmap if SDL2_ttf is missing */
+    hostText = !hostText;
+    rebuild();
+  });
   var ppm = tb.toPPM(), idx = 0, nl = 0;
   while (nl < 3) { if (ppm[idx++] === 10) nl++; }
   return ppm.subarray(idx);
@@ -231,7 +256,7 @@ function toolbarFrame() {
 function rebuild() {
   win.setMask(SHAPES[shapeIdx].mask);
   win.setScreenSize(pxW, pxH, dprNow());
-  backend = createPureJsBackend(pxW, pxH, { font: fontName === 'auto' ? undefined : fontName, dpr: dprNow(), fontScale: fontScale });
+  backend = createPureJsBackend(pxW, pxH, backendOpts());
   globalThis.gfx = backend.gfx;
   if (current) loadExample(current); else showMenu();
   UI._dirty = true;
@@ -244,7 +269,11 @@ function pixels() {
   var ppm = backend.toPPM();
   var idx = 0, newlines = 0;
   while (newlines < 3) { if (ppm[idx++] === 10) newlines++; }
-  return ppm.subarray(idx);
+  var frame = ppm.subarray(idx);
+  if (hostText && ttfReady()) {
+    ttf.composite(frame, pxW * dprNow(), pxH * dprNow(), backend.textOps, dprNow());
+  }
+  return frame;
 }
 
 function frame() {
