@@ -620,6 +620,17 @@ function draw(node, x, y, availW, forcedH) {
 
     var boxH = forcedH || p.h;
 
+    /* shield: this box occludes what it is drawn over. A swallow-all hit
+       registered BEFORE the children (so its own controls, registered
+       later, still win) plus a key-less swipe zone: taps between the
+       controls die here instead of reaching covered fields, and drags or
+       wheel over the box no longer scroll a zone underneath it. The hit
+       an overlay panel (a keyboard, a docked toolbar) wants. */
+    if (p.shield) {
+      UI._hit(x, y, availW, hgt, p.onTap || function () {}, 0, 0, null);
+      UI._swipeZone(x, y, availW, hgt, null, 0, 0);
+    }
+
     /* clip: confine the children's draws (and hit areas) to this box —
        what a canvas-like region needs so captured strokes recorded past
        its edges cannot paint over the neighbours. Scroll viewports clip
@@ -741,7 +752,7 @@ function draw(node, x, y, availW, forcedH) {
       UI._clipHits(clipHits0, x, y, availW, hgt);
     }
 
-    if (p.onTap || p.onLongPress || p.onDraw) {
+    if ((p.onTap || p.onLongPress || p.onDraw) && !p.shield) {
       UI._hit(x - hp(p), y - hp(p), availW + hp(p) * 2, hgt + hp(p) * 2,
               p.onTap, p.onHold || p.onLongPress,
               p.onHold ? (p.holdEvery || 320) : 0, p.onDraw);
@@ -1039,7 +1050,7 @@ function Keyboard(p) {
      to whatever the overlay is covering. */
   var panel = h('box', {
     bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2,
-    onTap: function () {}
+    shield: true
   }, rows);
   if (UI.exclusive()) {
     /* Full-display: a MIRROR of the focused input above the keys. Input
@@ -1050,9 +1061,13 @@ function Keyboard(p) {
     var xst = UI._inputs[UI._focus];
     var xp = (xst && xst.p) || {};
     return h('abs', { x: 0, y: 0, w: gfx.width() },
-      h('box', { h: gfx.height(), bg: UI.theme.bg, pad: 6, gap: 6, onTap: function () {} }, [
-        h('text', { text: xp.label || xp.placeholder || UI._focus,
-                    size: 1, color: UI.theme.muted }),
+      h('box', { h: gfx.height(), bg: UI.theme.bg, pad: 6, gap: 6, shield: true }, [
+        h('row', { gap: 4 }, [
+          h('text', { text: xp.label || xp.placeholder || UI._focus,
+                      size: 1, color: UI.theme.muted, middle: true }),
+          kbKey('x', function () { kbSend('Escape'); },
+                { w: em(3), bg: UI.theme.panel, color: UI.theme.err })
+        ]),
         h('input', { id: UI._focus, size: xp.size || 2, password: xp.password,
                      maxLen: xp.maxLen, placeholder: xp.placeholder, label: xp.label,
                      value: xp.value, onChange: xp.onChange, onSubmit: xp.onSubmit,
