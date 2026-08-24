@@ -287,10 +287,9 @@ var MOUSE = 'mouse';
 var lastX = pxW >> 1, lastY = pxH >> 1;
 
 function pixels() {
-  var ppm = backend.toPPM();
-  var idx = 0, newlines = 0;
-  while (newlines < 3) { if (ppm[idx++] === 10) newlines++; }
-  var frame = ppm.subarray(idx);
+  /* the live framebuffer, in place - no per-frame copy. The TTF composite
+     draws into it too; the next render repaints from scratch anyway. */
+  var frame = backend.raw;
   if (hostText && ttfReady()) {
     ttf.composite(frame, pxW * dprNow(), pxH * dprNow(), backend.textOps, dprNow());
   }

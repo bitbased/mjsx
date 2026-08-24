@@ -279,20 +279,21 @@ function draw(node, x, y, availW, forcedH) {
     /* A polyline stroke, and optionally an SVG-style filled shape.
        `pts` is a point list, or a list of point lists (subpaths). `fill`
        scanline-fills with the EVEN-ODD rule - alternating spans, so
-       self-intersecting shapes and multi-subpath holes (a donut) fill the
-       way SVG's fill-rule=evenodd does - decomposed into 1px frect spans,
-       which is all the native contract needs. `close` strokes the closing
-       segment of each subpath (filling implies closed GEOMETRY either
-       way). Stroke thickness works like the line mark (w parallel lines)
-       with filled discs at points for rounded joins and caps; true miter
-       joins would need polygon stroking the contract does not have. */
+       self-intersecting shapes and multi-subpath holes fill the way
+       SVG's fill-rule=evenodd does. Strokes are TRUE thick strokes: each
+       segment is a perpendicular-offset quad filled by the same scanline,
+       so width is uniform at every angle (no axis-flip notches on
+       near-45-degree segments). Joins are round (flush discs, never wider
+       than the stroke) or `join="miter"` for sharp corners; open ends get
+       round caps. */
     var subs5 = (p.pts && p.pts.length && p.pts[0] && p.pts[0].length !== undefined) ? p.pts : [p.pts || []];
     var pc5 = p.color === undefined ? UI.theme.muted : p.color;
     var pw5 = p.w || 1;
-    if (p.fill !== undefined) {
+
+    function fillEO5(polys, colr) {
       var minY5 = 1e9, maxY5 = -1e9, e5 = [];
-      for (var sp5 = 0; sp5 < subs5.length; sp5++) {
-        var sq5 = subs5[sp5];
+      for (var sp5 = 0; sp5 < polys.length; sp5++) {
+        var sq5 = polys[sp5];
         for (var se5 = 0; se5 < sq5.length; se5++) {
           var pA5 = sq5[se5], pB5 = sq5[(se5 + 1) % sq5.length];
           if (pA5.y !== pB5.y) e5.push([pA5.x, pA5.y, pB5.x, pB5.y]);
@@ -313,32 +314,82 @@ function draw(node, x, y, availW, forcedH) {
         xs5.sort(function (a5, b5) { return a5 - b5; });
         for (var xp5 = 0; xp5 + 1 < xs5.length; xp5 += 2) {
           var fx5 = Math.round(xs5[xp5]), tx5 = Math.round(xs5[xp5 + 1]);
-          if (tx5 > fx5) gfx.frect(x + fx5, y + sy5, tx5 - fx5, 1, p.fill, 0);
+          if (tx5 > fx5) gfx.frect(x + fx5, y + sy5, tx5 - fx5, 1, colr, 0);
         }
       }
     }
-    for (var sp6 = 0; sp6 < subs5.length; sp6++) {
-      var pts5 = subs5[sp6];
-      var segN5 = (p.close || p.fill !== undefined) && pts5.length > 2 ? pts5.length : pts5.length - 1;
-      if (p.color !== undefined || p.fill === undefined) {
+
+    if (p.fill !== undefined) fillEO5(subs5, p.fill);
+
+    if (p.color !== undefined || p.fill === undefined) {
+      var hw5 = pw5 / 2;
+      for (var sp6 = 0; sp6 < subs5.length; sp6++) {
+        var pts5 = subs5[sp6];
+        var closed5 = (p.close || p.fill !== undefined) && pts5.length > 2;
+        var segN5 = closed5 ? pts5.length : pts5.length - 1;
+        if (pts5.length === 1) {
+          if (pw5 >= 2) gfx.circle(x + pts5[0].x, y + pts5[0].y, Math.max(1, Math.floor(hw5)), pc5, true);
+          else gfx.line(x + pts5[0].x, y + pts5[0].y, x + pts5[0].x, y + pts5[0].y, pc5);
+          continue;
+        }
+        var norms5 = [];
         for (var pi5 = 0; pi5 < segN5; pi5++) {
-          var ax5 = pts5[pi5].x, ay5 = pts5[pi5].y;
-          var bx5 = pts5[(pi5 + 1) % pts5.length].x, by5 = pts5[(pi5 + 1) % pts5.length].y;
-          var steep5 = Math.abs(by5 - ay5) > Math.abs(bx5 - ax5);
-          var ox5 = steep5 ? 1 : 0, oy5 = steep5 ? 0 : 1;
-          for (var lq5 = 0; lq5 < pw5; lq5++) {
-            var lo5 = lq5 - ((pw5 - 1) >> 1);
-            gfx.line(x + ax5 + ox5 * lo5, y + ay5 + oy5 * lo5,
-                     x + bx5 + ox5 * lo5, y + by5 + oy5 * lo5, pc5);
+          var a6 = pts5[pi5], b6 = pts5[(pi5 + 1) % pts5.length];
+          var dx6 = b6.x - a6.x, dy6 = b6.y - a6.y;
+          var ln6 = Math.sqrt(dx6 * dx6 + dy6 * dy6);
+          if (ln6 < 0.0001) { norms5.push(null); continue; }
+          var nx6 = -dy6 / ln6 * hw5, ny6 = dx6 / ln6 * hw5;
+          norms5.push({ x: nx6, y: ny6 });
+          /* Bresenham parallel lines are the BASE: they guarantee gapless
+             connected coverage (scanline quads alone leave rounding gaps
+             on thin near-45-degree segments). The quad on top evens the
+             width out at every angle - only needed once the stroke is
+             thick enough for the axis-aligned error to show. */
+          var steep6 = Math.abs(b6.y - a6.y) > Math.abs(b6.x - a6.x);
+          var pox6 = steep6 ? 1 : 0, poy6 = steep6 ? 0 : 1;
+          for (var lq6 = 0; lq6 < pw5; lq6++) {
+            var lo6 = lq6 - ((pw5 - 1) >> 1);
+            gfx.line(x + a6.x + pox6 * lo6, y + a6.y + poy6 * lo6,
+                     x + b6.x + pox6 * lo6, y + b6.y + poy6 * lo6, pc5);
+          }
+          if (pw5 >= 3) {
+            fillEO5([[
+              { x: a6.x + nx6, y: a6.y + ny6 }, { x: b6.x + nx6, y: b6.y + ny6 },
+              { x: b6.x - nx6, y: b6.y - ny6 }, { x: a6.x - nx6, y: a6.y - ny6 }
+            ]], pc5);
           }
         }
-        if (pw5 >= 3) {
-          var jr5 = pw5 >> 1;
+        if (pw5 >= 2) {
+          var jr6 = Math.max(1, Math.floor(hw5));
           for (var pj5 = 0; pj5 < pts5.length; pj5++) {
-            gfx.circle(x + pts5[pj5].x, y + pts5[pj5].y, jr5, pc5, true);
+            var isJoin5 = closed5 || (pj5 > 0 && pj5 < pts5.length - 1);
+            var prev5 = norms5[(pj5 + segN5 - 1) % segN5], next5 = norms5[pj5 % segN5];
+            if (isJoin5 && p.join === 'miter' && prev5 && next5) {
+              /* the miter wedge: both offset corners plus the outer miter
+                 point on the angle bisector, limited to 3x the half-width */
+              var bxm = prev5.x + next5.x, bym = prev5.y + next5.y;
+              var bl = Math.sqrt(bxm * bxm + bym * bym);
+              if (bl > 0.0001) {
+                var cosH = bl / 2 / hw5;
+                var ml = Math.min(hw5 / Math.max(cosH, 0.34), hw5 * 3);
+                var mx = bxm / bl * ml, my = bym / bl * ml;
+                var pt6 = pts5[pj5];
+                fillEO5([[
+                  { x: pt6.x + prev5.x, y: pt6.y + prev5.y },
+                  { x: pt6.x + mx, y: pt6.y + my },
+                  { x: pt6.x + next5.x, y: pt6.y + next5.y },
+                  pt6,
+                  { x: pt6.x - next5.x, y: pt6.y - next5.y },
+                  { x: pt6.x - mx, y: pt6.y - my },
+                  { x: pt6.x - prev5.x, y: pt6.y - prev5.y }
+                ]], pc5);
+              }
+            } else if (isJoin5 || !closed5) {
+              /* round join, and round caps on open ends - the disc radius
+                 equals the half-width, so it is flush, never a bulge */
+              gfx.circle(x + pts5[pj5].x, y + pts5[pj5].y, jr6, pc5, true);
+            }
           }
-        } else if (pts5.length === 1) {
-          gfx.line(x + pts5[0].x, y + pts5[0].y, x + pts5[0].x, y + pts5[0].y, pc5);
         }
       }
     }

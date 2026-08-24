@@ -40,6 +40,7 @@ function App() {
                      color={st.sc === null ? undefined : st.sc}
                      w={st.w || 2}
                      close={closed}
+                     join={st.tool === 'rect' ? 'miter' : undefined}
                      fill={st.fc === null ? undefined : st.fc} />);
   }
 
@@ -54,6 +55,10 @@ function App() {
               onTap={(function (t) { return function () { UI.set({ tool: t }); }; })(tools[ti])} />
     );
   }
+  toolBtns.push(
+    <Button label="CLR" size={1} pad={em(0.4)} color={0xdd6644}
+            onTap={function () { UI.set({ strokes: [] }); }} />
+  );
 
 
   /* slot chips: which colour the palette edits - S(troke) or F(ill).

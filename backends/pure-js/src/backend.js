@@ -335,7 +335,9 @@ function createPureJsBackend(w, h, opts) {
   }
 
   var base = fontFor(1);
-  return { gfx: gfx, sys: sys, toPPM: toPPM, width: w, height: h, dpr: dpr, textOps: textOps,
+  /* raw: the live RGB framebuffer itself (w*dpr x h*dpr x 3). Hosts that
+     present every frame read it in place instead of paying toPPM's copy. */
+  return { gfx: gfx, sys: sys, toPPM: toPPM, raw: px, width: w, height: h, dpr: dpr, textOps: textOps,
            font: { advance: base.advance || (base.w + 1), lineH: (base.h + 2) * (fixed ? 1 : 1),
                    pick: fixed ? null : pickFont } };
 }
