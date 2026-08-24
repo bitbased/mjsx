@@ -170,7 +170,7 @@ function measureRaw(node, availW, forcedH) {
      offsets from wherever the flow has got to. A box with a fixed height and
      lines inside it is therefore a plotting area, with no new concept
      needed. */
-  if (t === 'line') return 0;
+  if (t === 'line' || t === 'path') return 0;
   if (t === 'row') {
     if (p.h) return p.h;  /* a pinned row is as tall as it says, not as its tallest child */
     var cols = rowWidths(node, availW);
@@ -273,6 +273,36 @@ function draw(node, x, y, availW, forcedH) {
       var loff = lq - ((lw - 1) >> 1);
       gfx.line(x + (p.x1 || 0) + ox * loff, y + (p.y1 || 0) + oy * loff,
                x + (p.x2 || 0) + ox * loff, y + (p.y2 || 0) + oy * loff, lc);
+    }
+    return 0;
+  } else if (t === 'path') {
+    /* A connected polyline stroke. Thickness works like the line mark
+       (w parallel 1px lines per segment), and the joins and caps are
+       rounded with filled discs at every point - the portable way to a
+       clean joined path with only line() and circle() in the contract.
+       (True miter joins need polygon fill, which the native contract
+       deliberately does not have.) */
+    var pts5 = p.pts || [];
+    var pc5 = p.color === undefined ? UI.theme.muted : p.color;
+    var pw5 = p.w || 1;
+    for (var pi5 = 1; pi5 < pts5.length; pi5++) {
+      var ax5 = pts5[pi5 - 1].x, ay5 = pts5[pi5 - 1].y;
+      var bx5 = pts5[pi5].x, by5 = pts5[pi5].y;
+      var steep5 = Math.abs(by5 - ay5) > Math.abs(bx5 - ax5);
+      var ox5 = steep5 ? 1 : 0, oy5 = steep5 ? 0 : 1;
+      for (var lq5 = 0; lq5 < pw5; lq5++) {
+        var lo5 = lq5 - ((pw5 - 1) >> 1);
+        gfx.line(x + ax5 + ox5 * lo5, y + ay5 + oy5 * lo5,
+                 x + bx5 + ox5 * lo5, y + by5 + oy5 * lo5, pc5);
+      }
+    }
+    if (pw5 >= 3) {
+      var jr5 = pw5 >> 1;
+      for (var pj5 = 0; pj5 < pts5.length; pj5++) {
+        gfx.circle(x + pts5[pj5].x, y + pts5[pj5].y, jr5, pc5, true);
+      }
+    } else if (pts5.length === 1) {
+      gfx.line(x + pts5[0].x, y + pts5[0].y, x + pts5[0].x, y + pts5[0].y, pc5);
     }
     return 0;
   } else if (t === 'abs') {
@@ -920,6 +950,43 @@ var UI = {
     for (var i = 0; i < this._timers.length; i++) {
       if (this._timers[i].id === id) { this._timers.splice(i, 1); return; }
     }
+  },
+
+  /* Ramer-Douglas-Peucker: drop every point closer than eps to the chord
+     of its span. A freehand stroke recorded at pointer-move rate keeps its
+     shape with a fraction of the points - run it once when the stroke
+     ends, not per frame. */
+  simplifyPath: function (pts, eps) {
+    if (!pts || pts.length < 3) return pts;
+    var keep = [];
+    for (var ki = 0; ki < pts.length; ki++) keep.push(false);
+    keep[0] = keep[pts.length - 1] = true;
+    var stack = [[0, pts.length - 1]];
+    while (stack.length) {
+      var seg = stack.pop();
+      var a = seg[0], b = seg[1];
+      if (b - a < 2) continue;
+      var ax = pts[a].x, ay = pts[a].y;
+      var dx = pts[b].x - ax, dy = pts[b].y - ay;
+      var len2 = dx * dx + dy * dy;
+      var maxD = -1, maxI = -1;
+      for (var i = a + 1; i < b; i++) {
+        var t = len2 ? ((pts[i].x - ax) * dx + (pts[i].y - ay) * dy) / len2 : 0;
+        if (t < 0) t = 0;
+        if (t > 1) t = 1;
+        var qx = ax + dx * t - pts[i].x, qy = ay + dy * t - pts[i].y;
+        var d = qx * qx + qy * qy;
+        if (d > maxD) { maxD = d; maxI = i; }
+      }
+      if (maxI >= 0 && maxD > eps * eps) {
+        keep[maxI] = true;
+        stack.push([a, maxI]);
+        stack.push([maxI, b]);
+      }
+    }
+    var out = [];
+    for (var oi = 0; oi < pts.length; oi++) if (keep[oi]) out.push(pts[oi]);
+    return out;
   },
 
   /* Step-scroll a zone. dir: 1 = towards the end of the content, -1 = back

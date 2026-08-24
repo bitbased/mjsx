@@ -11,17 +11,11 @@ function App() {
   var color = UI.state.color || 0x44dd88;
 
   var marks = [];
+  var totalPts = 0;
   for (var si = 0; si < strokes.length; si++) {
     var st = strokes[si];
-    for (var pi = 1; pi < st.pts.length; pi++) {
-      marks.push(<line x1={st.pts[pi - 1].x} y1={st.pts[pi - 1].y}
-                       x2={st.pts[pi].x} y2={st.pts[pi].y}
-                       color={st.color} w={st.w || 2} />);
-    }
-    if (st.pts.length === 1) {
-      marks.push(<line x1={st.pts[0].x} y1={st.pts[0].y}
-                       x2={st.pts[0].x} y2={st.pts[0].y} color={st.color} w={st.w || 2} />);
-    }
+    totalPts += st.pts.length;
+    marks.push(<path pts={st.pts} color={st.color} w={st.w || 2} />);
   }
 
   var colors = [0x44dd88, 0x66aaff, 0xffcc44, 0xdd6644, 0xffffff];
@@ -41,7 +35,7 @@ function App() {
   return (
     <box h={gfx.height()}>
       <box bg={0x223048} pad={em(0.6)} h={em(2.8)}>
-        <text text="DRAW - drag on the canvas" size={1} align="center" color={0x8fb8ff} />
+        <text text={'DRAW - ' + strokes.length + ' strokes, ' + totalPts + ' pts'} size={1} align="center" color={0x8fb8ff} />
       </box>
 
       {/* the canvas: owns strokes via onDraw, in local coordinates. The
@@ -62,7 +56,12 @@ function App() {
                var last = cur.pts[cur.pts.length - 1];
                var dx = x - last.x, dy = y - last.y;
                if (dx * dx + dy * dy >= 4 || phase === 2) cur.pts.push({ x: x, y: y });
-               if (phase === 2) delete live[id];
+               if (phase === 2) {
+                 /* simplify once, when the stroke ends - same shape, a
+                    fraction of the points */
+                 cur.pts = UI.simplifyPath(cur.pts, 1.4);
+                 delete live[id];
+               }
              }
              UI.set({ strokes: st2, live: live });
            }}>
