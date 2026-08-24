@@ -303,15 +303,18 @@ function draw(node, x, y, availW, forcedH) {
       draw(node.kids[ri], cx, ky, cols[ri], force || undefined);
       cx += cols[ri] + gap2;
     }
-    if (p.onTap || p.onLongPress) {
+    if (p.onTap || p.onLongPress || p.onDraw) {
       UI._hit(x - hp(p), y - hp(p), availW + hp(p) * 2, hgt + hp(p) * 2,
               p.onTap, p.onHold || p.onLongPress,
-              p.onHold ? (p.holdEvery || 320) : 0);
+              p.onHold ? (p.holdEvery || 320) : 0, p.onDraw);
     }
   } else {
     /* box — or a scroll viewport when `scroll` names an offset and `h` fixes
        the height */
     var pl = padL(p), pr = padR(p);
+    /* An explicit width narrows the box wherever it sits — rows and abs
+       containers already honoured w; flow children now do too. */
+    if (p.w && p.w < availW) availW = p.w;
     var gap3 = p.gap === undefined ? 4 : p.gap;
     if (p.border !== undefined && p.bg !== undefined) {
       /* Border AND fill: two nested rounded fills — the outer in the border
@@ -428,10 +431,10 @@ function draw(node, x, y, availW, forcedH) {
         by += draw(node.kids[bi], x + pl, by, availW - pl - pr);
       }
     }
-    if (p.onTap || p.onLongPress) {
+    if (p.onTap || p.onLongPress || p.onDraw) {
       UI._hit(x - hp(p), y - hp(p), availW + hp(p) * 2, hgt + hp(p) * 2,
               p.onTap, p.onHold || p.onLongPress,
-              p.onHold ? (p.holdEvery || 320) : 0);
+              p.onHold ? (p.holdEvery || 320) : 0, p.onDraw);
     }
   }
   return hgt;
@@ -654,8 +657,8 @@ var UI = {
     if (this.onPatch && this.onPatch(o)) { this._dirty = true; return; }
     this.set(o);
   },
-  _hit: function (x, y, w, hh, fn, hold, every) {
-    this._hits.push({ x: x, y: y, w: w, h: hh, fn: fn, hold: hold, every: every });
+  _hit: function (x, y, w, hh, fn, hold, every, drawFn) {
+    this._hits.push({ x: x, y: y, w: w, h: hh, fn: fn, hold: hold, every: every, draw: drawFn });
   },
   /**
    * Trim the controls registered since `from` to a viewport.
@@ -768,6 +771,14 @@ var UI = {
 
     if (phase === 0) {
       var hit = this._hitAt(x, y);
+      /* onDraw controls own the whole stroke: every position, press to
+         release, in the control's own coordinates. No tap, no scroll. */
+      if (hit && hit.draw) {
+        this._ptrs[id] = { drawFn: hit.draw, dx0: hit.x, dy0: hit.y, far: 0, x0: x, y0: y, y: y, key: null, holdFn: null, fired: 0, v: 0, t: sys.millis(), at: sys.millis(), every: 0, off0: 0 };
+        hit.draw(0, x - hit.x, y - hit.y, id);
+        this._dirty = true;
+        return;
+      }
       var grab = hit && hit.hold ? hit : null;
       var z = grab ? null : this._zoneAt(x, y);
       /* This contact catches whatever zone it lands on, if that zone is
@@ -800,6 +811,12 @@ var UI = {
     if (far > p.far) p.far = far;
 
     if (phase === 1) {
+      if (p.drawFn) {
+        p.drawFn(1, x - p.dx0, y - p.dy0, id);
+        this._dirty = true;
+        p.y = y;
+        return;
+      }
       if (p.key && p.far > DRAG_SLOP) {
         /* Absolute, from where the drag began: tracking deltas accumulates
            the rounding and the list drifts away from the finger. */
@@ -817,6 +834,7 @@ var UI = {
     /* Release: a stroke that stayed put was a tap on where it started —
        unless holding it already did the job. */
     delete this._ptrs[id];
+    if (p.drawFn) { p.drawFn(2, x - p.dx0, y - p.dy0, id); this._dirty = true; return; }
     if (p.fired) return;
     if (p.far <= DRAG_SLOP) { this.tap(p.x0, p.y0); return; }
     if (p.key && (p.v > 2 || p.v < -2)) this._flings.push({ key: p.key, v: p.v });
