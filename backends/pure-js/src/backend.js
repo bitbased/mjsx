@@ -24,7 +24,7 @@
    large); an instance picks one at creation (opts.font) and reports its
    metrics as backend.font so the runner can hand them to mjsx-core. */
 var raster = require('./../../../packages/core/src/raster.js');
-var VEC = require('./../../../packages/core/src/vecfont.js').VEC;
+var vectorize = require('./../../../packages/core/src/vectorize.js').vectorize;
 var fontsMod = require('./../../../packages/core/src/fonts.js');
 var FONTS = fontsMod.FONTS, pickFont = fontsMod.pickFont;
 
@@ -112,37 +112,40 @@ function createPureJsBackend(w, h, opts) {
     }
   }
 
-  /* Round-pen stroke rasterizer for the vector face: every glyph stroke is
-     sampled along its length and stamped with a filled disc — smooth joins
-     and rounded caps come free. The pen is one glyph-grid pixel of the
-     active font class, so stroke weight matches the bitmap's. */
-  function drawVecGlyph(glyph, ox, oy, gw, gh, penR, rgb) {
+  /* Round-pen renderer for VECTORIZED bitmap glyphs: stroke centrelines run
+     through the bitmap's exact pixel centres (see vectorize.js), so the
+     glyph's size and grid are identical to the bitmap — the pen just draws
+     them with rounded caps and true diagonals. Vectorizations are memoised
+     per glyph table. */
+  var _vecCache = new Map();
+  function vecGlyph(glyphs, ch, w2, h2) {
+    var tbl = _vecCache.get(glyphs);
+    if (!tbl) { tbl = {}; _vecCache.set(glyphs, tbl); }
+    if (!tbl[ch]) tbl[ch] = vectorize(glyphs[ch], w2, h2);
+    return tbl[ch];
+  }
+  function drawVecGlyph(vg, ox, oy, u, rgb) {
+    var penR = u * 0.5;
     function disc(cx2, cy2) {
-      var r = penR, ri = Math.ceil(r);
+      var ri = Math.ceil(penR);
       for (var dy = -ri; dy <= ri; dy++) {
         for (var dx = -ri; dx <= ri; dx++) {
-          if (dx * dx + dy * dy <= r * r) setPixel(Math.round(cx2 + dx), Math.round(cy2 + dy), rgb);
+          if (dx * dx + dy * dy <= penR * penR) setPixel(Math.round(cx2 + dx), Math.round(cy2 + dy), rgb);
         }
       }
     }
-    var pi, k;
-    for (pi = 0; pi < glyph.p.length; pi++) {
-      var pts = glyph.p[pi];
-      for (k = 0; k + 3 < pts.length; k += 2) {
-        var x0 = ox + pts[k] * gw, y0 = oy + pts[k + 1] * gh;
-        var x1 = ox + pts[k + 2] * gw, y1 = oy + pts[k + 3] * gh;
-        var len = Math.max(1, Math.hypot(x1 - x0, y1 - y0));
-        var steps = Math.ceil(len / Math.max(1, penR * 0.6));
-        for (var t = 0; t <= steps; t++) {
-          disc(x0 + (x1 - x0) * (t / steps), y0 + (y1 - y0) * (t / steps));
-        }
+    for (var si = 0; si < vg.s.length; si++) {
+      var sg = vg.s[si];
+      var x0 = ox + sg[0] * u, y0 = oy + sg[1] * u;
+      var x1 = ox + sg[2] * u, y1 = oy + sg[3] * u;
+      var len = Math.max(1, Math.hypot(x1 - x0, y1 - y0));
+      var steps = Math.ceil(len / Math.max(0.75, penR * 0.3));
+      for (var t = 0; t <= steps; t++) {
+        disc(x0 + (x1 - x0) * (t / steps), y0 + (y1 - y0) * (t / steps));
       }
     }
-    for (pi = 0; pi < glyph.d.length; pi++) {
-      var d0 = glyph.d[pi];
-      var save = penR; penR = penR * 1.35;
-      disc(ox + d0[0] * gw, oy + d0[1] * gh);
-      penR = save;
+    for (si = 0; si < vg.d.length; si++) {
+      disc(ox + vg.d[si][0] * u, oy + vg.d[si][1] * u);
     }
   }
 
@@ -207,22 +210,24 @@ function createPureJsBackend(w, h, opts) {
     text: function (x, y, size, color, str) {
       var rgb = toRGB(color);
       if (dpr > 1 && fontScaleMode === 'vector') {
-        /* Vector face in the logical font's exact cell: same advance, same
-           height, designed curves instead of scaled pixels. Glyphs the
-           stroke face lacks fall through to the bitmap path below. */
+        /* The logical font's own glyphs, vectorized: stroke centrelines on
+           the bitmap's pixel grid, one-pixel round pen — identical size and
+           letterforms to non-HD, just smooth. u = physical px per glyph px. */
         var lf2 = fontFor(size);
         var cellAdv2 = (lf2.w + 1) * lf2.scale * dpr;
-        var gw = lf2.w * lf2.scale * dpr, gh = lf2.h * lf2.scale * dpr;
-        var penR = (gh / lf2.h) * 0.5;
+        /* Vectorize the family's hand-drawn BASE bitmap and scale the
+           strokes — a derived (Scale2x) member's pre-rounded corners would
+           smooth twice and mush letterforms like D towards O. Same cell,
+           same size; only the stroke source is the crispest original. */
+        var vbase = (lf2.fam && FONTS[lf2.fam]) || lf2;
+        var u = lf2.scale * dpr * (lf2.h / vbase.h);
         var s2v = ('' + str).toUpperCase();
-        var allKnown = true;
-        for (var vi = 0; vi < s2v.length; vi++) if (!VEC[s2v[vi]]) { allKnown = false; break; }
-        if (allKnown) {
-          for (vi = 0; vi < s2v.length; vi++) {
-            drawVecGlyph(VEC[s2v[vi]], x * dpr + vi * cellAdv2, y * dpr, gw, gh, penR, rgb);
-          }
-          return;
+        for (var vi = 0; vi < s2v.length; vi++) {
+          if (!vbase.glyphs[s2v[vi]]) continue; // unknown glyph: skip, like the bitmap path
+          drawVecGlyph(vecGlyph(vbase.glyphs, s2v[vi], vbase.w, vbase.h),
+                       x * dpr + vi * cellAdv2, y * dpr, u, rgb);
         }
+        return;
       }
       var f = dpr === 1 ? fontFor(size) : fontForPrecise(size);
       var cellAdv = f.cellAdv || (f.w + 1) * f.scale;
