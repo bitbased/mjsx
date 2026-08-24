@@ -46,6 +46,7 @@ globalThis.Button = core.Button;
 globalThis.Swatch = core.Swatch;
 globalThis.em = core.em;
 globalThis.Modal = core.Modal;
+globalThis.Keyboard = core.Keyboard;
 core.FONT.advance = backend.font.advance;
 core.FONT.lineH = backend.font.lineH;
 core.FONT.quantum = backend.font.quantum;
@@ -112,6 +113,19 @@ var CTRL_C = '\x03';
 
 process.stdin.on('data', function (chunk) {
   if (chunk === 'q' || chunk === CTRL_C) { cleanup(); return; }
+
+  /* A focused input owns the keyboard: raw control bytes become the named
+     keys mjsx-core's editor understands; printable chars fall through. */
+  if (UI.focused && UI.focused()) {
+    var named = chunk === '\x7f' || chunk === '\b' ? 'Backspace'
+              : chunk === '\r' ? 'Enter'
+              : chunk === '\t' ? 'Tab'
+              : chunk === '\x1b' ? 'Escape'
+              : chunk === ARROW_LEFT ? 'ArrowLeft'
+              : chunk === ARROW_RIGHT ? 'ArrowRight'
+              : null;
+    if (named) { UI.key('press', named); redraw(); return; }
+  }
 
   if (chunk === ARROW_UP) { cy = Math.max(0, cy - STEP); redraw(); return; }
   if (chunk === ARROW_DOWN) { cy = Math.min(gfx.height() - 1, cy + STEP); redraw(); return; }

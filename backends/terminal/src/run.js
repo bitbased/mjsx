@@ -24,6 +24,7 @@ globalThis.Button = core.Button;
 globalThis.Swatch = core.Swatch;
 globalThis.em = core.em;
 globalThis.Modal = core.Modal;
+globalThis.Keyboard = core.Keyboard;
 
 // Text is real characters in the terminal's own font, not sub-pixel art —
 // one character wide, two sub-pixel rows tall (a character cell holds two

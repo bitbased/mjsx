@@ -38,13 +38,14 @@ var SDL_PIXELFORMAT_RGB24 = 0x17101803;
 var SDL_TEXTUREACCESS_STREAMING = 1;
 
 /* Event types */
-var EV_QUIT = 0x100, EV_KEYDOWN = 0x300, EV_KEYUP = 0x301;
+var EV_QUIT = 0x100, EV_KEYDOWN = 0x300, EV_KEYUP = 0x301, EV_TEXTINPUT = 0x303;
 var EV_MOUSEMOTION = 0x400, EV_MOUSEDOWN = 0x401, EV_MOUSEUP = 0x402, EV_MOUSEWHEEL = 0x403;
 
 /* SDLK_* for the non-printable keys relayed by name */
 var KEYNAMES = {
-  0x40000052: 'up', 0x40000051: 'down', 0x40000050: 'left', 0x4000004F: 'right',
-  0x0D: 'enter', 0x1B: 'escape', 0x08: 'backspace', 0x09: 'tab', 0x20: ' '
+  0x40000052: 'ArrowUp', 0x40000051: 'ArrowDown', 0x40000050: 'ArrowLeft', 0x4000004F: 'ArrowRight',
+  0x0D: 'Enter', 0x1B: 'Escape', 0x08: 'Backspace', 0x09: 'Tab', 0x7F: 'Delete',
+  0x4000004A: 'Home', 0x4000004D: 'End', 0x20: ' '
 };
 
 function createSdlWindow(pxW, pxH, opts) {
@@ -304,6 +305,14 @@ function createSdlWindow(pxW, pxH, opts) {
           var sym = dv.getInt32(20, true);
           var key = KEYNAMES[sym] || (sym > 0 && sym < 127 ? String.fromCharCode(sym) : 'sym:' + sym);
           out.push({ type: type === EV_KEYDOWN ? 'keydown' : 'keyup', key: key, repeat: evBuf[13] !== 0 });
+        } else if (type === EV_TEXTINPUT) {
+          /* The composed text (shift, layout, IME all applied) -- the only
+             honest source of printable characters. UTF-8 at offset 12,
+             NUL-terminated, 32 bytes. */
+          var tend = 12;
+          while (tend < 44 && evBuf[tend] !== 0) tend++;
+          var ttxt = Buffer.from(evBuf.subarray(12, tend)).toString('utf8');
+          if (ttxt) out.push({ type: 'text', text: ttxt });
         }
       }
       return out;

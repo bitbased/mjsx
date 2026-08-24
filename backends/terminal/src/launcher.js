@@ -48,6 +48,7 @@ function freshCore() {
   globalThis.Swatch = core.Swatch;
   globalThis.em = core.em;
   globalThis.Modal = core.Modal;
+globalThis.Keyboard = core.Keyboard;
   applyFont();
 }
 freshCore();
@@ -193,7 +194,12 @@ var SGR_MOUSE = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/;
 
 process.stdin.on('data', function (chunk) {
   if (chunk === 'q' || chunk === CTRL_C) { cleanup(); return; }
-  if (chunk === ESC) { showMenu(); redraw(); return; } // bare Esc, not the
+  if (chunk === ESC) {
+    /* Focused input first: Esc blurs it (mjsx-core's editor does that);
+       only an idle Esc backs out to the menu. */
+    if (UI.focused && UI.focused()) { UI.key('press', 'Escape'); redraw(); return; }
+    showMenu(); redraw(); return;
+  } // bare Esc, not the
   // start of a longer sequence — those are matched first, below.
 
   var m = chunk.match(SGR_MOUSE);
@@ -213,6 +219,20 @@ process.stdin.on('data', function (chunk) {
     UI.pointer(MOUSE_ID, phase, mx, my);
     redraw();
     return;
+  }
+
+  /* While an input is focused the keyboard belongs to it: a tty's raw
+     control bytes become the named keys mjsx-core's editor understands.
+     Printable characters need no translation and fall through to the
+     ordinary relay at the bottom. */
+  if (UI.focused && UI.focused()) {
+    var named = chunk === '\x7f' || chunk === '\b' ? 'Backspace'
+              : chunk === '\r' ? 'Enter'
+              : chunk === '\t' ? 'Tab'
+              : chunk === ARROW_LEFT ? 'ArrowLeft'
+              : chunk === ARROW_RIGHT ? 'ArrowRight'
+              : null;
+    if (named) { UI.key('press', named); redraw(); return; }
   }
 
   /* Up/down move the caret; once it is pinned at an edge, the same key

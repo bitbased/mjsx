@@ -150,6 +150,7 @@ function freshCore() {
   globalThis.Swatch = core.Swatch;
   globalThis.em = core.em;
   globalThis.Modal = core.Modal;
+globalThis.Keyboard = core.Keyboard;
   /* Every fresh core learns the current font's metrics, so em() spacing and
      fitText widths always match what the backend actually rasterizes. */
   if (typeof backend !== 'undefined' && backend.font) {
@@ -322,11 +323,26 @@ function frame() {
     else if (ev.type === 'up') UI.pointer(MOUSE, 2, ev.x, ev.y);
     else if (ev.type === 'wheel') UI.scrollBy(lastX, lastY, -ev.dy * 8);
     else if (ev.type === 'keydown') {
-      if (ev.key === 'escape') { showMenu(); }
-      else if (ev.key === 'q') { win.destroy(); process.exit(0); }
-      else { if (!ev.repeat) UI.key('down', ev.key); UI.key('press', ev.key); }
+      /* While an input is focused, typing belongs to it: Escape blurs
+         (mjsx-core does that) instead of jumping to the menu, and 'q'
+         is a letter, not the quit key. Printable characters arrive via
+         SDL's TEXTINPUT (shift and layout applied) -- keydown relays
+         only the named keys, so nothing is delivered twice. */
+      var typing = UI.focused && UI.focused();
+      if (ev.key === 'Escape' && !typing) { showMenu(); }
+      else if (ev.key === 'q' && !typing) { win.destroy(); process.exit(0); }
+      else if (ev.key.length > 1) {
+        if (!ev.repeat) UI.key('down', ev.key);
+        UI.key('press', ev.key);
+      }
+      else if (!typing) { if (!ev.repeat) UI.key('down', ev.key); UI.key('press', ev.key); }
     }
-    else if (ev.type === 'keyup') { if (ev.key !== 'escape' && ev.key !== 'q') UI.key('up', ev.key); }
+    else if (ev.type === 'text') {
+      if (UI.focused && UI.focused()) {
+        for (var tci = 0; tci < ev.text.length; tci++) UI.key('press', ev.text.charAt(tci));
+      }
+    }
+    else if (ev.type === 'keyup') { if (ev.key !== 'Escape' && ev.key !== 'q') UI.key('up', ev.key); }
     if (ev.x !== undefined) { lastX = ev.x; lastY = ev.y; }
   }
   if (UI.ticker() || UI.dirty()) {

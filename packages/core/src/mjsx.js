@@ -159,8 +159,15 @@ function measureRaw(node, availW, forcedH) {
   var t = node.type;
   if (t === 'text') {
     var size = p.size || 1;
-    var lines = p.wrap ? textLines(p.text, size, availW - 0) : [fitText(p.text, size, availW)];
+    var lines = p.wrap ? textLines(p.text, size, availW - 0)
+                       : [p.nowrap ? String(p.text) : fitText(p.text, size, availW)];
     return lines.length * (flh(size) + 2) - 2;
+  }
+  if (t === 'input') {
+    var isz0 = p.size || 1;
+    var ilh0 = flh(isz0) + 2;
+    var ipd0 = p.pad === undefined ? Math.max(4, Math.floor(ilh0 / 3)) : p.pad;
+    return ilh0 + ipd0 * 2;
   }
   if (t === 'spacer') return p.h || 6;
   if (t === 'pbar') return p.h || 12;
@@ -233,7 +240,8 @@ function draw(node, x, y, availW, forcedH) {
   if (t === 'text') {
     var size = p.size || 1;
     var color = p.color === undefined ? UI.theme.text : p.color;
-    var lines = p.wrap ? textLines(p.text, size, availW) : [fitText(p.text, size, availW)];
+    var lines = p.wrap ? textLines(p.text, size, availW)
+                       : [p.nowrap ? String(p.text) : fitText(p.text, size, availW)];
     var ty = y;
     for (var li = 0; li < lines.length; li++) {
       var tx = x;
@@ -464,6 +472,79 @@ function draw(node, x, y, availW, forcedH) {
       }
     }
     return 0;
+  } else if (t === 'input') {
+    /* A single-line text field. The engine owns the editing state per
+       `id` (text when uncontrolled, caret, horizontal scroll) so the
+       app's render stays a pure description; a `value` prop makes it
+       controlled. Tap focuses and places the caret; a drag scrolls
+       overflowing text; press-and-hold then drag moves the caret under
+       the finger. Keys reach the focused field from ANY keyboard --
+       physical, the built-in virtual layouts, a host's native one, or an
+       app's own JSX -- because they all travel as UI.key('press', name). */
+    var iid = p.id || '_input';
+    var ist = UI._inputs[iid];
+    if (!ist) {
+      ist = UI._inputs[iid] = {
+        text: p.value !== undefined ? String(p.value)
+            : (p.defaultValue === undefined ? '' : String(p.defaultValue)),
+        cur: 1e9, sx: 0, bt: 0, follow: 1
+      };
+    }
+    if (p.value !== undefined) ist.text = String(p.value);
+    ist.p = p;
+    var isz = p.size || 1;
+    var ilh = flh(isz) + 2;
+    var ipd = p.pad === undefined ? Math.max(4, Math.floor(ilh / 3)) : p.pad;
+    var ih = ilh + ipd * 2;
+    var iw = p.w && p.w < availW ? p.w : availW;
+    var ifoc = UI._focus === iid;
+    gfx.frect(x, y, iw, ih, p.bg === undefined ? UI.theme.key : p.bg, 6);
+    gfx.rect(x, y, iw, ih,
+             ifoc ? UI.theme.accent : (p.border === undefined ? UI.theme.muted : p.border), 6);
+    var iadv = fadv(isz);
+    if (ist.cur > ist.text.length) ist.cur = ist.text.length;
+    var innW = iw - ipd * 2;
+    var icx = ist.cur * iadv;
+    /* The view follows the caret while the caret is what last moved; a
+       deliberate drag-scroll clears `follow` so it is not yanked back. */
+    if (ifoc && ist.follow) {
+      if (icx - ist.sx > innW - iadv) ist.sx = icx - innW + iadv;
+      if (icx - ist.sx < 0) ist.sx = icx;
+    }
+    var sxm = ist.text.length * iadv - innW;
+    if (sxm < 0) sxm = 0;
+    if (ist.sx > sxm) ist.sx = sxm;
+    if (ist.sx < 0) ist.sx = 0;
+    ist.geom = { pad: ipd, adv: iadv, w: iw };
+    gfx.clip(x + 1, y + 1, iw - 2, ih - 2);
+    var shown = ist.text;
+    if (p.password) {
+      var msk = '';
+      for (var mi = 0; mi < shown.length; mi++) msk += '*';
+      shown = msk;
+    }
+    if (!shown.length && p.placeholder) {
+      gfx.text(x + ipd, y + ipd, isz, UI.theme.muted, p.placeholder);
+    } else {
+      gfx.text(x + ipd - ist.sx, y + ipd, isz,
+               p.color === undefined ? UI.theme.text : p.color, shown);
+    }
+    if (ifoc && (Math.floor((sys.millis() - ist.bt) / 530) % 2) === 0) {
+      gfx.frect(x + ipd - ist.sx + icx, y + ipd - 1, isz > 1 ? 2 : 1, ilh, UI.theme.accent, 0);
+    }
+    gfx.unclip();
+    /* Focus order and scroll-into-view remember CONTENT coordinates, so a
+       field scrolled out of sight can still be tabbed to and revealed. */
+    if (p.focusable !== false) {
+      ist.nav = {
+        zone: UI._curZone || null,
+        cy: y + (UI._curZone ? (UI._scroll[UI._curZone] || 0) : 0),
+        h: ih, seen: UI._frame
+      };
+      UI._focusables.push(iid);
+    }
+    UI._hit(x, y, iw, ih, null, 0, 0, UI._inputStroke(iid));
+    return ih;
   } else if (t === 'abs') {
     /* An escape hatch from the flow: children draw at absolute screen
        coordinates and the row above them never learns they happened. */
@@ -507,6 +588,12 @@ function draw(node, x, y, availW, forcedH) {
        containers already honoured w; flow children now do too. */
     if (p.w && p.w < availW) availW = p.w;
     var gap3 = p.gap === undefined ? 4 : p.gap;
+    /* offX slides the children left by that many pixels and contentW lets
+       them lay out wider than the box -- with clip, that is a horizontal
+       scroller (the strip keyboard is one). Plain and flex columns only;
+       a `scroll` viewport already owns its own offset. */
+    var ox3 = p.offX || 0;
+    var cwOv = p.contentW;
     if (p.border !== undefined && p.bg !== undefined) {
       /* Border AND fill: two nested rounded fills — the outer in the border
          colour, the inner inset by the border width. Gap-free at any width
@@ -562,6 +649,8 @@ function draw(node, x, y, availW, forcedH) {
          match once the children have registered theirs. */
       var hits0 = UI._hits.length;
       gfx.clip(x, y, availW, boxH);
+      var pz0 = UI._curZone;
+      UI._curZone = p.scroll;
       var sy = y + padT(p) - off, seenS = false;
       for (var si = 0; si < node.kids.length; si++) {
         var chh = measure(node.kids[si], availW - pl - pr);
@@ -572,6 +661,7 @@ function draw(node, x, y, availW, forcedH) {
         if (sy + chh >= y && sy <= y + boxH) draw(node.kids[si], x + pl, sy, availW - pl - pr);
         sy += chh;
       }
+      UI._curZone = pz0;
       gfx.unclip();
       UI._clipHits(hits0, x, y, availW, boxH);
       /* The viewport is a swipe target; a fixed step, or its own height. */
@@ -580,7 +670,7 @@ function draw(node, x, y, availW, forcedH) {
     } else if (boxH) {
       /* A pinned height makes this a flex column: children marked `flex` (or
          flex:N) split whatever the fixed-height children leave over. */
-      var innerW = availW - pl - pr;
+      var innerW = cwOv || (availW - pl - pr);
       var fixed = 0, flexTotal = 0, fi;
       var kidsX = [];
       var seenF = false;
@@ -608,29 +698,30 @@ function draw(node, x, y, availW, forcedH) {
         var kf = kidsX[fi];
         var fl2 = kf && kf.props ? (kf.props.flex === true ? 1 : (kf.props.flex || 0)) : 0;
         if (fl2 === 0 && measure(kf, innerW) === 0) {
-          draw(kf, x + pl, fy, innerW);   /* marks draw where the flow is */
+          draw(kf, x + pl - ox3, fy, innerW);   /* marks draw where the flow is */
           continue;
         }
         if (drewF) fy += gap3;
         drewF = true;
         if (fl2 > 0) {
           var share = Math.floor(leftover * fl2 / flexTotal);
-          draw(kf, x + pl, fy, innerW, share);
+          draw(kf, x + pl - ox3, fy, innerW, share);
           fy += share;
         } else {
-          fy += draw(kf, x + pl, fy, innerW);
+          fy += draw(kf, x + pl - ox3, fy, innerW);
         }
       }
     } else {
+      var cw3 = cwOv || (availW - pl - pr);
       var by = y + padT(p), drewB = false;
       for (var bi = 0; bi < node.kids.length; bi++) {
-        if (measure(node.kids[bi], availW - pl - pr) === 0) {
-          draw(node.kids[bi], x + pl, by, availW - pl - pr);
+        if (measure(node.kids[bi], cw3) === 0) {
+          draw(node.kids[bi], x + pl - ox3, by, cw3);
           continue;
         }
         if (drewB) by += gap3;
         drewB = true;
-        by += draw(node.kids[bi], x + pl, by, availW - pl - pr);
+        by += draw(node.kids[bi], x + pl - ox3, by, cw3);
       }
     }
     if (clipHits0 >= 0) {
@@ -717,6 +808,218 @@ function Modal(p) {
    press on a button is not read as a one-pixel flick. */
 var DRAG_SLOP = 6;
 
+/* ---- virtual keyboards ------------------------------------------------
+ *
+ * Keyboard is plain JSX over ordinary boxes -- which is also the whole
+ * story for a CUSTOM keyboard: build any view whose taps call
+ * UI.key('press', name) (or UI.type("...") for literal text) and it is a
+ * keyboard, with nothing to register. Every keystroke, from here, from a
+ * physical board, or from a host's native OSK, takes the same road into
+ * the focused input.
+ *
+ * Layouts: 'qwerty' (with shift and a symbols page), 'numbers', 't9'
+ * (phone multi-tap: tap a key again within the window to cycle its
+ * letters), and 'strip' -- a single scrolling row of characters, drag to
+ * scroll, tap to type, for displays too small for a grid.
+ */
+function kbSend(k) { UI.key('down', k); UI.key('press', k); UI.key('up', k); }
+
+/* One keyboard is on screen at a time; its transient state (shift, page,
+   T9 cycling, strip scroll) is module-local, not per-instance. */
+var KB = { shift: 0, page: 0, t9k: -1, t9i: 0, t9t: 0, strip: 0, stripG: null };
+
+function kbCap(str) { return KB.shift ? str.toUpperCase() : str; }
+function kbTapChar(ch) {
+  kbSend(kbCap(ch));
+  if (KB.shift === 1) KB.shift = 0;    /* shift-once, phone style */
+  UI._dirty = true;
+}
+
+function kbKey(label, onTap, o) {
+  o = o || {};
+  return h('box', {
+    bg: o.bg === undefined ? UI.theme.key : o.bg,
+    radius: 4, h: o.h, w: o.w, vcenter: true, onTap: onTap,
+    onHold: o.onHold, holdEvery: o.holdEvery
+  }, h('text', {
+    text: label, size: o.size || 1, align: 'center',
+    color: o.color === undefined ? UI.theme.text : o.color
+  }));
+}
+function kbCharRow(str, kh) {
+  var ks = [];
+  for (var i = 0; i < str.length; i++) {
+    ks.push(kbKey(kbCap(str.charAt(i)),
+      (function (c) { return function () { kbTapChar(c); }; })(str.charAt(i)),
+      { h: kh }));
+  }
+  return ks;
+}
+function kbDelKey(kh, w) {
+  return kbKey('DEL', function () { kbSend('Backspace'); },
+    { h: kh, w: w, bg: UI.theme.panel,
+      onHold: function () { kbSend('Backspace'); }, holdEvery: 120 });
+}
+function kbOkKey(kh, w) {
+  return kbKey('OK', function () { kbSend('Enter'); }, { h: kh, w: w, bg: UI.theme.accent });
+}
+
+function kbQwerty(kh) {
+  var letters = KB.page === 0;
+  var r3k = kbCharRow(letters ? 'zxcvbnm' : '_"\':;!?', kh);
+  r3k.unshift(kbKey(letters ? (KB.shift ? 'ABC' : 'abc') : '#+=',
+    function () { if (letters) KB.shift = KB.shift ? 0 : 1; UI._dirty = true; },
+    { h: kh, bg: KB.shift && letters ? UI.theme.accent : UI.theme.panel }));
+  r3k.push(kbDelKey(kh));
+  return [
+    h('row', { gap: 2 }, kbCharRow(letters ? 'qwertyuiop' : '1234567890', kh)),
+    h('row', { gap: 2 }, kbCharRow(letters ? 'asdfghjkl' : '@#$%&-+()', kh)),
+    h('row', { gap: 2 }, r3k),
+    h('row', { gap: 2 }, [
+      kbKey(letters ? '123' : 'abc',
+        function () { KB.page = letters ? 1 : 0; UI._dirty = true; },
+        { h: kh, w: em(5), bg: UI.theme.panel }),
+      kbKey(',', function () { kbTapChar(','); }, { h: kh, w: em(3) }),
+      kbKey('SPACE', function () { kbSend(' '); }, { h: kh }),
+      kbKey('.', function () { kbTapChar('.'); }, { h: kh, w: em(3) }),
+      kbOkKey(kh, em(5))
+    ])
+  ];
+}
+
+function kbNumbers(kh) {
+  var out = [], grid = ['123', '456', '789'];
+  for (var r = 0; r < 3; r++) {
+    out.push(h('row', { gap: 2 }, kbCharRow(grid[r], kh)));
+  }
+  out.push(h('row', { gap: 2 }, [
+    kbKey('.', function () { kbSend('.'); }, { h: kh, size: 2 }),
+    kbKey('0', function () { kbSend('0'); }, { h: kh, size: 2 }),
+    kbDelKey(kh)
+  ]));
+  out.push(h('row', { gap: 2 }, [kbOkKey(kh)]));
+  return out;
+}
+
+/* Multi-tap: the first tap types the key's first character; tapping the
+   SAME key again inside the window replaces it with the next in the
+   cycle (a Backspace then the new character, through the normal editing
+   path, so it works on any focused input with no special support). */
+var T9 = ['.,?!1', 'abc2', 'def3', 'ghi4', 'jkl5', 'mno6', 'pqrs7', 'tuv8', 'wxyz9', ' 0'];
+function kbT9Tap(ki) {
+  var cyc = T9[ki];
+  var now = sys.millis();
+  if (KB.t9k === ki && KB.t9t > now) {
+    KB.t9i = (KB.t9i + 1) % cyc.length;
+    kbSend('Backspace');
+  } else {
+    KB.t9i = 0;
+  }
+  KB.t9k = ki;
+  KB.t9t = now + 900;
+  kbSend(kbCap(cyc.charAt(KB.t9i)));
+  /* Commit = the window lapsing; shift-once survives cycling so every
+     resend of the same letter keeps its case, and clears on commit. */
+  UI.setTimer(function () {
+    if (KB.t9k === ki && sys.millis() >= KB.t9t) {
+      KB.t9k = -1;
+      if (KB.shift === 1) KB.shift = 0;
+      UI._dirty = true;
+    }
+  }, 920);
+  UI._dirty = true;
+}
+function kbT9Key(ki, kh) {
+  var cyc = T9[ki];
+  var letters = cyc.slice(0, cyc.length - 1);
+  var digit = cyc.charAt(cyc.length - 1);
+  var active = KB.t9k === ki && KB.t9t > sys.millis();
+  return h('box', {
+    bg: active ? UI.theme.accent : UI.theme.key, radius: 4, h: kh,
+    vcenter: true, onTap: function () { kbT9Tap(ki); }
+  }, [
+    h('text', { text: digit === ' ' ? '0' : digit, size: 1, align: 'center', color: UI.theme.muted }),
+    h('text', { text: ki === 9 ? 'SPC' : kbCap(letters), size: 1, align: 'center' })
+  ]);
+}
+function kbT9(kh) {
+  var out = [];
+  for (var r = 0; r < 3; r++) {
+    var ks = [];
+    for (var c = 0; c < 3; c++) ks.push(kbT9Key(r * 3 + c, kh));
+    out.push(h('row', { gap: 2 }, ks));
+  }
+  out.push(h('row', { gap: 2 }, [
+    kbKey(KB.shift ? 'ABC' : 'abc',
+      function () { KB.shift = KB.shift ? 0 : 1; UI._dirty = true; },
+      { h: kh, bg: KB.shift ? UI.theme.accent : UI.theme.panel }),
+    kbT9Key(9, kh),
+    kbDelKey(kh)
+  ]));
+  out.push(h('row', { gap: 2 }, [kbOkKey(kh)]));
+  return out;
+}
+
+var STRIP_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789.,!?@#$%&-_+()/:;\'"*=';
+function kbStrip(kh) {
+  var adv = fadv(2);
+  var cell = adv * 2;
+  var chars = kbCap(STRIP_CHARS);
+  var contentW = chars.length * cell;
+  var sideW = em(4);
+  var stripW = gfx.width() - 8 - sideW * 2 - 4;   /* keyboard pad 4, row gap 2 */
+  var maxOff = contentW - stripW;
+  if (maxOff < 0) maxOff = 0;
+  if (KB.strip > maxOff) KB.strip = maxOff;
+  var strip = h('box', {
+    h: kh, bg: UI.theme.key, radius: 4, clip: true, vcenter: true,
+    offX: KB.strip, contentW: contentW,
+    onDraw: function (phase, lx, ly, id) {
+      if (phase === 0) { KB.stripG = { x0: lx, o0: KB.strip, moved: 0 }; return; }
+      var g = KB.stripG;
+      if (!g) return;
+      var dx = lx - g.x0;
+      if (dx > DRAG_SLOP || dx < -DRAG_SLOP) g.moved = 1;
+      if (g.moved) {
+        var no = g.o0 - dx;
+        KB.strip = no < 0 ? 0 : (no > maxOff ? maxOff : no);
+        UI._dirty = true;
+      }
+      if (phase === 2) {
+        if (!g.moved) {
+          var idx = Math.floor((lx + KB.strip) / cell);
+          if (idx >= 0 && idx < chars.length) kbTapChar(chars.charAt(idx));
+        }
+        KB.stripG = null;
+      }
+    }
+  }, h('text', { text: chars.split('').join(' '), size: 2, nowrap: true }));
+  return [
+    h('row', { gap: 2 }, [
+      kbKey(KB.shift ? 'ABC' : 'abc',
+        function () { KB.shift = KB.shift ? 0 : 1; UI._dirty = true; },
+        { h: kh, w: sideW, bg: KB.shift ? UI.theme.accent : UI.theme.panel }),
+      strip,
+      kbDelKey(kh, sideW)
+    ]),
+    h('row', { gap: 2 }, [
+      kbKey('SPACE', function () { kbSend(' '); }, { h: kh }),
+      kbOkKey(kh, em(6))
+    ])
+  ];
+}
+
+function Keyboard(p) {
+  var layout = p.layout || 'qwerty';
+  var kh = p.keyH || (flh(2) + em(1));
+  var rows;
+  if (layout === 'numbers') rows = kbNumbers(kh);
+  else if (layout === 't9') rows = kbT9(kh);
+  else if (layout === 'strip') rows = kbStrip(kh);
+  else rows = kbQwerty(kh);
+  return h('box', { bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2 }, rows);
+}
+
 var UI = {
   root: null,
   state: {},
@@ -742,6 +1045,18 @@ var UI = {
   _listeners: {},  /* name -> [fn, ...], for on/off/emit */
   _timers: [],     /* {at, fn}, for setTimeout/clearTimeout — checked in ticker() */
   _timerSeq: 0,
+  _focus: null,    /* id of the focused input, or null */
+  _inputs: {},     /* per-input engine state: text, caret, scroll, nav */
+  _focusables: [], /* input ids registered by the current render, paint order */
+  _reveal: null,   /* input id to scroll into view after this render */
+  _frame: 0,
+  _blinkPh: 0,
+  _curZone: null,  /* scroll zone being drawn into, for nav bookkeeping */
+  /* Host hook: called with the focused input's id (or null on blur). This
+     is how a host that can present its own keyboard -- a browser focusing
+     a real <input> to summon the phone's, native code outside the JS VM
+     drawing one -- knows when to show and hide it. */
+  onFocusChange: null,
 
   /* A default palette. Entirely a starting point — replace UI.theme wholesale
      from an app if a different look is wanted; nothing else in this file
@@ -797,6 +1112,12 @@ var UI = {
     this.onKey = null;
     this.onPatch = null;
     this.onLongPressFeedback = null;
+    this._focus = null;
+    this._inputs = {};
+    this._focusables = [];
+    this._reveal = null;
+    this._curZone = null;
+    this.onFocusChange = null;
     this._dirty = true;
   },
   /* A modal is just a component drawn last. Pages open one instead of
@@ -855,6 +1176,10 @@ var UI = {
       for (var di = 0; di < due.length; di++) due[di].fn();
     }
 
+    if (this._focus && this._inputs[this._focus]) {
+      var bp2 = Math.floor((sys.millis() - this._inputs[this._focus].bt) / 530) % 2;
+      if (bp2 !== this._blinkPh) { this._blinkPh = bp2; this._dirty = true; }
+    }
     if (this.onTick) this.onTick();
     return this._dirty;
   },
@@ -907,6 +1232,9 @@ var UI = {
     if (!this.root) return;
     this._hits = [];
     this._swipes = [];
+    this._focusables = [];
+    this._frame++;
+    this._curZone = null;
     gfx.clear(this.theme.bg);
     draw(h(this.root, {}), 0, 0, gfx.width(), gfx.height());
     if (this.modal) {
@@ -917,6 +1245,7 @@ var UI = {
       this._flings = [];
       draw(h(this.modal, {}), 0, 0, gfx.width(), gfx.height());
     }
+    if (this._reveal) this._revealFocus();
     this._dirty = false;
   },
 
@@ -1060,7 +1389,161 @@ var UI = {
    * all — it only calls pointer() with the cursor's position.
    */
   key: function (type, key) {
+    /* A focused input consumes the keyboard: presses edit it, and none of
+       the stroke reaches UI.onKey -- an app shortcut must not fire off a
+       character someone was typing into a field. */
+    if (this._focus && this._inputs[this._focus]) {
+      if (type === 'press') this._editKey(key);
+      return;
+    }
     if (this.onKey) this.onKey(type, key);
+  },
+
+  /* ---- focus: opt-out per input via focusable={false} ---- */
+  focused: function () { return this._focus; },
+  focus: function (id) {
+    if (this._focus === id) return;
+    this._focus = id;
+    var st = this._inputs[id];
+    if (st) {
+      st.bt = sys.millis();
+      st.follow = 1;
+      if (st.cur > st.text.length) st.cur = st.text.length;
+    }
+    this._reveal = id;
+    this._dirty = true;
+    if (this.onFocusChange) this.onFocusChange(id);
+  },
+  blur: function () {
+    if (!this._focus) return;
+    this._focus = null;
+    this._dirty = true;
+    if (this.onFocusChange) this.onFocusChange(null);
+  },
+  /* Next/previous field in content order. Every input whose home still
+     exists is in the cycle -- including ones scrolled out of sight, which
+     is the point: Tab reaches below the fold and _revealFocus brings the
+     field to it. */
+  focusNext: function (dir) {
+    dir = dir || 1;
+    var ids = [], id2, i;
+    for (id2 in this._inputs) {
+      var n2 = this._inputs[id2].nav;
+      if (!n2) continue;
+      if (n2.zone ? this._zone(n2.zone) : n2.seen === this._frame) ids.push(id2);
+    }
+    if (!ids.length) return;
+    var self = this;
+    ids.sort(function (a, b) { return self._inputs[a].nav.cy - self._inputs[b].nav.cy; });
+    var at = -1;
+    for (i = 0; i < ids.length; i++) if (ids[i] === this._focus) at = i;
+    this.focus(ids[((at + dir) % ids.length + ids.length) % ids.length]);
+  },
+  focusPrev: function () { this.focusNext(-1); },
+  _revealFocus: function () {
+    var id = this._reveal;
+    this._reveal = null;
+    var st = this._inputs[id];
+    if (!st || !st.nav || !st.nav.zone) return;
+    var z = this._zone(st.nav.zone);
+    if (!z) return;
+    /* nav.cy is screen y plus the zone offset at draw time -- a content
+       coordinate, stable while the zone scrolls. Solve for the offsets
+       that keep the field a small margin inside the viewport. */
+    var off = this._scroll[st.nav.zone] || 0;
+    var m = 4;
+    var lo = st.nav.cy + st.nav.h - z.y - z.h + m;
+    var hi = st.nav.cy - z.y - m;
+    if (hi < lo) hi = lo;
+    if (off < lo) this._scrollTo(st.nav.zone, lo);
+    else if (off > hi) this._scrollTo(st.nav.zone, hi);
+  },
+
+  /* Insert a string into the focused input -- the one-call convenience an
+     app's own custom keyboard wants. Names like 'Backspace' go through
+     UI.key('press', ...) instead; this is for literal characters. */
+  type: function (str) {
+    for (var i = 0; i < str.length; i++) this._editKey(str.charAt(i));
+  },
+  _editKey: function (k) {
+    var id = this._focus;
+    var st = id && this._inputs[id];
+    if (!st) return;
+    var pp = st.p || {};
+    var v = st.text;
+    var c = st.cur > v.length ? v.length : st.cur;
+    var nv = null;
+    if (k.length === 1) {
+      if (!(pp.maxLen && v.length >= pp.maxLen)) {
+        nv = v.slice(0, c) + k + v.slice(c);
+        st.cur = c + 1;
+      }
+    }
+    else if (k === 'Backspace') { if (c > 0) { nv = v.slice(0, c - 1) + v.slice(c); st.cur = c - 1; } }
+    else if (k === 'Delete') { if (c < v.length) nv = v.slice(0, c) + v.slice(c + 1); }
+    else if (k === 'ArrowLeft') st.cur = c > 0 ? c - 1 : 0;
+    else if (k === 'ArrowRight') st.cur = c < v.length ? c + 1 : v.length;
+    else if (k === 'Home') st.cur = 0;
+    else if (k === 'End') st.cur = v.length;
+    else if (k === 'Tab') { this.focusNext(1); return; }
+    else if (k === 'ShiftTab') { this.focusNext(-1); return; }
+    else if (k === 'Enter') {
+      if (pp.onSubmit) pp.onSubmit(st.text);
+      this.blur();
+      return;
+    }
+    else if (k === 'Escape') { this.blur(); return; }
+    else return;
+    if (nv !== null) {
+      st.text = nv;
+      if (pp.onChange) pp.onChange(nv);
+    }
+    st.bt = sys.millis();
+    st.follow = 1;
+    this._dirty = true;
+  },
+  /* The whole-stroke handler an input registers -- the same capture an
+     onDraw canvas uses, interpreted as: tap places the caret, a drag
+     scrolls overflowing text, press-and-hold then drag walks the caret. */
+  _inputStroke: function (iid) {
+    var self = this;
+    return function (phase, lx, ly, pid) {
+      var st = self._inputs[iid];
+      if (!st || !st.geom) return;
+      var gm = st.geom;
+      if (phase === 0) {
+        st.g = { x0: lx, o0: st.sx, t0: sys.millis(), mode: 0 };
+        self.focus(iid);
+        return;
+      }
+      var g = st.g;
+      if (!g) return;
+      var dxs = lx - g.x0;
+      function place() {
+        var ci = Math.round((lx - gm.pad + st.sx) / gm.adv);
+        var n = st.text.length;
+        st.cur = ci < 0 ? 0 : (ci > n ? n : ci);
+        st.bt = sys.millis();
+        st.follow = 1;
+      }
+      if (g.mode === 0) {
+        if (sys.millis() - g.t0 >= 400) g.mode = 2;
+        else if (dxs > DRAG_SLOP || dxs < -DRAG_SLOP) {
+          g.mode = st.text.length * gm.adv > gm.w - gm.pad * 2 ? 1 : 2;
+        }
+      }
+      if (g.mode === 1) {
+        var ns = g.o0 - dxs;
+        var mx = st.text.length * gm.adv - (gm.w - gm.pad * 2);
+        if (mx < 0) mx = 0;
+        st.sx = ns < 0 ? 0 : (ns > mx ? mx : ns);
+        st.follow = 0;
+      } else if (g.mode === 2) place();
+      if (phase === 2) {
+        if (g.mode === 0) place();
+        st.g = null;
+      }
+    };
   },
 
   /**
@@ -1204,7 +1687,7 @@ var UI = {
    forms see the identical ES5 source — nothing here branches on the host. */
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    h: h, UI: UI, FONT: FONT, em: em, Button: Button, Swatch: Swatch, Modal: Modal,
+    h: h, UI: UI, FONT: FONT, em: em, Button: Button, Swatch: Swatch, Modal: Modal, Keyboard: Keyboard,
     measure: measure, draw: draw, fitText: fitText, textLines: textLines
   };
 }

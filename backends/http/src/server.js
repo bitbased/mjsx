@@ -45,8 +45,19 @@ globalThis.Button = core.Button;
 globalThis.Swatch = core.Swatch;
 globalThis.em = core.em;
 globalThis.Modal = core.Modal;
+globalThis.Keyboard = core.Keyboard;
 
 require(path.resolve(exampleFile));
+
+/* The host half of native-keyboard support: when a field gains or loses
+   focus, tell the page, which focuses or blurs its hidden real input --
+   on a phone that is what shows and hides the system keyboard. */
+UI.onFocusChange = function (id) {
+  var fmsg = JSON.stringify({ t: 'focus', on: !!id });
+  for (var fi = 0; fi < sockets.length; fi++) {
+    if (sockets[fi].readyState === 1) sockets[fi].send(fmsg);
+  }
+};
 UI.render();
 
 /* RGBA, not the RGB the PPM writer produces — canvas ImageData needs the
@@ -73,7 +84,12 @@ var S = hostFont ? 2 : 1; /* host-font pages upscale so real glyphs are crisp */
 var PAGE = '<!doctype html><meta charset=utf-8><title>mjsx</title>' +
   '<style>body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;height:100vh}' +
   'canvas{image-rendering:pixelated;border:1px solid #333;touch-action:none;width:' + (W * S) + 'px;height:' + (H * S) + 'px}</style>' +
-  '<canvas id=c width=' + (W * S) + ' height=' + (H * S) + '></canvas><script>' +
+  '<canvas id=c width=' + (W * S) + ' height=' + (H * S) + '></canvas>' +
+  /* An invisible REAL input: focusing it is the only way to summon a
+     phone's native keyboard. The server says when an mjsx field has
+     focus; what gets typed here is relayed as keys and never kept. */
+  '<input id=osk autocomplete=off autocapitalize=off spellcheck=false style="position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:0;padding:0">' +
+  '<script>' +
   'var S=' + S + ',W=' + W + ',H=' + H + ';' +
   'var cv=document.getElementById("c"),ctx=cv.getContext("2d");' +
   'var off=document.createElement("canvas");off.width=W;off.height=H;var octx=off.getContext("2d");' +
@@ -108,7 +124,7 @@ var PAGE = '<!doctype html><meta charset=utf-8><title>mjsx</title>' +
   'var ws=new WebSocket("ws://"+location.host+"/ws");' +
   'ws.binaryType="arraybuffer";' +
   'ws.onmessage=function(e){' +
-  '  if(typeof e.data==="string"){try{var m=JSON.parse(e.data);if(m.t==="text"){textOps=m.ops;redraw();}}catch(x){}return;}' +
+  '  if(typeof e.data==="string"){try{var m=JSON.parse(e.data);if(m.t==="text"){textOps=m.ops;redraw();}else if(m.t==="focus"){if(m.on)osk.focus();else osk.blur();}}catch(x){}return;}' +
   '  var u8=new Uint8Array(e.data);' +
   '  var img=octx.createImageData(W,H);' +
   '  img.data.set(u8); octx.putImageData(img,0,0);' +
@@ -133,9 +149,22 @@ var PAGE = '<!doctype html><meta charset=utf-8><title>mjsx</title>' +
   '// Keyboard: a real browser gives genuine separate down/up, and keypress\n' +
   '// where the browser still fires it — unlike a bare tty, nothing here is\n' +
   '// an approximation.\n' +
-  'window.addEventListener("keydown",function(e){send({t:"key",type:"down",key:e.key});});' +
+  'var osk=document.getElementById("osk");' +
+  'window.addEventListener("keydown",function(e){' +
+  '  var k=e.key==="Tab"&&e.shiftKey?"ShiftTab":e.key;' +
+  '  send({t:"key",type:"down",key:k});' +
+  '  if(e.key.length>1)send({t:"key",type:"press",key:k});' +
+  '  if(e.key==="Tab"||e.key==="Backspace")e.preventDefault();' +
+  '});' +
   'window.addEventListener("keyup",function(e){send({t:"key",type:"up",key:e.key});});' +
-  'window.addEventListener("keypress",function(e){send({t:"key",type:"press",key:e.key});});' +
+  'window.addEventListener("keypress",function(e){if(document.activeElement!==osk)send({t:"key",type:"press",key:e.key});});' +
+  '// The phone keyboard types into the hidden input; beforeinput hands\n' +
+  '// over the composed text and the input itself stays empty.\n' +
+  'osk.addEventListener("beforeinput",function(e){' +
+  '  if(e.inputType==="deleteContentBackward"){send({t:"key",type:"press",key:"Backspace"});}' +
+  '  else if(e.data){for(var i=0;i<e.data.length;i++)send({t:"key",type:"press",key:e.data.charAt(i)});}' +
+  '  e.preventDefault();' +
+  '});' +
   '</script>';
 
 var sockets = [];
