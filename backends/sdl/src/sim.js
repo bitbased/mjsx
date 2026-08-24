@@ -43,7 +43,10 @@ var snapScale = flagArgs.indexOf('--free') === -1;
    scale, so shapes rasterize with real sub-pixel geometry instead of
    blown-up pixels. Toggled from the toolbar; --hd starts on. */
 var hd = flagArgs.indexOf('--hd') !== -1;
-var fontScale = flagArgs.indexOf('--fontscale=pixel') !== -1 ? 'pixel' : (flagArgs.indexOf('--fontscale=smooth') !== -1 ? 'smooth' : 'vector');
+var fontScale = 'vector';
+for (var fsi = 0; fsi < flagArgs.length; fsi++) {
+  if (flagArgs[fsi].slice(0, 12) === '--fontscale=') fontScale = flagArgs[fsi].slice(12);
+}
 /* HD dpr covers the FULL path to the glass: window scale x the display's
    device-pixels-per-point (2 on Retina), so one buffer pixel is one screen
    pixel. Before the window exists the display factor reads as 1. */

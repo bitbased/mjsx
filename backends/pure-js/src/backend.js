@@ -44,7 +44,9 @@ function createPureJsBackend(w, h, opts) {
        'smooth' — the same family's higher-resolution bitmap member;
        'pixel'  — stamp the logical font at dpr, authentic chunky look. */
   var fontScaleMode = opts.fontScale === 'pixel' ? 'pixel'
-                    : (opts.fontScale === 'smooth' ? 'smooth' : 'vector');
+                    : (opts.fontScale === 'smooth' ? 'smooth'
+                    : (opts.fontScale === 'exact' ? 'exact' : 'vector'));
+  var strokeStyle = fontScaleMode === 'exact' ? 'exact' : 'refined';
   function fontFor(size) {
     if (!fixed) return pickFont(size);
     return { glyphs: fixed.glyphs, w: fixed.w, h: fixed.h, scale: size, fam: fixed.fam };
@@ -119,7 +121,9 @@ function createPureJsBackend(w, h, opts) {
      per glyph table. */
   var _vecCache = new Map();
   function vecGlyph(fnt, ch) {
-    if (fnt.strokes && fnt.strokes[ch]) return fnt.strokes[ch]; /* authored wins */
+    if (fnt.strokes && fnt.strokes[strokeStyle] && fnt.strokes[strokeStyle][ch]) {
+      return fnt.strokes[strokeStyle][ch]; /* authored wins */
+    }
     var tbl = _vecCache.get(fnt.glyphs);
     if (!tbl) { tbl = {}; _vecCache.set(fnt.glyphs, tbl); }
     if (!tbl[ch]) tbl[ch] = vectorize(fnt.glyphs[ch], fnt.w, fnt.h);
@@ -210,7 +214,7 @@ function createPureJsBackend(w, h, opts) {
     },
     text: function (x, y, size, color, str) {
       var rgb = toRGB(color);
-      if (dpr > 1 && fontScaleMode === 'vector') {
+      if (dpr > 1 && (fontScaleMode === 'vector' || fontScaleMode === 'exact')) {
         /* The logical font's own glyphs, vectorized: stroke centrelines on
            the bitmap's pixel grid, one-pixel round pen — identical size and
            letterforms to non-HD, just smooth. u = physical px per glyph px. */
