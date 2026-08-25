@@ -54,6 +54,7 @@ function createMirror(opts) {
     '#hd{position:fixed;top:8px;right:8px;font:12px monospace;color:#ddd;background:#2226;' +
     'border:1px solid #555;border-radius:4px;padding:4px 8px;cursor:pointer;user-select:none}</style>' +
     '<canvas id=c></canvas><div id=hd></div>' +
+    '<script src=/mjsx-backend.js></script>' +
     '<input id=osk autocomplete=off autocapitalize=off spellcheck=false ' +
     'style="position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:0;padding:0">' +
     '<script>' +
@@ -77,11 +78,44 @@ function createMirror(opts) {
     '  if(r>0){ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);' +
     '    ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}' +
     '  else ctx.rect(x,y,w,h);}' +
+    '// HD:ON draws the ops as device-resolution canvas vectors -- smooth.\n' +
+    '// HD:OFF replays them through the bundled REAL mjsx rasterizer at the\n' +
+    '// panel\'s logical resolution -- Bresenham lines, scanline fills and\n' +
+    '// the actual bitmap fonts, pixelated-upscaled: exactly what the panel\n' +
+    '// itself would show.\n' +
+    'var pb=null,pbW=0,pbH=0;' +
+    'function paintPixel(fs){' +
+    '  if(!pb||pbW!==W||pbH!==H){pb=createPureJsBackend(W,H,{});pbW=W;pbH=H;}' +
+    '  var g=pb.gfx;' +
+    '  for(var i=0;i<OPS.length;i++){var o=OPS[i];' +
+    '    switch(o[0]){' +
+    '    case "C":g.clear(o[1]);break;' +
+    '    case "r":g.rect(o[1],o[2],o[3],o[4],o[5],o[6]);break;' +
+    '    case "f":g.frect(o[1],o[2],o[3],o[4],o[5],o[6]);break;' +
+    '    case "c":g.circle(o[1],o[2],o[3],o[4],!!o[5]);break;' +
+    '    case "l":g.line(o[1],o[2],o[3],o[4],o[5]);break;' +
+    '    case "t":g.text(o[1],o[2],o[3],o[4],o[5]);break;' +
+    '    case "x":g.clip(o[1],o[2],o[3],o[4]);break;' +
+    '    case "X":g.unclip();break;' +
+    '    case "p":if(g.poly)g.poly(o[1],o[2],o[3]);break;' +
+    '    }}' +
+    '  g.unclip();' +
+    '  cv.width=W;cv.height=H;' +
+    '  cv.style.width=(W*fs)+"px";cv.style.height=(H*fs)+"px";' +
+    '  cv.style.imageRendering="pixelated";' +
+    '  ctx.setTransform(1,0,0,1,0,0);' +
+    '  var img=ctx.createImageData(W,H);var raw=pb.raw;' +
+    '  for(var q=0,d=0;q<raw.length;q+=3,d+=4){' +
+    '    img.data[d]=raw[q];img.data[d+1]=raw[q+1];img.data[d+2]=raw[q+2];img.data[d+3]=255;}' +
+    '  ctx.putImageData(img,0,0);' +
+    '}' +
     'function paint(){if(!W)return;' +
     '  var fs=fitScale();' +
-    '  var S=hd?fs*(devicePixelRatio||1):fs;' +
+    '  if(!hd&&window.createPureJsBackend){paintPixel(fs);return;}' +
+    '  var S=fs*(devicePixelRatio||1);' +
     '  cv.width=W*S;cv.height=H*S;' +
     '  cv.style.width=(W*fs)+"px";cv.style.height=(H*fs)+"px";' +
+    '  cv.style.imageRendering="auto";' +
     '  ctx.setTransform(S,0,0,S,0,0);' +
     '  ctx.imageSmoothingEnabled=false;fitCache={};' +
     '  var clipped=false;' +
@@ -149,12 +183,32 @@ function createMirror(opts) {
     '});' +
     '</script>';
 
+  /* The REAL rasterizer, bundled for the page on first request: HD:OFF
+     replays ops through it so the browser shows exactly the panel's
+     pixels (bitmap fonts included), not a canvas approximation. */
+  var bundle = null;
+  function backendJs() {
+    if (!bundle) {
+      bundle = Bun.build({
+        entrypoints: [require.resolve('./client-backend.js')],
+        target: 'browser', format: 'iife', minify: true
+      }).then(function (out) { return out.outputs[0].text(); });
+    }
+    return bundle;
+  }
+
   Bun.serve({
     port: port,
     fetch: function (req, srv) {
-      if (new URL(req.url).pathname === '/ws') {
+      var path = new URL(req.url).pathname;
+      if (path === '/ws') {
         if (srv.upgrade(req)) return;
         return new Response('upgrade failed', { status: 400 });
+      }
+      if (path === '/mjsx-backend.js') {
+        return backendJs().then(function (js) {
+          return new Response(js, { headers: { 'Content-Type': 'application/javascript' } });
+        });
       }
       return new Response(PAGE, { headers: { 'Content-Type': 'text/html' } });
     },

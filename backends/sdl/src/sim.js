@@ -103,7 +103,17 @@ if (httpPort) {
       UI.pointer('web:' + id, phase, x, y);
       if (UI.dirty()) render();
     },
-    key: function (type, key) { UI.key(type, key); if (UI.dirty()) render(); },
+    key: function (type, key) {
+      /* parity with the window: Esc while typing blurs (the core does
+         that); an idle Esc backs out to the menu */
+      if (key === 'Escape' && type === 'press' && !(UI.focused && UI.focused())) {
+        showMenu();
+        render();
+        return;
+      }
+      UI.key(type, key);
+      if (UI.dirty()) render();
+    },
     wheel: function (x, y, dy) { UI.scrollBy(x, y, dy > 0 ? 24 : -24); if (UI.dirty()) render(); },
     connect: function () { render(); }
   });
