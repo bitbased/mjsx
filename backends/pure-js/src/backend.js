@@ -778,17 +778,102 @@ function createGlassBackend(w, h, glassOpts) {
       }
     }
   }
+  /* HD round corners, the firmware's exact twin: 2x2-supersampled AA
+     arcs blended in 565, float math via Math.fround for bit parity. */
+  var _fr = Math.fround;
+  function rawSet(o, f5r, f6g, f5b, n) {
+    if (n >= 4) { raw[o] = f5r << 3; raw[o + 1] = f6g << 2; raw[o + 2] = f5b << 3; return; }
+    var a = n * 16;
+    var d5r = raw[o] >> 3, d6g = raw[o + 1] >> 2, d5b = raw[o + 2] >> 3;
+    raw[o] = ((d5r * (64 - a) + f5r * a) >> 6) << 3;
+    raw[o + 1] = ((d6g * (64 - a) + f6g * a) >> 6) << 2;
+    raw[o + 2] = ((d5b * (64 - a) + f5b * a) >> 6) << 3;
+  }
+  function hdCorner(Cx, Cy, R, px0, py0, px1, py1, color, fillDisc) {
+    var Ro2 = _fr(R * R);
+    var Ri = R - 1 > 0 ? _fr(R - 1) : 0;
+    var Ri2 = _fr(Ri * Ri);
+    if (px0 < 0) px0 = 0;
+    if (py0 < 0) py0 = 0;
+    if (px1 > PW) px1 = PW;
+    if (py1 > PH) py1 = PH;
+    var f5r = ((color >> 16) & 255) >> 3, f6g = ((color >> 8) & 255) >> 2, f5b = (color & 255) >> 3;
+    for (var py = py0; py < py1; py++) {
+      for (var px = px0; px < px1; px++) {
+        var n = 0;
+        for (var sub = 0; sub < 4; sub++) {
+          var sx = _fr(px + ((sub & 1) ? 0.75 : 0.25));
+          var sy = _fr(py + ((sub & 2) ? 0.75 : 0.25));
+          var dx = _fr(sx - Cx), dy = _fr(sy - Cy);
+          var d2 = _fr(_fr(dx * dx) + _fr(dy * dy));
+          if (fillDisc ? (d2 <= Ro2) : (d2 <= Ro2 && d2 >= Ri2)) n++;
+        }
+        if (n) rawSet((py * PW + px) * 3, f5r, f6g, f5b, n);
+      }
+    }
+  }
+  function rawFill(x, y, w2, h2, color) {
+    if (x < 0) { w2 += x; x = 0; }
+    if (y < 0) { h2 += y; y = 0; }
+    if (x + w2 > PW) w2 = PW - x;
+    if (y + h2 > PH) h2 = PH - y;
+    var f5r = ((color >> 16) & 255) >> 3, f6g = ((color >> 8) & 255) >> 2, f5b = (color & 255) >> 3;
+    for (var py = y; py < y + h2; py++) {
+      var o = (py * PW + x) * 3;
+      for (var px = 0; px < w2; px++) {
+        raw[o] = f5r << 3; raw[o + 1] = f6g << 2; raw[o + 2] = f5b << 3; o += 3;
+      }
+    }
+  }
+  function hdRect(x, y, ww, hh, c, r, fill) {
+    var x0 = vpx(x), y0 = vpx(y);
+    var w2 = vpx(x + ww) - x0, h2 = vpx(y + hh) - y0, rr = vpx(r || 0);
+    if (clip) {
+      var cx2 = x0 + w2, cy2 = y0 + h2;
+      if (x0 < clip.x) { x0 = clip.x; rr = 0; }
+      if (y0 < clip.y) { y0 = clip.y; rr = 0; }
+      if (cx2 > clip.x + clip.w) { cx2 = clip.x + clip.w; rr = 0; }
+      if (cy2 > clip.y + clip.h) { cy2 = clip.y + clip.h; rr = 0; }
+      w2 = cx2 - x0; h2 = cy2 - y0;
+      if (w2 <= 0 || h2 <= 0) return;
+    }
+    if (fontMode >= 2 && rr > 1 && w2 > 2 * rr && h2 > 2 * rr) {
+      var R = _fr(rr);
+      if (fill) {
+        rawFill(x0, y0 + rr, w2, h2 - 2 * rr, c);
+        rawFill(x0 + rr, y0, w2 - 2 * rr, rr, c);
+        rawFill(x0 + rr, y0 + h2 - rr, w2 - 2 * rr, rr, c);
+        hdCorner(_fr(x0 + R), _fr(y0 + R), R, x0, y0, x0 + rr, y0 + rr, c, true);
+        hdCorner(_fr(x0 + w2 - R), _fr(y0 + R), R, x0 + w2 - rr, y0, x0 + w2, y0 + rr, c, true);
+        hdCorner(_fr(x0 + R), _fr(y0 + h2 - R), R, x0, y0 + h2 - rr, x0 + rr, y0 + h2, c, true);
+        hdCorner(_fr(x0 + w2 - R), _fr(y0 + h2 - R), R, x0 + w2 - rr, y0 + h2 - rr, x0 + w2, y0 + h2, c, true);
+      } else {
+        rawFill(x0 + rr, y0, w2 - 2 * rr, 1, c);
+        rawFill(x0 + rr, y0 + h2 - 1, w2 - 2 * rr, 1, c);
+        rawFill(x0, y0 + rr, 1, h2 - 2 * rr, c);
+        rawFill(x0 + w2 - 1, y0 + rr, 1, h2 - 2 * rr, c);
+        hdCorner(_fr(x0 + R), _fr(y0 + R), R, x0, y0, x0 + rr, y0 + rr, c, false);
+        hdCorner(_fr(x0 + w2 - R), _fr(y0 + R), R, x0 + w2 - rr, y0, x0 + w2, y0 + rr, c, false);
+        hdCorner(_fr(x0 + R), _fr(y0 + h2 - R), R, x0, y0 + h2 - rr, x0 + rr, y0 + h2, c, false);
+        hdCorner(_fr(x0 + w2 - R), _fr(y0 + h2 - R), R, x0 + w2 - rr, y0 + h2 - rr, x0 + w2, y0 + h2, c, false);
+      }
+      return;
+    }
+    (fill ? g.frect : g.rect)(x0, y0, w2, h2, c, rr);
+  }
   var gfx = {
     clear: function (c) { clip = null; g.unclip(); g.clear(c); },
-    rect: function (x, y, ww, hh, c, r) {
-      var x2 = vpx(x + ww), y2 = vpx(y + hh);
-      g.rect(vpx(x), vpx(y), x2 - vpx(x), y2 - vpx(y), c, vpx(r || 0));
+    rect: function (x, y, ww, hh, c, r) { hdRect(x, y, ww, hh, c, r, false); },
+    frect: function (x, y, ww, hh, c, r) { hdRect(x, y, ww, hh, c, r, true); },
+    circle: function (x, y, r, c, f) {
+      var X = vpx(x), Y = vpx(y), R2 = vpx(r);
+      if (clip && (Y - R2 < clip.y || Y + R2 > clip.y + clip.h)) return;
+      if (fontMode >= 2 && R2 > 1) {
+        hdCorner(_fr(X + 0.5), _fr(Y + 0.5), _fr(R2 + 0.5), X - R2 - 1, Y - R2 - 1, X + R2 + 2, Y + R2 + 2, c, f);
+        return;
+      }
+      g.circle(X, Y, R2, c, f);
     },
-    frect: function (x, y, ww, hh, c, r) {
-      var x2 = vpx(x + ww), y2 = vpx(y + hh);
-      g.frect(vpx(x), vpx(y), x2 - vpx(x), y2 - vpx(y), c, vpx(r || 0));
-    },
-    circle: function (x, y, r, c, f) { g.circle(vpx(x), vpx(y), vpx(r), c, f); },
     line: function (x0, y0, x1, y1, c) { g.line(vpx(x0), vpx(y0), vpx(x1), vpx(y1), c); },
     text: function (x, y, size, c, str) {
       if (fontMode >= 2) { aaText(x, y, size, c, str); return; }
