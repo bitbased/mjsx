@@ -124,6 +124,162 @@ function createPureJsBackend(w, h, opts) {
     }
   }
 
+  /* compat 'adafruit': draw arcs, circles and clip QUIRKS exactly the
+     way Adafruit_GFX does on the filament-rfid bridge, so replaying a
+     device op stream is pixel-identical. Midpoint algorithms run in
+     LOGICAL coordinates and stamp dpr blocks -- at dpr 1 they are the
+     library's own pixels; scaled up they are the device look, magnified
+     (fidelity, not smoothness, is the point of this mode). */
+  var compat = opts.compat === 'adafruit';
+  function afPix(x, y, rgb) { fillRect(x * dpr, y * dpr, dpr, dpr, rgb); }
+  /* Adafruit's drawFastVLine(x, y, h) is writeLine(x, y, x, y+h-1) with
+     NO h guard -- at h = 0 Bresenham still paints both endpoints, 2
+     pixels. fillRoundRect's degenerate corners (a 2px-tall slider bar)
+     depend on that, so the span is inclusive min..max, never empty. */
+  function afVline(x, y, hh, rgb) {
+    var y1 = y + hh - 1;
+    var lo = y < y1 ? y : y1, hi = y < y1 ? y1 : y;
+    fillRect(x * dpr, lo * dpr, dpr, (hi - lo + 1) * dpr, rgb);
+  }
+  function afHline(x, y, ww, rgb) {
+    var x1 = x + ww - 1;
+    var lo = x < x1 ? x : x1, hi = x < x1 ? x1 : x;
+    fillRect(lo * dpr, y * dpr, (hi - lo + 1) * dpr, dpr, rgb);
+  }
+  function afDrawCircle(x0, y0, r, rgb) {
+    var f = 1 - r, dx = 1, dy = -2 * r, x = 0, y = r;
+    afPix(x0, y0 + r, rgb); afPix(x0, y0 - r, rgb); afPix(x0 + r, y0, rgb); afPix(x0 - r, y0, rgb);
+    while (x < y) {
+      if (f >= 0) { y--; dy += 2; f += dy; }
+      x++; dx += 2; f += dx;
+      afPix(x0 + x, y0 + y, rgb); afPix(x0 - x, y0 + y, rgb);
+      afPix(x0 + x, y0 - y, rgb); afPix(x0 - x, y0 - y, rgb);
+      afPix(x0 + y, y0 + x, rgb); afPix(x0 - y, y0 + x, rgb);
+      afPix(x0 + y, y0 - x, rgb); afPix(x0 - y, y0 - x, rgb);
+    }
+  }
+  function afDrawCircleHelper(x0, y0, r, corner, rgb) {
+    var f = 1 - r, dx = 1, dy = -2 * r, x = 0, y = r;
+    while (x < y) {
+      if (f >= 0) { y--; dy += 2; f += dy; }
+      x++; dx += 2; f += dx;
+      if (corner & 4) { afPix(x0 + x, y0 + y, rgb); afPix(x0 + y, y0 + x, rgb); }
+      if (corner & 2) { afPix(x0 + x, y0 - y, rgb); afPix(x0 + y, y0 - x, rgb); }
+      if (corner & 8) { afPix(x0 - y, y0 + x, rgb); afPix(x0 - x, y0 + y, rgb); }
+      if (corner & 1) { afPix(x0 - y, y0 - x, rgb); afPix(x0 - x, y0 - y, rgb); }
+    }
+  }
+  function afFillCircleHelper(x0, y0, r, corners, delta, rgb) {
+    var f = 1 - r, dx = 1, dy = -2 * r, x = 0, y = r, px = 0, py = r;
+    delta++;
+    while (x < y) {
+      if (f >= 0) { y--; dy += 2; f += dy; }
+      x++; dx += 2; f += dx;
+      if (x < y + 1) {
+        if (corners & 1) afVline(x0 + x, y0 - y, 2 * y + delta, rgb);
+        if (corners & 2) afVline(x0 - x, y0 - y, 2 * y + delta, rgb);
+      }
+      if (y !== py) {
+        if (corners & 1) afVline(x0 + py, y0 - px, 2 * px + delta, rgb);
+        if (corners & 2) afVline(x0 - py, y0 - px, 2 * px + delta, rgb);
+        py = y;
+      }
+      px = x;
+    }
+  }
+  function afFillCircle(x0, y0, r, rgb) {
+    afVline(x0, y0 - r, 2 * r + 1, rgb);
+    afFillCircleHelper(x0, y0, r, 3, 0, rgb);
+  }
+  function afFillRoundRect(x, y, w, h, r, rgb) {
+    var mr = ((w < h ? w : h) >> 1);
+    if (r > mr) r = mr;
+    fillRect((x + r) * dpr, y * dpr, (w - 2 * r) * dpr, h * dpr, rgb);
+    afFillCircleHelper(x + w - r - 1, y + r, r, 1, h - 2 * r - 1, rgb);
+    afFillCircleHelper(x + r, y + r, r, 2, h - 2 * r - 1, rgb);
+  }
+  function afDrawRoundRect(x, y, w, h, r, rgb) {
+    var mr = ((w < h ? w : h) >> 1);
+    if (r > mr) r = mr;
+    afHline(x + r, y, w - 2 * r, rgb);
+    afHline(x + r, y + h - 1, w - 2 * r, rgb);
+    afVline(x, y + r, h - 2 * r, rgb);
+    afVline(x + w - 1, y + r, h - 2 * r, rgb);
+    afDrawCircleHelper(x + r, y + r, r, 1, rgb);
+    afDrawCircleHelper(x + w - r - 1, y + r, r, 2, rgb);
+    afDrawCircleHelper(x + w - r - 1, y + h - r - 1, r, 4, rgb);
+    afDrawCircleHelper(x + r, y + h - r - 1, r, 8, rgb);
+  }
+  /* the bridge clips lines with integer Cohen-Sutherland then draws
+     Adafruit's Bresenham (err = dx/2 variant) on the ADJUSTED endpoints
+     -- both steps ported exactly, since per-pixel clipping of the
+     original line lands on subtly different pixels */
+  function afLine(x0, y0, x1, y1, rgb) {
+    var c = afClip();
+    if (c) {
+      var xmin = c.x, xmax = c.x + c.w - 1, ymin = c.y, ymax = c.y + c.h - 1;
+      function code(x, y) {
+        var cc = 0;
+        if (x < xmin) cc |= 1; else if (x > xmax) cc |= 2;
+        if (y < ymin) cc |= 4; else if (y > ymax) cc |= 8;
+        return cc;
+      }
+      var c0 = code(x0, y0), c1 = code(x1, y1);
+      for (var guard = 0; guard < 8; guard++) {
+        if (!(c0 | c1)) break;
+        if (c0 & c1) return;
+        var cs = c0 ? c0 : c1;
+        var nx = x0, ny = y0;
+        if (cs & 8) { nx = x0 + Math.trunc((x1 - x0) * (ymax - y0) / (y1 - y0)); ny = ymax; }
+        else if (cs & 4) { nx = x0 + Math.trunc((x1 - x0) * (ymin - y0) / (y1 - y0)); ny = ymin; }
+        else if (cs & 2) { ny = y0 + Math.trunc((y1 - y0) * (xmax - x0) / (x1 - x0)); nx = xmax; }
+        else { ny = y0 + Math.trunc((y1 - y0) * (xmin - x0) / (x1 - x0)); nx = xmin; }
+        if (cs === c0) { x0 = nx; y0 = ny; c0 = code(x0, y0); }
+        else { x1 = nx; y1 = ny; c1 = code(x1, y1); }
+      }
+    }
+    var steep = Math.abs(y1 - y0) > Math.abs(x1 - x0), t;
+    if (steep) { t = x0; x0 = y0; y0 = t; t = x1; x1 = y1; y1 = t; }
+    if (x0 > x1) { t = x0; x0 = x1; x1 = t; t = y0; y0 = y1; y1 = t; }
+    var ldx = x1 - x0, ldy = Math.abs(y1 - y0);
+    var err = ldx >> 1;
+    var ystep = y0 < y1 ? 1 : -1;
+    for (; x0 <= x1; x0++) {
+      if (steep) afPix(y0, x0, rgb); else afPix(x0, y0, rgb);
+      err -= ldy;
+      if (err < 0) { y0 += ystep; err += ldx; }
+    }
+  }
+
+  /* the device's logical clip, for mirroring its clamp/skip quirks */
+  function afClip() {
+    return clipRect ? { x: clipRect.x / dpr, y: clipRect.y / dpr,
+                        w: clipRect.w / dpr, h: clipRect.h / dpr } : null;
+  }
+  /* the bridge clamps a rect to the clip and SQUARES it if clamped */
+  function afRect(x, y, w, h, rgb, r, fill) {
+    var c = afClip();
+    if (c) {
+      var x2 = x + w, y2 = y + h;
+      if (x < c.x) { x = c.x; r = 0; }
+      if (y < c.y) { y = c.y; r = 0; }
+      if (x2 > c.x + c.w) { x2 = c.x + c.w; r = 0; }
+      if (y2 > c.y + c.h) { y2 = c.y + c.h; r = 0; }
+      w = x2 - x; h = y2 - y;
+      if (w <= 0 || h <= 0) return;
+    }
+    if (fill) {
+      if (r > 0) afFillRoundRect(x, y, w, h, r, rgb);
+      else fillRect(x * dpr, y * dpr, w * dpr, h * dpr, rgb);
+    } else {
+      if (r > 0) afDrawRoundRect(x, y, w, h, r, rgb);
+      else {
+        afHline(x, y, w, rgb); afHline(x, y + h - 1, w, rgb);
+        afVline(x, y, h, rgb); afVline(x + w - 1, y, h, rgb);
+      }
+    }
+  }
+
   /* Round-pen renderer for VECTORIZED bitmap glyphs: stroke centrelines run
      through the bitmap's exact pixel centres (see vectorize.js), so the
      glyph's size and grid are identical to the bitmap — the pen just draws
@@ -219,6 +375,7 @@ function createPureJsBackend(w, h, opts) {
     clear: function (color) { fillRect(0, 0, PW, PH, toRGB(color)); textOps.length = 0; },
     rect: function (x, y, ww, hh, color, radius) {
       var rgb = toRGB(color);
+      if (compat) { afRect(x, y, ww, hh, rgb, radius || 0, false); return; }
       raster.strokeRoundRect(
         function (px2, py2) { stamp(px2, py2, rgb); },
         function (x0, y0, x1, y1) {
@@ -228,6 +385,7 @@ function createPureJsBackend(w, h, opts) {
         x * dpr, y * dpr, ww * dpr, hh * dpr, (radius || 0) * dpr);
     },
     frect: function (x, y, ww, hh, color, radius) {
+      if (compat) { afRect(x, y, ww, hh, toRGB(color), radius || 0, true); return; }
       if (textCapture) {
         /* z-order: a fill painted AFTER a text op sits on top of it (a
            modal over page text). Pixels get that for free; captured ops
@@ -248,12 +406,26 @@ function createPureJsBackend(w, h, opts) {
         x * dpr, y * dpr, ww * dpr, hh * dpr, (radius || 0) * dpr);
     },
     circle: function (x, y, r, color, filled) {
+      if (compat) {
+        /* the bridge skips circles that cross the clip vertically */
+        var cc = afClip();
+        if (cc && (y - r < cc.y || y + r > cc.y + cc.h)) return;
+        if (filled) afFillCircle(x, y, r, toRGB(color));
+        else afDrawCircle(x, y, r, toRGB(color));
+        return;
+      }
       drawCircle(x * dpr, y * dpr, r * dpr, toRGB(color), filled, dpr);
     },
     line: function (x0, y0, x1, y1, color) {
+      if (compat) { afLine(x0, y0, x1, y1, toRGB(color)); return; }
       drawLineStamped(x0 * dpr, y0 * dpr, x1 * dpr, y1 * dpr, toRGB(color));
     },
     text: function (x, y, size, color, str) {
+      if (compat) {
+        /* the bridge skips a whole string that crosses the clip vertically */
+        var ct = afClip();
+        if (ct && (y < ct.y || y + 8 * size > ct.y + ct.h)) return;
+      }
       if (textCapture) {
         var cf = fontFor(size);
         textOps.push({

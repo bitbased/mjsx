@@ -97,7 +97,14 @@ function scale3x(glyphs, w, h) {
   return out;
 }
 
+var f5 = require('./font5x7.js');
+
 var FONTS = {
+  /* The Adafruit GFX classic face -- what the filament-rfid bridge
+     firmware draws with natively. Here so a browser replaying that
+     device's op stream renders the SAME glyphs on the SAME 6px advance;
+     fixed-face only (opts.font = '5x7'), never in the size ladder. */
+  '5x7': { glyphs: f5.FONT5x7, w: 5, h: 8, d: 7, fam: '5x7' },
   '4x6': { glyphs: f4.FONT4x6, w: f4.GLYPH_W, h: f4.GLYPH_H, d: 6, fam: '4x6', strokes: STROKES['4x6'] },
   '6x8': { glyphs: f6.FONT6x8, w: f6.GLYPH_W, h: f6.GLYPH_H, d: 8, fam: '6x8', strokes: STROKES['6x8'] }
 };
