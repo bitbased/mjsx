@@ -140,6 +140,20 @@ globalThis.sys = backend.sys;
    persistent context (cheap), or tearing the context down and calling
    JS_NewContext on a fresh arena (hard isolation — the engine supports it,
    and even several arenas at once; RAM is the only real budget). */
+/* --safe=8 or --safe=top,left,bottom,right: edge bands where the panel
+   being simulated has unreliable touch. Applied to every fresh core so
+   layout, overlays and touch clamping all honour it, exactly as they
+   would on the device. */
+var safeBands = null;
+for (var sfi = 0; sfi < flagArgs.length; sfi++) {
+  if (flagArgs[sfi].slice(0, 7) === '--safe=') {
+    var sfp = flagArgs[sfi].slice(7).split(',').map(function (n) { return parseInt(n, 10) || 0; });
+    safeBands = sfp.length === 1
+      ? { top: sfp[0], left: sfp[0], bottom: sfp[0], right: sfp[0] }
+      : { top: sfp[0] || 0, left: sfp[1] || 0, bottom: sfp[2] || 0, right: sfp[3] || 0 };
+  }
+}
+
 var CORE = require.resolve('../../../packages/core/src/mjsx.js');
 function freshCore() {
   delete require.cache[CORE];
@@ -153,6 +167,7 @@ function freshCore() {
 globalThis.Keyboard = core.Keyboard;
   /* Every fresh core learns the current font's metrics, so em() spacing and
      fitText widths always match what the backend actually rasterizes. */
+  if (safeBands) core.UI.safe = safeBands;
   if (typeof backend !== 'undefined' && backend.font) {
     core.FONT.advance = backend.font.advance;
     core.FONT.lineH = backend.font.lineH;

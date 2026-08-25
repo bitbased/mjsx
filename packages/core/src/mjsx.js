@@ -1046,10 +1046,16 @@ function Keyboard(p) {
   else if (layout === 't9') rows = kbT9(kh);
   else if (layout === 'strip') rows = kbStrip(kh);
   else rows = kbQwerty(kh);
+  var pos = p.position || 'inline';
   /* The panel swallows taps: a press between keys must not fall through
-     to whatever the overlay is covering. */
+     to whatever the overlay is covering. A DOCKED panel drops the
+     padding on its docked edge, so the outermost row runs flush to the
+     safe edge and owns every clamped edge press -- the tallest target
+     the display can honestly offer. */
   var panel = h('box', {
     bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2,
+    padB: pos === 'bottom' ? 0 : undefined,
+    padT: pos === 'top' ? 0 : undefined,
     shield: true
   }, rows);
   if (UI.exclusive()) {
@@ -1083,18 +1089,25 @@ function Keyboard(p) {
       xkids.unshift(h('text', { text: xp.label || xp.placeholder,
                                 size: 1, color: UI.theme.muted }));
     }
-    return h('abs', { x: 0, y: 0, w: gfx.width() },
-      h('box', { h: gfx.height(), bg: UI.theme.bg, pad: 6, gap: 6, shield: true }, xkids));
+    return h('abs', { x: UI.safe.left, y: UI.safe.top,
+                      w: gfx.width() - UI.safe.left - UI.safe.right },
+      h('box', { h: gfx.height() - UI.safe.top - UI.safe.bottom,
+                 bg: UI.theme.bg, pad: 6, gap: 6, shield: true }, xkids));
   }
-  var pos = p.position || 'inline';
   if (pos === 'bottom' || pos === 'top') {
     /* Overlay: pinned to a screen edge, no flow space taken -- the page
        keeps its full height and the keyboard draws over it. The inset
        tells scroll-into-view how much of the screen the keyboard hides,
        so a revealed field lands above it, not under it. */
-    var totalH = rowsN * kh + (rowsN - 1) * 2 + 8;
-    UI.inset(pos, totalH);
-    return h('abs', { x: 0, y: pos === 'top' ? 0 : gfx.height() - totalH, w: gfx.width() }, panel);
+    var totalH = rowsN * kh + (rowsN - 1) * 2 + 4;  /* one padded edge: the docked side has none */
+    /* docked inside the safe rect; the inset it reports spans from the
+       TRUE screen edge, dead band included, so reveal math stays honest */
+    var sfKT = UI.safe.top, sfKB = UI.safe.bottom, sfKL = UI.safe.left;
+    UI.inset(pos, totalH + (pos === 'top' ? sfKT : sfKB));
+    return h('abs', {
+      x: sfKL, y: pos === 'top' ? sfKT : gfx.height() - totalH - sfKB,
+      w: gfx.width() - sfKL - UI.safe.right
+    }, panel);
   }
   return panel;
 }
@@ -1144,6 +1157,24 @@ var UI = {
      a real <input> to summon the phone's, native code outside the JS VM
      drawing one -- knows when to show and hide it. */
   onFocusChange: null,
+
+  /* Edge bands where the DISPLAY's touch is unreliable -- cheap panels,
+     rotated controllers and round glass all have them. Set by the host or
+     the app per device (UI.safe.bottom = 8). Three things honour it:
+     layout is held inside the safe rect (the background still paints
+     full-bleed, so nothing looks cropped), overlays dock inside it, and
+     every incoming touch in the band is clamped to the nearest safe
+     edge -- so a control sitting against the band effectively owns it,
+     the same as making the edge row's target taller. */
+  safe: { top: 0, left: 0, bottom: 0, right: 0 },
+  _safeX: function (x) {
+    var r = gfx.width() - 1 - this.safe.right;
+    return x < this.safe.left ? this.safe.left : (x > r ? r : x);
+  },
+  _safeY: function (y) {
+    var b = gfx.height() - 1 - this.safe.bottom;
+    return y < this.safe.top ? this.safe.top : (y > b ? b : y);
+  },
 
   /* A default palette. Entirely a starting point — replace UI.theme wholesale
      from an app if a different look is wanted; nothing else in this file
@@ -1327,14 +1358,22 @@ var UI = {
     this._insetT = 0;
     this._insetB = 0;
     gfx.clear(this.theme.bg);
-    draw(h(this.root, {}), 0, 0, gfx.width(), gfx.height());
+    var sfL = this.safe.left, sfT = this.safe.top;
+    var sfW = gfx.width() - sfL - this.safe.right;
+    var sfH = gfx.height() - sfT - this.safe.bottom;
+    /* forcedH pins the root to the safe height -- an app's usual
+       h: gfx.height() must not push its bottom row into the dead band.
+       Only when a vertical band exists; otherwise the root keeps sizing
+       itself exactly as before. */
+    var sfF = (sfT || this.safe.bottom) ? sfH : undefined;
+    draw(h(this.root, {}), sfL, sfT, sfW, sfF);
     if (this.modal) {
       /* Everything under the modal stops listening. A dialog you can press
          through is not a dialog. */
       this._hits = [];
       this._swipes = [];
       this._flings = [];
-      draw(h(this.modal, {}), 0, 0, gfx.width(), gfx.height());
+      draw(h(this.modal, {}), sfL, sfT, sfW, sfF);
     }
     if (this._reveal) this._revealFocus();
     this._dirty = false;
@@ -1396,6 +1435,8 @@ var UI = {
        screen reading raw, uncorrected controller coordinates, which must
        not be run through hit-testing. */
     if (this.onPointer && this.onPointer(id, phase, x, y)) return;
+    x = this._safeX(x);
+    y = this._safeY(y);
 
     if (phase === 0) {
       var hit = this._hitAt(x, y);
@@ -1825,6 +1866,8 @@ var UI = {
      counterpart to swipe()'s zone-sized notches. This is what a mouse wheel
      or a trackpad wants: many small nudges, not page jumps. */
   scrollBy: function (x, y, dy) {
+    x = this._safeX(x);
+    y = this._safeY(y);
     var z = this._zoneAt(x, y);
     if (!z) return false;
     this._scrollTo(z.key, (this._scroll[z.key] || 0) + dy);
