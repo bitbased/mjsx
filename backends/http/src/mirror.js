@@ -83,9 +83,15 @@ function createMirror(opts) {
     '// panel\'s logical resolution -- Bresenham lines, scanline fills and\n' +
     '// the actual bitmap fonts, pixelated-upscaled: exactly what the panel\n' +
     '// itself would show.\n' +
-    'var pb=null,pbW=0,pbH=0;' +
-    'function paintPixel(fs){' +
-    '  if(!pb||pbW!==W||pbH!==H){pb=createPureJsBackend(W,H,{});pbW=W;pbH=H;}' +
+    'var pb=null,pbW=0,pbH=0,pbS=0;' +
+    '// Both modes replay the ops through the REAL mjsx rasterizer -- the\n' +
+    '// bundle carries the whole font system, so HD text is the same\n' +
+    '// refined, bitmap-derived HD faces the sim window shows, never a\n' +
+    '// substituted browser font. HD:OFF renders at dpr 1 (authentic\n' +
+    '// chunky pixels, real bitmap glyphs, pixelated upscale); HD:ON at\n' +
+    '// dpr = the fit scale, precise mode, like the window\'s own HD.\n' +
+    'function paintPB(fs,S){' +
+    '  if(!pb||pbW!==W||pbH!==H||pbS!==S){pb=createPureJsBackend(W,H,{dpr:S});pbW=W;pbH=H;pbS=S;}' +
     '  var g=pb.gfx;' +
     '  for(var i=0;i<OPS.length;i++){var o=OPS[i];' +
     '    switch(o[0]){' +
@@ -100,18 +106,20 @@ function createMirror(opts) {
     '    case "p":if(g.poly)g.poly(o[1],o[2],o[3]);break;' +
     '    }}' +
     '  g.unclip();' +
-    '  cv.width=W;cv.height=H;' +
+    '  cv.width=W*S;cv.height=H*S;' +
     '  cv.style.width=(W*fs)+"px";cv.style.height=(H*fs)+"px";' +
-    '  cv.style.imageRendering="pixelated";' +
+    '  cv.style.imageRendering=S<fs?"pixelated":"auto";' +
     '  ctx.setTransform(1,0,0,1,0,0);' +
-    '  var img=ctx.createImageData(W,H);var raw=pb.raw;' +
+    '  var img=ctx.createImageData(W*S,H*S);var raw=pb.raw;' +
     '  for(var q=0,d=0;q<raw.length;q+=3,d+=4){' +
     '    img.data[d]=raw[q];img.data[d+1]=raw[q+1];img.data[d+2]=raw[q+2];img.data[d+3]=255;}' +
     '  ctx.putImageData(img,0,0);' +
     '}' +
     'function paint(){if(!W)return;' +
     '  var fs=fitScale();' +
-    '  if(!hd&&window.createPureJsBackend){paintPixel(fs);return;}' +
+    '  if(window.createPureJsBackend){paintPB(fs,hd?Math.min(4,fs):1);return;}' +
+    '  // fallback only (bundle failed to load): canvas vectors and fitted\n' +
+    '  // monospace standing in for text\n' +
     '  var S=fs*(devicePixelRatio||1);' +
     '  cv.width=W*S;cv.height=H*S;' +
     '  cv.style.width=(W*fs)+"px";cv.style.height=(H*fs)+"px";' +
