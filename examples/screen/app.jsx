@@ -21,7 +21,9 @@ function readScreen() {
 }
 
 var boot = readScreen();
-UI.set({ bl: boot.bl, sleep: boot.sleep, dim: boot.dim ? 1 : 0, rot: boot.rot || 0 });
+UI.set({ bl: boot.bl, sleep: boot.sleep, dim: boot.dim ? 1 : 0,
+         rot: boot.rot || 0, scale: boot.scale || 4,
+         fnative: boot.fnative === false ? 0 : 1 });
 
 function applyBacklight(pct) {
   if (HAVE) sys.backlight(pct);
@@ -30,7 +32,17 @@ function applySleep() {
   if (HAVE) sys.sleepAfter(UI.state.sleep, UI.state.dim);
 }
 
-var SLEEPS = [[0, 'OFF'], [15, '15s'], [30, '30s'], [60, '1m'], [300, '5m'], [900, '15m']];
+/* No OFF chip: NEVER in the mode row is the off switch, so the times
+   stay a clean row of their own -- narrow screens fit both rows. */
+var SLEEPS = [[15, '15s'], [30, '30s'], [60, '1m'], [300, '5m'], [900, '15m']];
+
+/* On a scaled view, how text reaches the glass: NATIVE draws glyphs
+   panel-sharp at flush time, SCALED stretches them with the blit. */
+var HAVE_FONTS = HAVE && typeof sys.fonts === 'function';
+function applyFonts(n) {
+  if (HAVE_FONTS) sys.fonts(n);
+  UI.set({ fnative: n });
+}
 
 /* Rotation is a native concern too: sys.rotate(0..3) turns the panel,
    canvas, and touch mapping as one and persists. The layout here reads
@@ -44,8 +56,34 @@ function applyRotate(r) {
   if (HAVE_ROT) sys.rotate(r);
 }
 
+/* Display scale: sys.view() takes quarters, so 4 is 1:1 and 8 doubles
+   every logical pixel. Inset and shift ride along unchanged -- this row
+   only turns the one dial. Everything relaid out next frame, and the
+   scale chips sit above the fold so 2x can always reach its way back. */
+var HAVE_VIEW = HAVE && typeof sys.view === 'function';
+var SCALES = [[4, '1x'], [5, '1.2x'], [6, '1.5x'], [8, '2x']];
+function applyScale(q) {
+  if (!HAVE_VIEW) return;
+  var cur = readScreen();
+  sys.view(q, cur.inset || 0, cur.shiftx || 0, cur.shifty || 0);
+}
+
 function App() {
   var bl = UI.state.bl || 80;
+
+  var scaleChips = [];
+  for (var s = 0; s < SCALES.length; s++) {
+    scaleChips.push(h(Button, {
+      label: SCALES[s][1], size: 1, pad: em(0.5),
+      bg: UI.state.scale === SCALES[s][0] ? UI.theme.accent : UI.theme.key,
+      onTap: (function (q) {
+        return function () {
+          applyScale(q);
+          UI.set({ scale: HAVE_VIEW ? (readScreen().scale || 4) : q });
+        };
+      })(SCALES[s][0])
+    }));
+  }
 
   var rotChips = [];
   for (var r = 0; r < ROTS.length; r++) {
@@ -104,25 +142,43 @@ function App() {
       </box>
 
       <box bg={UI.theme.panel} radius={6} pad={em(0.75)} gap={em(0.5)}>
+        <text text="SCALE" size={1} color={UI.theme.muted} />
+        {h('row', { gap: 4 }, scaleChips.concat([
+          h('box', { w: em(0.6) }),
+          h(Button, { label: UI.state.fnative ? 'SHARP' : 'SOFT', size: 1, pad: em(0.5),
+                      bg: UI.state.fnative ? UI.theme.accent : UI.theme.key,
+                      onTap: function () { applyFonts(UI.state.fnative ? 0 : 1); } })
+        ]))}
+      </box>
+
+      <box bg={UI.theme.panel} radius={6} pad={em(0.75)} gap={em(0.5)}>
         <text text="ROTATION" size={1} color={UI.theme.muted} />
         {h('row', { gap: 4 }, rotChips)}
       </box>
 
       <box bg={UI.theme.panel} radius={6} pad={em(0.75)} gap={em(0.5)}>
         <row>
-          <text text="SLEEP AFTER" size={1} color={UI.theme.muted} />
-          <text text="a sleeping screen wakes on touch" size={1} align="right"
-                color={0x555f6e} />
+          <text text="SLEEP" size={1} color={UI.theme.muted} />
+          <text text="wakes on touch" size={1} align="right" color={0x555f6e} />
         </row>
-        {h('row', { gap: 4 }, sleepChips.concat([
-          h('box', { w: em(0.6) }),
-          h(Button, { label: 'DIM', size: 1, pad: em(0.5),
-                      bg: UI.state.dim ? UI.theme.accent : UI.theme.key,
-                      onTap: function () { UI.set({ dim: 1 }); applySleep(); } }),
-          h(Button, { label: 'DARK', size: 1, pad: em(0.5),
-                      bg: UI.state.dim ? UI.theme.key : UI.theme.accent,
-                      onTap: function () { UI.set({ dim: 0 }); applySleep(); } })
-        ]))}
+        <row gap={4}>
+          <Button label="NEVER" size={1} pad={em(0.5)}
+                  bg={!UI.state.sleep ? UI.theme.accent : UI.theme.key}
+                  onTap={function () { UI.set({ sleep: 0 }); applySleep(); }} />
+          <Button label="DIM" size={1} pad={em(0.5)}
+                  bg={UI.state.sleep && UI.state.dim ? UI.theme.accent : UI.theme.key}
+                  onTap={function () {
+                    UI.set({ dim: 1, sleep: UI.state.sleep || 30 });
+                    applySleep();
+                  }} />
+          <Button label="DARK" size={1} pad={em(0.5)}
+                  bg={UI.state.sleep && !UI.state.dim ? UI.theme.accent : UI.theme.key}
+                  onTap={function () {
+                    UI.set({ dim: 0, sleep: UI.state.sleep || 30 });
+                    applySleep();
+                  }} />
+        </row>
+        {h('row', { gap: 4 }, sleepChips)}
       </box>
 
       {HAVE ? null
