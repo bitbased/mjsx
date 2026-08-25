@@ -23,7 +23,8 @@ function readScreen() {
 var boot = readScreen();
 UI.set({ bl: boot.bl, sleep: boot.sleep, dim: boot.dim ? 1 : 0,
          rot: boot.rot || 0, scale: boot.scale || 4,
-         fnative: boot.fnative === false ? 0 : 1 });
+         fmode: boot.fmode !== undefined ? boot.fmode
+              : (boot.fnative === false ? 0 : 1) });
 
 function applyBacklight(pct) {
   if (HAVE) sys.backlight(pct);
@@ -36,13 +37,15 @@ function applySleep() {
    stay a clean row of their own -- narrow screens fit both rows. */
 var SLEEPS = [[15, '15s'], [30, '30s'], [60, '1m'], [300, '5m'], [900, '15m']];
 
-/* The render-scale mode, sys.fonts(1|0): NATIVE composes every op at
-   panel resolution (device-pixel sharp -- clearer fonts), PIXEL renders
-   logical and upscales uniformly (the chunky look). */
+/* The render-scale mode, sys.fonts(0|1|2): PIXEL renders logical and
+   upscales uniformly (chunky); NATIVE composes every op at panel
+   resolution (device-pixel sharp); HD adds Scale2x/3x-smoothed glyphs
+   on top -- rounded diagonals once the glyph scale reaches 2. */
 var HAVE_FONTS = HAVE && typeof sys.fonts === 'function';
+var FMODES = ['PIXEL', 'NATIVE', 'HD'];
 function applyFonts(n) {
   if (HAVE_FONTS) sys.fonts(n);
-  UI.set({ fnative: n });
+  UI.set({ fmode: n });
 }
 
 /* Rotation is a native concern too: sys.rotate(0..3) turns the panel,
@@ -146,9 +149,9 @@ function App() {
         <text text="SCALE" size={1} color={UI.theme.muted} />
         {h('row', { gap: 4 }, scaleChips.concat([
           h('box', { w: em(0.6) }),
-          h(Button, { label: UI.state.fnative ? 'NATIVE' : 'PIXEL', size: 1, pad: em(0.5),
-                      bg: UI.state.fnative ? UI.theme.accent : UI.theme.key,
-                      onTap: function () { applyFonts(UI.state.fnative ? 0 : 1); } })
+          h(Button, { label: FMODES[UI.state.fmode] || 'NATIVE', size: 1, pad: em(0.5),
+                      bg: UI.state.fmode ? UI.theme.accent : UI.theme.key,
+                      onTap: function () { applyFonts(((UI.state.fmode || 0) + 1) % 3); } })
         ]))}
       </box>
 

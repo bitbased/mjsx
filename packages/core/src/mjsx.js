@@ -922,7 +922,7 @@ function kbSend(k) { UI.key('down', k); UI.key('press', k); UI.key('up', k); }
 
 /* One keyboard is on screen at a time; its transient state (shift, page,
    T9 cycling, strip scroll) is module-local, not per-instance. */
-var KB = { shift: 0, page: 0, t9k: -1, t9i: 0, t9t: 0, strip: 0, stripG: null };
+var KB = { shift: 0, page: 0, t9k: -1, t9i: 0, t9t: 0, t9s: 0, strip: 0, stripSym: 0, stripG: null };
 
 function kbCap(str) { return KB.shift ? str.toUpperCase() : str; }
 function kbTapChar(ch) {
@@ -936,7 +936,7 @@ function kbKey(label, onTap, o) {
   return h('box', {
     bg: o.bg === undefined ? UI.theme.key : o.bg,
     radius: 4, h: o.h, w: o.w, vcenter: true, onTap: onTap,
-    onHold: o.onHold, holdEvery: o.holdEvery
+    onHold: o.onHold, holdEvery: o.holdEvery, onLongPress: o.onLongPress
   }, h('text', {
     text: label, size: o.size || 1, align: 'center',
     color: o.color === undefined ? UI.theme.text : o.color
@@ -962,14 +962,21 @@ function kbOkKey(kh, w) {
 
 function kbQwerty(kh) {
   var letters = KB.page === 0;
-  var r3k = kbCharRow(letters ? 'zxcvbnm' : '_"\':;!?', kh);
-  r3k.unshift(kbKey(letters ? (KB.shift ? 'ABC' : 'abc') : '#+=',
-    function () { if (letters) KB.shift = KB.shift ? 0 : 1; UI._dirty = true; },
+  /* two symbol pages: #+= flips between them, so every glyph the face
+     carries is typeable -- brackets, backslash, pipe, tilde, backtick */
+  var sym2 = KB.page === 2;
+  var r3k = kbCharRow(letters ? 'zxcvbnm' : (sym2 ? '`$&"\':;' : '_"\':;!?'), kh);
+  r3k.unshift(kbKey(letters ? (KB.shift ? 'ABC' : 'abc') : (sym2 ? '123' : '#+='),
+    function () {
+      if (letters) KB.shift = KB.shift ? 0 : 1;
+      else KB.page = sym2 ? 1 : 2;
+      UI._dirty = true;
+    },
     { h: kh, bg: KB.shift && letters ? UI.theme.accent : UI.theme.panel }));
   r3k.push(kbDelKey(kh));
   return [
-    h('row', { gap: 2 }, kbCharRow(letters ? 'qwertyuiop' : '1234567890', kh)),
-    h('row', { gap: 2 }, kbCharRow(letters ? 'asdfghjkl' : '@#$%&-+()', kh)),
+    h('row', { gap: 2 }, kbCharRow(letters ? 'qwertyuiop' : (sym2 ? '[]{}<>()^~' : '1234567890'), kh)),
+    h('row', { gap: 2 }, kbCharRow(letters ? 'asdfghjkl' : (sym2 ? '*/\\|=+-#%' : '@#$%&-+()'), kh)),
     h('row', { gap: 2 }, r3k),
     h('row', { gap: 2 }, [
       kbKey(letters ? '123' : 'abc',
@@ -1001,9 +1008,16 @@ function kbNumbers(kh) {
    SAME key again inside the window replaces it with the next in the
    cycle (a Backspace then the new character, through the normal editing
    path, so it works on any focused input with no special support). */
-var T9 = ['.,?!1', 'abc2', 'def3', 'ghi4', 'jkl5', 'mno6', 'pqrs7', 'tuv8', 'wxyz9', ' 0'];
+/* Key 1 carries punctuation (quotes included, phone style) and the
+   space key cycles space -> @ -> - -> 0, so addresses and dashes are
+   typeable without leaving the pad. */
+var T9 = ['.,?!\'"1', 'abc2', 'def3', 'ghi4', 'jkl5', 'mno6', 'pqrs7', 'tuv8', 'wxyz9', ' @-0'];
+/* The symbol pad, a LONG PRESS of abc away: each key multi-taps through
+   a themed set, so the whole face is reachable from T9 too. */
+var T9S = ['.,;:', '\'"`', '?!~', '@#&', '$%^', '-_=', '()[]', '{}<>', '*/\\|+'];
+function t9Table() { return KB.t9s ? T9S : T9; }
 function kbT9Tap(ki) {
-  var cyc = T9[ki];
+  var cyc = ki === 9 ? T9[9] : t9Table()[ki];
   var now = sys.millis();
   if (KB.t9k === ki && KB.t9t > now) {
     KB.t9i = (KB.t9i + 1) % cyc.length;
@@ -1026,17 +1040,39 @@ function kbT9Tap(ki) {
   UI._dirty = true;
 }
 function kbT9Key(ki, kh) {
-  var cyc = T9[ki];
-  var letters = cyc.slice(0, cyc.length - 1);
-  var digit = cyc.charAt(cyc.length - 1);
+  var sym = KB.t9s && ki !== 9;
+  var cyc = ki === 9 ? T9[9] : t9Table()[ki];
   var active = KB.t9k === ki && KB.t9t > sys.millis();
+  var lines;
+  if (ki === 9) {
+    lines = [
+      h('text', { text: '0', size: 1, align: 'center', color: UI.theme.muted }),
+      h('text', { text: 'SPC @-', size: 1, align: 'center' })
+    ];
+  } else if (sym) {
+    /* the symbol pad: the cycle IS the key */
+    lines = [h('text', { text: cyc, size: 1, align: 'center' })];
+  } else {
+    /* the LETTERS are the key; the digit is a small hint below them */
+    var letters = cyc.slice(0, cyc.length - 1);
+    var digit = cyc.charAt(cyc.length - 1);
+    lines = [
+      h('text', { text: kbCap(letters), size: 1, align: 'center' }),
+      h('text', { text: digit, size: 1, align: 'center', color: UI.theme.muted })
+    ];
+  }
   return h('box', {
     bg: active ? UI.theme.accent : UI.theme.key, radius: 4, h: kh,
-    vcenter: true, onTap: function () { kbT9Tap(ki); }
-  }, [
-    h('text', { text: digit === ' ' ? '0' : digit, size: 1, align: 'center', color: UI.theme.muted }),
-    h('text', { text: ki === 9 ? 'SPC' : kbCap(letters), size: 1, align: 'center' })
-  ]);
+    vcenter: true, onTap: function () { kbT9Tap(ki); },
+    /* hold = the key's DIGIT, phone style -- works from the symbol pad
+       too, the position is the digit. Any pending cycle is left as it
+       stands: hold starts fresh. */
+    onLongPress: function () {
+      KB.t9k = -1;
+      kbSend(T9[ki].charAt(T9[ki].length - 1));
+      UI._dirty = true;
+    }
+  }, lines);
 }
 function kbT9(kh) {
   var out = [];
@@ -1046,9 +1082,14 @@ function kbT9(kh) {
     out.push(h('row', { gap: 2 }, ks));
   }
   out.push(h('row', { gap: 2 }, [
-    kbKey(KB.shift ? 'ABC' : 'abc',
-      function () { KB.shift = KB.shift ? 0 : 1; UI._dirty = true; },
-      { h: kh, bg: KB.shift ? UI.theme.accent : UI.theme.panel }),
+    kbKey(KB.t9s ? 'abc' : (KB.shift ? 'ABC' : 'abc'),
+      function () {
+        if (KB.t9s) KB.t9s = 0;
+        else KB.shift = KB.shift ? 0 : 1;
+        UI._dirty = true;
+      },
+      { h: kh, bg: KB.shift && !KB.t9s ? UI.theme.accent : UI.theme.panel,
+        onLongPress: function () { KB.t9s = 1; UI._dirty = true; } }),
     kbT9Key(9, kh),
     kbDelKey(kh)
   ]));
@@ -1057,10 +1098,12 @@ function kbT9(kh) {
 }
 
 var STRIP_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789.,!?@#$%&-_+()/:;\'"*=';
+/* the symbol strip, a LONG PRESS of abc away: everything the face has */
+var STRIP_SYMS = '.,!?@#$%&-_+()/:;\'"*=<>[]{}\\|~^\u0060';
 function kbStrip(kh) {
   var adv = fadv(2);
   var cell = adv * 2;
-  var chars = kbCap(STRIP_CHARS);
+  var chars = KB.stripSym ? STRIP_SYMS : kbCap(STRIP_CHARS);
   var contentW = chars.length * cell;
   var sideW = em(4);
   var stripW = gfx.width() - 8 - sideW * 2 - 4;   /* keyboard pad 4, row gap 2 */
@@ -1092,9 +1135,14 @@ function kbStrip(kh) {
   }, h('text', { text: chars.split('').join(' '), size: 2, nowrap: true }));
   return [
     h('row', { gap: 2 }, [
-      kbKey(KB.shift ? 'ABC' : 'abc',
-        function () { KB.shift = KB.shift ? 0 : 1; UI._dirty = true; },
-        { h: kh, w: sideW, bg: KB.shift ? UI.theme.accent : UI.theme.panel }),
+      kbKey(KB.stripSym ? 'abc' : (KB.shift ? 'ABC' : 'abc'),
+        function () {
+          if (KB.stripSym) { KB.stripSym = 0; KB.strip = 0; }
+          else KB.shift = KB.shift ? 0 : 1;
+          UI._dirty = true;
+        },
+        { h: kh, w: sideW, bg: KB.shift && !KB.stripSym ? UI.theme.accent : UI.theme.panel,
+          onLongPress: function () { KB.stripSym = 1; KB.strip = 0; UI._dirty = true; } }),
       strip,
       kbDelKey(kh, sideW)
     ]),
@@ -1133,7 +1181,7 @@ function Keyboard(p) {
      the display can honestly offer. */
   var panel = UI.memo('_kbPanel',
     [layout, kh, pos, KB.shift, KB.page, KB.strip, KB.t9k, KB.t9i,
-     p.bg, gfx.width()],
+     KB.t9s, KB.stripSym, p.bg, gfx.width()],
     function () {
       return h('box', {
         bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2,

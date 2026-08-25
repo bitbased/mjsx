@@ -26,7 +26,9 @@
 var raster = require('./../../../packages/core/src/raster.js');
 var vectorize = require('./../../../packages/core/src/vectorize.js').vectorize;
 var fontsMod = require('./../../../packages/core/src/fonts.js');
+var vectorizeMod = require('./../../../packages/core/src/vectorize.js');
 var FONTS = fontsMod.FONTS, pickFont = fontsMod.pickFont;
+var hdFactor = fontsMod.hdFactor, hdGlyph = fontsMod.hdGlyph;
 
 /* Creates a fresh backend bound to one W x H canvas. Multiple backends can
    coexist in the same process (each with its own gfx/sys/UI trio via
@@ -146,7 +148,50 @@ function createPureJsBackend(w, h, opts) {
     var lo = x < x1 ? x : x1, hi = x < x1 ? x1 : x;
     fillRect(lo * dpr, y * dpr, (hi - lo + 1) * dpr, dpr, rgb);
   }
+  /* Precise circle rasterizers for dpr > 1: the same logical footprint
+     as Adafruit's midpoint arcs (radius r+0.5 around the pixel centre),
+     but computed per DEVICE pixel -- real curves instead of magnified
+     logical steps. dpr 1 keeps byte-exact Adafruit semantics. */
+  function hdCapsuleFill(cx, cy, delta, rr, halves, rgb) {
+    var X = (cx + 0.5) * dpr, Y0 = (cy + 0.5) * dpr, Y1 = (cy + 0.5 + delta) * dpr;
+    var R = (rr + 0.5) * dpr, R2 = R * R;
+    for (var py = Math.floor(Y0 - R); py < Math.ceil(Y1 + R); py++) {
+      var yc = py + 0.5;
+      var dy2 = yc < Y0 ? Y0 - yc : (yc > Y1 ? yc - Y1 : 0);
+      var s2 = R2 - dy2 * dy2;
+      if (s2 <= 0) continue;
+      var half = Math.sqrt(s2);
+      var xa = halves === 1 ? X : X - half;
+      var xb = halves === 2 ? X : X + half;
+      var ix = Math.round(xa), ix2 = Math.round(xb);
+      if (ix2 > ix) fillRect(ix, py, ix2 - ix, 1, rgb);
+    }
+  }
+  function hdRing(cx, cy, rr, quad, rgb) {
+    var X = (cx + 0.5) * dpr, Y = (cy + 0.5) * dpr;
+    var Ro = (rr + 0.5) * dpr, Ri = Math.max(0, (rr - 0.5) * dpr);
+    var Ro2 = Ro * Ro, Ri2 = Ri * Ri;
+    for (var py = Math.floor(Y - Ro); py < Math.ceil(Y + Ro); py++) {
+      var dy3 = py + 0.5 - Y;
+      var so = Ro2 - dy3 * dy3;
+      if (so <= 0) continue;
+      var ho = Math.sqrt(so);
+      var si = Ri2 - dy3 * dy3;
+      var hi = si > 0 ? Math.sqrt(si) : 0;
+      var leftOK = (dy3 <= 0 && (quad & 1)) || (dy3 >= 0 && (quad & 8));
+      var rightOK = (dy3 <= 0 && (quad & 2)) || (dy3 >= 0 && (quad & 4));
+      if (leftOK) {
+        var la = Math.round(X - ho), lb = Math.round(X - hi);
+        if (lb > la) fillRect(la, py, lb - la, 1, rgb);
+      }
+      if (rightOK) {
+        var ra = Math.round(X + hi), rb = Math.round(X + ho);
+        if (rb > ra) fillRect(ra, py, rb - ra, 1, rgb);
+      }
+    }
+  }
   function afDrawCircle(x0, y0, r, rgb) {
+    if (dpr > 1) { hdRing(x0, y0, r, 15, rgb); return; }
     var f = 1 - r, dx = 1, dy = -2 * r, x = 0, y = r;
     afPix(x0, y0 + r, rgb); afPix(x0, y0 - r, rgb); afPix(x0 + r, y0, rgb); afPix(x0 - r, y0, rgb);
     while (x < y) {
@@ -159,6 +204,11 @@ function createPureJsBackend(w, h, opts) {
     }
   }
   function afDrawCircleHelper(x0, y0, r, corner, rgb) {
+    if (dpr > 1) {
+      /* Adafruit corner bits: 1 TL, 2 TR, 4 BR, 8 BL -- same here */
+      hdRing(x0, y0, r, corner, rgb);
+      return;
+    }
     var f = 1 - r, dx = 1, dy = -2 * r, x = 0, y = r;
     while (x < y) {
       if (f >= 0) { y--; dy += 2; f += dy; }
@@ -170,6 +220,7 @@ function createPureJsBackend(w, h, opts) {
     }
   }
   function afFillCircleHelper(x0, y0, r, corners, delta, rgb) {
+    if (dpr > 1) { hdCapsuleFill(x0, y0, delta, r, corners === 3 ? 0 : corners, rgb); return; }
     var f = 1 - r, dx = 1, dy = -2 * r, x = 0, y = r, px = 0, py = r;
     delta++;
     while (x < y) {
@@ -188,6 +239,7 @@ function createPureJsBackend(w, h, opts) {
     }
   }
   function afFillCircle(x0, y0, r, rgb) {
+    if (dpr > 1) { hdCapsuleFill(x0, y0, 0, r, 0, rgb); return; }
     afVline(x0, y0 - r, 2 * r + 1, rgb);
     afFillCircleHelper(x0, y0, r, 3, 0, rgb);
   }
@@ -359,12 +411,12 @@ function createPureJsBackend(w, h, opts) {
           if (!best || f.h > best.h ||
               (f.h === best.h && (hh > best.h * best.scale ||
                (hh === best.h * best.scale && sc < best.scale)))) {
-            best = { glyphs: f.glyphs, w: f.w, h: f.h, scale: sc };
+            best = { glyphs: f.glyphs, w: f.w, h: f.h, scale: sc, fam: f.fam };
           }
         }
       }
     }
-    if (!best) best = { glyphs: lf.glyphs, w: lf.w, h: lf.h, scale: lf.scale * dpr };
+    if (!best) best = { glyphs: lf.glyphs, w: lf.w, h: lf.h, scale: lf.scale * dpr, fam: lf.fam };
     best.cellAdv = budgetAdv;
     return best;
   }
@@ -471,10 +523,45 @@ function createPureJsBackend(w, h, opts) {
       var cellAdv = f.cellAdv || (f.w + 1) * f.scale;
       var pad2 = Math.floor((cellAdv - (f.w + 1) * f.scale) / 2);
       var s = '' + str;
+      /* HD stamping (default on): glyphs stamped at 2x+ get AdvMAME
+         smoothing -- the same algorithm, junction guard, and factor rule
+         (4/3/2 dividing the scale, remainder a block) the bridge runs in
+         C, so a replay of its op stream lands on the same pixels. Only
+         HAND-DRAWN faces smooth: the derived ladder members are already
+         Scale2x products and would mush (D towards O) if smoothed again. */
+      var fbase = f.fam && FONTS[f.fam];
+      var hdOK = opts.hdText !== false && fbase &&
+                 fbase.w === f.w && fbase.h === f.h;
       for (var i = 0; i < s.length; i++) {
-        var rows = f.glyphs[s[i]] || f.glyphs[s[i].toUpperCase()];
+        var ck = f.glyphs[s[i]] ? s[i] : s[i].toUpperCase();
+        var rows = f.glyphs[ck];
         var gx = x * dpr + i * cellAdv + pad2;
         if (!rows) continue; // unknown glyph: skip rather than draw noise
+        var fac = hdOK ? hdFactor(f.scale) : 1;
+        if (fac > 1) {
+          var hg = hdGlyph(f.glyphs, ck, fac, f.w, f.h);
+          if (hg) {
+            /* rounded block EDGES, not a fixed block size: the smoothed
+               grid lands exactly on the cell at any scale, divisible or
+               not (a 5x stamp gets 1-2px blocks that sum to 5) */
+            var gy0 = y * dpr;
+            for (var hy = 0; hy < hg.h; hy++) {
+              var hbits = hg.rows[hy];
+              if (!hbits) continue;
+              var by0 = gy0 + Math.round(hy * f.scale / fac);
+              var by1 = gy0 + Math.round((hy + 1) * f.scale / fac);
+              if (by1 <= by0) continue;
+              for (var hx = 0; hx < hg.w; hx++) {
+                if (hbits & (1 << (hg.w - 1 - hx))) {
+                  var bx0 = gx + Math.round(hx * f.scale / fac);
+                  var bx1 = gx + Math.round((hx + 1) * f.scale / fac);
+                  if (bx1 > bx0) fillRect(bx0, by0, bx1 - bx0, by1 - by0, rgb);
+                }
+              }
+            }
+            continue;
+          }
+        }
         for (var row = 0; row < rows.length; row++) {
           var bits = rows[row];
           for (var col = 0; col < f.w; col++) {
@@ -577,6 +664,165 @@ function createPureJsBackend(w, h, opts) {
                    pick: fixed ? null : pickFont } };
 }
 
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { createPureJsBackend: createPureJsBackend };
+/* ---- the GLASS emulator -------------------------------------------
+ *
+ * createGlassBackend(w, h, {q, fontMode}) renders ops the way the
+ * BRIDGE FIRMWARE renders them onto its panel: a physical canvas of
+ * ceil(w*q/4) x ceil(h*q/4), every op's endpoints floor-scaled on the
+ * way in (vpx), and -- in font mode 2 -- text drawn from the vectorized
+ * strokes as round-pen capsules with supersampled, alpha-blended
+ * coverage. A /remote viewer in PIX mode uses this to show the device's
+ * PIXELS, not merely its ops. Font mode 1 stamps glyphs at the floored
+ * integer scale, exactly like the firmware's textBlit. */
+function createGlassBackend(w, h, glassOpts) {
+  var q = (glassOpts && glassOpts.q) || 4;
+  var fontMode = glassOpts && glassOpts.fontMode !== undefined ? glassOpts.fontMode : 2;
+  var PW = Math.floor((w * q + 3) / 4), PH = Math.floor((h * q + 3) / 4);
+  /* hdText OFF: the inner backend supplies the firmware's RAW stamping
+     (NATIVE is a scaling mode, not a font mode) -- HD text comes only
+     from this emulator's own AA path when fontMode is 2 */
+  var inner = createPureJsBackend(PW, PH, { font: '5x7', compat: 'adafruit', hdText: false });
+  var g = inner.gfx, raw = inner.raw;
+  function vpx(v) { return Math.floor(v * q / 4); }
+  var clip = null;   /* physical, mirrored for the AA text path */
+  var vecCache = {};
+  function vecOf(ch) {
+    if (vecCache[ch]) return vecCache[ch];
+    var vg;
+    if (ch === '*') {
+      vg = { s: [[2, 1, 2, 6], [0, 1, 4, 5], [4, 1, 0, 5]], d: [] };
+    } else {
+      var f5 = FONTS['5x7'];
+      var rows = f5.glyphs[ch] || f5.glyphs[String(ch).toUpperCase()];
+      if (!rows) return null;
+      vg = vectorizeMod.vectorize(rows, 5, rows.length);
+    }
+    vecCache[ch] = vg;
+    return vg;
+  }
+  var covCache = {};
+  function covOf(ch, ps) {
+    var key = ps + ':' + ch;
+    if (covCache[key]) return covCache[key];
+    var vg = vecOf(ch);
+    if (!vg) return null;
+    var gw = 6 * ps, gh = 8 * ps;
+    var cov = new Uint8Array(gw * gh);
+    var u = ps, r2 = (u * 0.5) * (u * 0.5);
+    for (var gy = 0; gy < gh; gy++) {
+      for (var gx = 0; gx < gw; gx++) {
+        var n = 0;
+        for (var sub = 0; sub < 4; sub++) {
+          var cx = gx + ((sub & 1) ? 0.75 : 0.25);
+          var cy = gy + ((sub & 2) ? 0.75 : 0.25);
+          var isIn = false;
+          for (var si = 0; si < vg.s.length && !isIn; si++) {
+            var sg = vg.s[si];
+            var x0 = sg[0] * u, y0 = sg[1] * u;
+            var sx = sg[2] * u - x0, sy = sg[3] * u - y0;
+            var ll = sx * sx + sy * sy;
+            var t = ll > 0 ? ((cx - x0) * sx + (cy - y0) * sy) / ll : 0;
+            if (t < 0) t = 0;
+            if (t > 1) t = 1;
+            var dx = cx - (x0 + sx * t), dy = cy - (y0 + sy * t);
+            isIn = dx * dx + dy * dy <= r2;
+          }
+          for (var di = 0; di < vg.d.length && !isIn; di++) {
+            var dx2 = cx - vg.d[di][0] * u, dy2 = cy - vg.d[di][1] * u;
+            isIn = dx2 * dx2 + dy2 * dy2 <= r2;
+          }
+          if (isIn) n++;
+        }
+        cov[gy * gw + gx] = n * 16;
+      }
+    }
+    covCache[key] = cov;
+    return cov;
+  }
+  function aaText(x, y, size, color, str) {
+    var ps = Math.max(1, Math.floor(size * q / 4));
+    var py = vpx(y);
+    /* the firmware's whole-string vertical clip skip, physical terms */
+    if (clip && (vpx(y) < clip.y || vpx(y + 8 * size) > clip.y + clip.h)) return;
+    var cx0 = clip ? Math.max(0, clip.x) : 0;
+    var cx1 = clip ? Math.min(PW, clip.x + clip.w) : PW;
+    /* blend in RGB565 exactly as the firmware does -- the panel's
+       canvas is 565, and matching its rounding is what makes the
+       emulator pixel-exact rather than merely close */
+    var f5r = ((color >> 16) & 255) >> 3, f6g = ((color >> 8) & 255) >> 2, f5b = (color & 255) >> 3;
+    var s2 = '' + str;
+    for (var i = 0; i < s2.length; i++) {
+      var cov = covOf(s2.charAt(i), ps);
+      if (!cov) continue;
+      var gx0 = vpx(x + i * 6 * size);
+      var gw = 6 * ps, gh = 8 * ps;
+      for (var gy = 0; gy < gh; gy++) {
+        var yy = py + gy;
+        if (yy < 0) continue;
+        if (yy >= PH) break;
+        for (var gx = 0; gx < gw; gx++) {
+          var a = cov[gy * gw + gx];
+          if (!a) continue;
+          var xx = gx0 + gx;
+          if (xx < cx0 || xx >= cx1) continue;
+          var o = (yy * PW + xx) * 3;
+          if (a >= 64) {
+            raw[o] = f5r << 3; raw[o + 1] = f6g << 2; raw[o + 2] = f5b << 3;
+          } else {
+            var d5r = raw[o] >> 3, d6g = raw[o + 1] >> 2, d5b = raw[o + 2] >> 3;
+            raw[o] = ((d5r * (64 - a) + f5r * a) >> 6) << 3;
+            raw[o + 1] = ((d6g * (64 - a) + f6g * a) >> 6) << 2;
+            raw[o + 2] = ((d5b * (64 - a) + f5b * a) >> 6) << 3;
+          }
+        }
+      }
+    }
+  }
+  var gfx = {
+    clear: function (c) { clip = null; g.unclip(); g.clear(c); },
+    rect: function (x, y, ww, hh, c, r) {
+      var x2 = vpx(x + ww), y2 = vpx(y + hh);
+      g.rect(vpx(x), vpx(y), x2 - vpx(x), y2 - vpx(y), c, vpx(r || 0));
+    },
+    frect: function (x, y, ww, hh, c, r) {
+      var x2 = vpx(x + ww), y2 = vpx(y + hh);
+      g.frect(vpx(x), vpx(y), x2 - vpx(x), y2 - vpx(y), c, vpx(r || 0));
+    },
+    circle: function (x, y, r, c, f) { g.circle(vpx(x), vpx(y), vpx(r), c, f); },
+    line: function (x0, y0, x1, y1, c) { g.line(vpx(x0), vpx(y0), vpx(x1), vpx(y1), c); },
+    text: function (x, y, size, c, str) {
+      if (fontMode >= 2) { aaText(x, y, size, c, str); return; }
+      /* font mode 1: the firmware's textBlit -- floored glyph scale,
+         each char at its scaled logical advance */
+      var ps = Math.max(1, Math.floor(size * q / 4));
+      var s3 = '' + str;
+      if (clip && (vpx(y) < clip.y || vpx(y + 8 * size) > clip.y + clip.h)) return;
+      for (var i = 0; i < s3.length; i++) {
+        g.text(vpx(x + i * 6 * size), vpx(y), ps, c, s3.charAt(i));
+      }
+    },
+    clip: function (x, y, ww, hh) {
+      var x0 = vpx(x), y0 = vpx(y);
+      clip = { x: x0, y: y0, w: vpx(x + ww) - x0, h: vpx(y + hh) - y0 };
+      g.clip(x0, y0, clip.w, clip.h);
+    },
+    unclip: function () { clip = null; g.unclip(); },
+    poly: function (polys, color, rule) {
+      var f = q / 4;
+      g.poly(polys.map(function (ring) {
+        return ring.map(function (pt) { return { x: pt.x * f, y: pt.y * f }; });
+      }), color, rule);
+    },
+    width: function () { return w; },
+    height: function () { return h; }
+  };
+  return { gfx: gfx, raw: raw, w: PW, h: PH };
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { createPureJsBackend: createPureJsBackend, createGlassBackend: createGlassBackend };
+}
+
+if (typeof createPureJsBackend === 'function') createPureJsBackend.hdStamp = true;
+if (typeof window !== 'undefined' && window.createPureJsBackend) window.createPureJsBackend.hdStamp = true;
+if (typeof window !== 'undefined' && typeof createGlassBackend === 'function') window.createGlassBackend = createGlassBackend;

@@ -47,7 +47,9 @@ function _runExample(i) {
       h('abs', { x: gfx.width() - 24, y: 26 },
         h('box', { w: 20, h: 20, bg: 0x333a46, radius: 10, hitPad: 10,
                    vcenter: true, onTap: _menu },
-          h('text', { text: 'x', size: 1, align: 'center', color: 0xf87171 })))
+          /* the star, not lowercase x: x inks rows 2-6 (baseline) and
+             sits visibly low in the dot; * inks rows 1-5, dead centre */
+          h('text', { text: '*', size: 1, align: 'center', color: 0xf87171 })))
     ]);
   });
 }
