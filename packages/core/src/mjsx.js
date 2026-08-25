@@ -1073,6 +1073,23 @@ function Keyboard(p) {
     var xsz = xp.size || 2;
     var xlh = flh(xsz) + 2;
     var xpd = Math.max(4, Math.floor(xlh / 3));
+    /* The display is all the keyboard has to fill here, so the keys grow
+       to use it: whatever height remains under the mirror row (and the
+       opt-in header), divided among the layout's rows -- never smaller
+       than the docked size, capped so a 2-row strip does not become
+       comically tall. The flex spacer absorbs the rounding. */
+    var xHdr = p.header && (xp.label || xp.placeholder);
+    var xScr = gfx.height() - (UI.safe.inset ? UI.safe.top + UI.safe.bottom : 0);
+    var xRoom = xScr - 12 - (xlh + xpd * 2) - 6 - (xHdr ? flh(1) + 2 + 6 : 0);
+    var xkh = Math.floor((xRoom - 8 - (rowsN - 1) * 2) / rowsN);
+    if (xkh < kh) xkh = kh;
+    var xMax = (flh(2) + 2) * 3;
+    if (xkh > xMax) xkh = xMax;
+    var xrows;
+    if (layout === 'numbers') xrows = kbNumbers(xkh);
+    else if (layout === 't9') xrows = kbT9(xkh);
+    else if (layout === 'strip') xrows = kbStrip(xkh);
+    else xrows = kbQwerty(xkh);
     var xkids = [
       h('row', { gap: 4 }, [
         h('input', { id: UI._focus, size: xsz, password: xp.password,
@@ -1084,9 +1101,10 @@ function Keyboard(p) {
                 bg: UI.theme.panel, color: UI.theme.err })
       ]),
       h('box', { flex: 1 }),
-      h('box', { bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2 }, rows)
+      h('box', { bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2,
+                 shield: true }, xrows)
     ];
-    if (p.header && (xp.label || xp.placeholder)) {
+    if (xHdr) {
       xkids.unshift(h('text', { text: xp.label || xp.placeholder,
                                 size: 1, color: UI.theme.muted }));
     }
