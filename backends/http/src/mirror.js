@@ -1,49 +1,123 @@
 /*
  * A browser mirror for a host that already owns the app -- the sim runs
- * the core and renders locally; this serves the SAME running instance to
- * any browser as a second display and input source. Frames flow out as
- * raw RGBA over a websocket, pointers and keys flow back in through the
- * callbacks, so the window and every connected page stay in sync -- tap
- * in one, watch it happen in the others.
+ * the core and renders ONCE; this serves the same running instance to
+ * any browser as a second display and input source.
  *
- * Unlike server.js (which boots its own core around an example), this
- * owns nothing: createMirror({ pointer, key, port }) and then push
- * frames with mirror.frame(raw, pw, ph, w, h). Sizes may change between
- * frames (the sim resizes and rotates live) -- the client is told and
- * follows.
+ * What travels is not pixels but the DRAW OPS: a recording wrapper sits
+ * over the host's real gfx (the 10-call contract plus poly), forwards
+ * every call, and keeps the frame's op list. The browser replays that
+ * list on a canvas at whatever resolution it likes -- so HD is purely a
+ * client-side choice (the HD button re-renders the LAST frame sharper
+ * without the host doing anything), a frame costs kilobytes instead of
+ * megabytes, and the host never renders twice. Pointers, touch, wheel
+ * and keys flow back through the callbacks, so the window and every
+ * connected page stay in sync.
+ *
+ * createMirror({ pointer, key, wheel, connect, port }) then per frame:
+ * mirror.frame(recorder.take(), w, h, fontMeta).
+ * createRecorder(realGfx) builds the wrapper; swap it in as the global
+ * gfx (recreate it whenever the real backend is recreated).
  */
+
+function createRecorder(real) {
+  var ops = [];
+  return {
+    take: function () { var o = ops; ops = []; return o; },
+    gfx: {
+      clear: function (c) { ops.push(['C', c]); real.clear(c); },
+      rect: function (x, y, w, h, c, r) { ops.push(['r', x, y, w, h, c, r || 0]); real.rect(x, y, w, h, c, r); },
+      frect: function (x, y, w, h, c, r) { ops.push(['f', x, y, w, h, c, r || 0]); real.frect(x, y, w, h, c, r); },
+      circle: function (x, y, rr, c, fill) { ops.push(['c', x, y, rr, c, fill ? 1 : 0]); real.circle(x, y, rr, c, fill); },
+      line: function (x0, y0, x1, y1, c) { ops.push(['l', x0, y0, x1, y1, c]); real.line(x0, y0, x1, y1, c); },
+      text: function (x, y, s, c, str) { ops.push(['t', x, y, s, c, String(str)]); real.text(x, y, s, c, str); },
+      clip: function (x, y, w, h) { ops.push(['x', x, y, w, h]); real.clip(x, y, w, h); },
+      unclip: function () { ops.push(['X']); real.unclip(); },
+      poly: real.poly ? function (polys, c, rule) {
+        ops.push(['p', polys, c, rule]);
+        real.poly(polys, c, rule);
+      } : undefined,
+      width: function () { return real.width(); },
+      height: function () { return real.height(); }
+    }
+  };
+}
 
 function createMirror(opts) {
   var port = opts.port || 8080;
   var sockets = [];
-  var lastMeta = null;   /* {w,h,pw,ph} last announced geometry */
-  var lastFrame = null;  /* last RGBA buffer, replayed to new clients */
+  var lastMsg = null;  /* last frame message, replayed to new clients */
 
   var PAGE = '<!doctype html><meta charset=utf-8><title>mjsx sim</title>' +
     '<meta name=viewport content="width=device-width,initial-scale=1">' +
     '<style>body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;height:100vh}' +
-    'canvas{image-rendering:pixelated;border:1px solid #333;touch-action:none}</style>' +
-    '<canvas id=c></canvas>' +
+    'canvas{border:1px solid #333;touch-action:none}' +
+    '#hd{position:fixed;top:8px;right:8px;font:12px monospace;color:#ddd;background:#2226;' +
+    'border:1px solid #555;border-radius:4px;padding:4px 8px;cursor:pointer;user-select:none}</style>' +
+    '<canvas id=c></canvas><div id=hd></div>' +
     '<input id=osk autocomplete=off autocapitalize=off spellcheck=false ' +
     'style="position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:0;padding:0">' +
     '<script>' +
-    'var W=0,H=0,PW=0,PH=0;' +
+    'var W=0,H=0,OPS=[],FONTS={};' +
+    '// HD is OURS: replay the same ops sharper. Remembered per browser.\n' +
+    'var hd=true;try{hd=localStorage.mjsxHd!=="0";}catch(e){}' +
     'var cv=document.getElementById("c"),ctx=cv.getContext("2d");' +
     'var osk=document.getElementById("osk");' +
-    'function fit(){if(!W)return;' +
-    '  var s=Math.max(1,Math.floor(Math.min((innerWidth-16)/W,(innerHeight-16)/H)));' +
-    '  cv.style.width=(W*s)+"px";cv.style.height=(H*s)+"px";}' +
-    'window.addEventListener("resize",fit);' +
+    'var hdBtn=document.getElementById("hd");' +
+    'function hdLabel(){hdBtn.textContent="HD:"+(hd?"ON":"OFF");}' +
+    'hdBtn.addEventListener("click",function(){hd=!hd;try{localStorage.mjsxHd=hd?"1":"0";}catch(e){}hdLabel();paint();});' +
+    'hdLabel();' +
+    'function fitScale(){return Math.max(1,Math.floor(Math.min((innerWidth-16)/W,(innerHeight-16)/H)));}' +
+    'var fitCache={};' +
+    'function fontPx(adv,cellH){var k=adv+"x"+cellH;if(fitCache[k])return fitCache[k];' +
+    '  ctx.font="100px ui-monospace,Menlo,Consolas,monospace";var m=ctx.measureText("M");' +
+    '  var px=Math.min(adv/(m.width/100),cellH/((m.actualBoundingBoxAscent||72)/100));' +
+    '  return fitCache[k]=Math.floor(px);}' +
+    'function css(c){return "#"+("00000"+(c>>>0).toString(16)).slice(-6);}' +
+    'function rr(x,y,w,h,r){ctx.beginPath();' +
+    '  if(r>0){ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);' +
+    '    ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}' +
+    '  else ctx.rect(x,y,w,h);}' +
+    'function paint(){if(!W)return;' +
+    '  var fs=fitScale();' +
+    '  var S=hd?fs*(devicePixelRatio||1):fs;' +
+    '  cv.width=W*S;cv.height=H*S;' +
+    '  cv.style.width=(W*fs)+"px";cv.style.height=(H*fs)+"px";' +
+    '  ctx.setTransform(S,0,0,S,0,0);' +
+    '  ctx.imageSmoothingEnabled=false;fitCache={};' +
+    '  var clipped=false;' +
+    '  for(var i=0;i<OPS.length;i++){var o=OPS[i];' +
+    '    switch(o[0]){' +
+    '    case "C":ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=css(o[1]);' +
+    '      ctx.fillRect(0,0,cv.width,cv.height);ctx.restore();break;' +
+    '    case "f":ctx.fillStyle=css(o[5]);rr(o[1],o[2],o[3],o[4],o[6]);ctx.fill();break;' +
+    '    case "r":ctx.strokeStyle=css(o[5]);ctx.lineWidth=1;' +
+    '      rr(o[1]+0.5,o[2]+0.5,o[3]-1,o[4]-1,o[6]);ctx.stroke();break;' +
+    '    case "c":ctx.fillStyle=ctx.strokeStyle=css(o[4]);ctx.beginPath();' +
+    '      ctx.arc(o[1],o[2],o[3],0,6.2832);' +
+    '      if(o[5])ctx.fill();else{ctx.lineWidth=1;ctx.stroke();}break;' +
+    '    case "l":ctx.strokeStyle=css(o[5]);' +
+    '      ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(o[1]+0.5,o[2]+0.5);ctx.lineTo(o[3]+0.5,o[4]+0.5);ctx.stroke();break;' +
+    '    case "t":var fm=FONTS[o[3]]||{adv:6*o[3],lh:10*o[3]};' +
+    '      ctx.fillStyle=css(o[4]);ctx.font=fontPx(fm.adv-1,fm.lh-2)+"px ui-monospace,Menlo,Consolas,monospace";' +
+    '      ctx.textAlign="center";ctx.textBaseline="alphabetic";' +
+    '      var str=o[5];for(var j=0;j<str.length;j++){' +
+    '        ctx.fillText(str[j],o[1]+j*fm.adv+(fm.adv-1)/2,o[2]+fm.lh-2);}break;' +
+    '    case "x":if(clipped)ctx.restore();ctx.save();clipped=true;' +
+    '      ctx.beginPath();ctx.rect(o[1],o[2],o[3],o[4]);ctx.clip();break;' +
+    '    case "X":if(clipped){ctx.restore();clipped=false;}break;' +
+    '    case "p":ctx.fillStyle=css(o[2]);var P=new Path2D();' +
+    '      for(var pi=0;pi<o[1].length;pi++){var ring=o[1][pi];' +
+    '        if(!ring.length)continue;P.moveTo(ring[0].x,ring[0].y);' +
+    '        for(var vi=1;vi<ring.length;vi++)P.lineTo(ring[vi].x,ring[vi].y);P.closePath();}' +
+    '      ctx.fill(P,o[3]==="nonzero"?"nonzero":"evenodd");break;' +
+    '    }}' +
+    '  if(clipped)ctx.restore();' +
+    '}' +
+    'window.addEventListener("resize",paint);' +
     'var ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws");' +
-    'ws.binaryType="arraybuffer";' +
-    'ws.onmessage=function(e){' +
-    '  if(typeof e.data==="string"){var m;try{m=JSON.parse(e.data);}catch(x){return;}' +
-    '    if(m.t==="size"){W=m.w;H=m.h;PW=m.pw;PH=m.ph;cv.width=PW;cv.height=PH;fit();}' +
-    '    else if(m.t==="focus"){if(m.on)osk.focus();else osk.blur();}' +
-    '    return;}' +
-    '  if(!PW)return;' +
-    '  var img=new ImageData(new Uint8ClampedArray(e.data),PW,PH);' +
-    '  ctx.putImageData(img,0,0);' +
+    'ws.onmessage=function(e){var m;try{m=JSON.parse(e.data);}catch(x){return;}' +
+    '  if(m.t==="frame"){W=m.w;H=m.h;OPS=m.ops;if(m.fonts)FONTS=m.fonts;paint();}' +
+    '  else if(m.t==="focus"){if(m.on)osk.focus();else osk.blur();}' +
     '};' +
     'function send(o){if(ws.readyState===1)ws.send(JSON.stringify(o));}' +
     'function pos(e){var r=cv.getBoundingClientRect();' +
@@ -75,10 +149,6 @@ function createMirror(opts) {
     '});' +
     '</script>';
 
-  function sendMeta(ws) {
-    if (lastMeta) ws.send(JSON.stringify({ t: 'size', w: lastMeta.w, h: lastMeta.h, pw: lastMeta.pw, ph: lastMeta.ph }));
-  }
-
   Bun.serve({
     port: port,
     fetch: function (req, srv) {
@@ -91,8 +161,7 @@ function createMirror(opts) {
     websocket: {
       open: function (ws) {
         sockets.push(ws);
-        sendMeta(ws);
-        if (lastFrame) ws.send(lastFrame);
+        if (lastMsg) ws.send(lastMsg);
         /* the screen may have been idle for minutes -- ask the host to
            push the current frame so the page never opens onto black */
         else if (opts.connect) opts.connect();
@@ -118,26 +187,13 @@ function createMirror(opts) {
   return {
     port: port,
     clients: function () { return sockets.length; },
-    /* Push one frame: raw RGB (pw x ph x 3) plus the logical size it
-       represents. Converts to RGBA once and fans out; remembers the
-       frame so a client connecting mid-run gets the current screen. */
-    frame: function (raw, pw, ph, w, h) {
-      if (!sockets.length) { lastFrame = null; lastMeta = { w: w, h: h, pw: pw, ph: ph }; return; }
-      var metaChanged = !lastMeta || lastMeta.pw !== pw || lastMeta.ph !== ph ||
-                        lastMeta.w !== w || lastMeta.h !== h;
-      lastMeta = { w: w, h: h, pw: pw, ph: ph };
-      var n = pw * ph;
-      var rgba = new Uint8Array(n * 4);
-      for (var i = 0, q = 0; i < n; i++, q += 3) {
-        rgba[i * 4] = raw[q]; rgba[i * 4 + 1] = raw[q + 1];
-        rgba[i * 4 + 2] = raw[q + 2]; rgba[i * 4 + 3] = 255;
-      }
-      lastFrame = rgba;
-      for (var si = 0; si < sockets.length; si++) {
-        if (sockets[si].readyState === 1) {
-          if (metaChanged) sendMeta(sockets[si]);
-          sockets[si].send(rgba);
-        }
+    /* One frame's op list, the logical size it was laid out for, and the
+       host's text metrics per size ({1:{adv,lh},...}) so the client's
+       own glyphs land on the same grid. Remembered for late joiners. */
+    frame: function (ops, w, h, fonts) {
+      lastMsg = JSON.stringify({ t: 'frame', w: w, h: h, ops: ops, fonts: fonts || null });
+      for (var i = 0; i < sockets.length; i++) {
+        if (sockets[i].readyState === 1) sockets[i].send(lastMsg);
       }
     },
     focus: function (on) {
@@ -150,5 +206,5 @@ function createMirror(opts) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { createMirror: createMirror };
+  module.exports = { createMirror: createMirror, createRecorder: createRecorder };
 }

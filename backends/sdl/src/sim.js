@@ -90,9 +90,10 @@ for (var hpi = 0; hpi < flagArgs.length; hpi++) {
   if (flagArgs[hpi] === '--http') httpPort = 8080;
   else if (flagArgs[hpi].slice(0, 7) === '--http=') httpPort = parseInt(flagArgs[hpi].slice(7), 10) || 8080;
 }
-var mirror = null;
+var mirror = null, recorder = null;
+var mirrorMod = httpPort ? require('../../http/src/mirror.js') : null;
 if (httpPort) {
-  mirror = require('../../http/src/mirror.js').createMirror({
+  mirror = mirrorMod.createMirror({
     port: httpPort,
     /* route through globalThis.UI at CALL time -- freshCore swaps the
        core identity under us on every example load. Web pointer ids get
@@ -156,7 +157,7 @@ function backendOpts() {
            textMode: hostText ? 'capture' : undefined };
 }
 var backend = createPureJsBackend(pxW, pxH, backendOpts());
-globalThis.gfx = backend.gfx;
+globalThis.gfx = wireGfx(backend);
 globalThis.sys = backend.sys;
 
 /* Each example gets a FRESH core module — a brand-new UI singleton, so no
@@ -179,6 +180,28 @@ for (var sfi = 0; sfi < flagArgs.length; sfi++) {
       ? { top: sfp[0], left: sfp[0], bottom: sfp[0], right: sfp[0] }
       : { top: sfp[0] || 0, left: sfp[1] || 0, bottom: sfp[2] || 0, right: sfp[3] || 0 };
   }
+}
+
+/* With the mirror on, the app draws through a RECORDER over the real
+   gfx: one render feeds the window (forwarded calls) and the browsers
+   (the op list). Without it, gfx is the backend's own -- zero overhead. */
+function wireGfx(be) {
+  if (!mirror) return be.gfx;
+  recorder = mirrorMod.createRecorder(be.gfx);
+  return recorder.gfx;
+}
+
+/* The client draws text with its own (real) font -- it needs the host's
+   logical grid per size so its glyphs land where layout put them. */
+function fontMeta() {
+  var F = curCore ? curCore.FONT : null;
+  if (!F) return null;
+  var m = {};
+  for (var z = 1; z <= 4; z++) {
+    m[z] = F.pick ? { adv: F.pick(z).advance, lh: F.pick(z).lineH }
+                  : { adv: F.advance * z, lh: F.lineH * z };
+  }
+  return m;
 }
 
 var CORE = require.resolve('../../../packages/core/src/mjsx.js');
@@ -330,7 +353,7 @@ function rebuild() {
   win.setMask(SHAPES[shapeIdx].mask);
   win.setScreenSize(pxW, pxH, dprNow());
   backend = createPureJsBackend(pxW, pxH, backendOpts());
-  globalThis.gfx = backend.gfx;
+  globalThis.gfx = wireGfx(backend);
   /* The RUNNING app is kept, not re-run: immediate mode means the next
      render simply lays out on the new surface, and everything the user
      had -- state, scroll positions, half-typed inputs, drawn strokes --
@@ -417,10 +440,7 @@ function frame() {
 function render() {
   UI.render();
   win.present(pixels(), toolbarFrame());
-  if (mirror) {
-    var d = backend.dpr || 1;
-    mirror.frame(backend.raw, pxW * d, pxH * d, pxW, pxH);
-  }
+  if (mirror && recorder) mirror.frame(recorder.take(), pxW, pxH, fontMeta());
 }
 
 render();
