@@ -21,7 +21,7 @@ function readScreen() {
 }
 
 var boot = readScreen();
-UI.set({ bl: boot.bl, sleep: boot.sleep, dim: boot.dim ? 1 : 0 });
+UI.set({ bl: boot.bl, sleep: boot.sleep, dim: boot.dim ? 1 : 0, rot: boot.rot || 0 });
 
 function applyBacklight(pct) {
   if (HAVE) sys.backlight(pct);
@@ -32,8 +32,36 @@ function applySleep() {
 
 var SLEEPS = [[0, 'OFF'], [15, '15s'], [30, '30s'], [60, '1m'], [300, '5m'], [900, '15m']];
 
+/* Rotation is a native concern too: sys.rotate(0..3) turns the panel,
+   canvas, and touch mapping as one and persists. The layout here reads
+   gfx.width()/height() every render, so the very next frame after a tap
+   lays out for the new orientation. */
+var HAVE_ROT = HAVE && typeof sys.rotate === 'function';
+/* word labels: the 5x7 face has no degree glyph, and PORT/LAND says more
+   than a number anyway. The starred pair is the same orientation flipped. */
+var ROTS = [[0, 'PORT'], [1, 'LAND'], [2, 'PORT*'], [3, 'LAND*']];
+function applyRotate(r) {
+  if (HAVE_ROT) sys.rotate(r);
+}
+
 function App() {
   var bl = UI.state.bl || 80;
+
+  var rotChips = [];
+  for (var r = 0; r < ROTS.length; r++) {
+    rotChips.push(h(Button, {
+      label: ROTS[r][1], size: 1, pad: em(0.5),
+      bg: UI.state.rot === ROTS[r][0] ? UI.theme.accent : UI.theme.key,
+      onTap: (function (rr) {
+        return function () {
+          applyRotate(rr);
+          /* read the truth back rather than assuming: the native side may
+             clamp, and the panel can be rotated from outside this view */
+          UI.set({ rot: HAVE_ROT ? (readScreen().rot || 0) : rr });
+        };
+      })(ROTS[r][0])
+    }));
+  }
 
   var sleepChips = [];
   for (var i = 0; i < SLEEPS.length; i++) {
@@ -76,22 +104,25 @@ function App() {
       </box>
 
       <box bg={UI.theme.panel} radius={6} pad={em(0.75)} gap={em(0.5)}>
-        <text text="SLEEP AFTER" size={1} color={UI.theme.muted} />
-        {h('row', { gap: 4 }, sleepChips)}
+        <text text="ROTATION" size={1} color={UI.theme.muted} />
+        {h('row', { gap: 4 }, rotChips)}
       </box>
 
       <box bg={UI.theme.panel} radius={6} pad={em(0.75)} gap={em(0.5)}>
-        <text text="WHEN SLEEPING" size={1} color={UI.theme.muted} />
-        <row gap={em(0.5)}>
-          <Button label="DIM" size={1} pad={em(0.5)}
-                  bg={UI.state.dim ? UI.theme.accent : UI.theme.key}
-                  onTap={function () { UI.set({ dim: 1 }); applySleep(); }} />
-          <Button label="DARK" size={1} pad={em(0.5)}
-                  bg={UI.state.dim ? UI.theme.key : UI.theme.accent}
-                  onTap={function () { UI.set({ dim: 0 }); applySleep(); }} />
+        <row>
+          <text text="SLEEP AFTER" size={1} color={UI.theme.muted} />
+          <text text="a sleeping screen wakes on touch" size={1} align="right"
+                color={0x555f6e} />
         </row>
-        <text text="a sleeping screen wakes on touch; the waking tap only wakes"
-              size={1} color={0x555f6e} wrap={true} />
+        {h('row', { gap: 4 }, sleepChips.concat([
+          h('box', { w: em(0.6) }),
+          h(Button, { label: 'DIM', size: 1, pad: em(0.5),
+                      bg: UI.state.dim ? UI.theme.accent : UI.theme.key,
+                      onTap: function () { UI.set({ dim: 1 }); applySleep(); } }),
+          h(Button, { label: 'DARK', size: 1, pad: em(0.5),
+                      bg: UI.state.dim ? UI.theme.key : UI.theme.accent,
+                      onTap: function () { UI.set({ dim: 0 }); applySleep(); } })
+        ]))}
       </box>
 
       {HAVE ? null
