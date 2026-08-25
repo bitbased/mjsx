@@ -185,6 +185,7 @@ function measureRaw(node, availW, forcedH) {
   }
   if (t === 'spacer') return p.h || 6;
   if (t === 'pbar') return p.h || 12;
+  if (t === 'canvas') return p.h || 100;
   if (t === 'circle') return (p.r || 5) * 2;
   if (t === 'abs') return 0;  /* drawn at its own coordinates; owns no space */
   /* A line is a mark, not a block: it takes no height and its endpoints are
@@ -294,6 +295,19 @@ function draw(node, x, y, availW, forcedH) {
     }
   } else if (t === 'spacer') {
     /* nothing to draw */
+  } else if (t === 'canvas') {
+    /* a CANVAS SOURCE: pixels that live outside the op stream (a camera
+       frame, a drawable bitmap, a logo), placed here and scaled to fit.
+       Hosts with gfx.blit composite the real pixels; others show the
+       frame so layout is developable anywhere. */
+    var cw2 = p.w || availW, chh = p.h || 100;
+    if (typeof gfx.blit === 'function' && p.src !== undefined) {
+      gfx.blit(p.src, x, y, cw2, chh);
+    } else {
+      gfx.rect(x, y, cw2, chh, UI.theme.muted, 4);
+      gfx.line(x, y, x + cw2 - 1, y + chh - 1, UI.theme.key);
+      gfx.line(x + cw2 - 1, y, x, y + chh - 1, UI.theme.key);
+    }
   } else if (t === 'pbar') {
     var bh = p.h || 12;
     var pct = p.pct || 0;

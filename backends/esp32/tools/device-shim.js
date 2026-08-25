@@ -127,6 +127,10 @@ gfx = {
     if (__REC) __O.push('["X"]');
     __NGFX.unclip();
   },
+  /* canvas sources: pass straight through -- the NATIVE records op 10
+     itself (with the source generation), and pixels travel in-band as
+     op 11 chunks, so the JS JSON recorder has nothing to add */
+  blit: __NGFX.blit ? function (id, x, y, w, h) { __NGFX.blit(id, x, y, w, h); } : undefined,
   poly: function (polys, c, rule) {
     /* mjsx-core's geometry cache hands the SAME rings array back every
        frame for an unchanged shape -- so both the rounded copy and the
