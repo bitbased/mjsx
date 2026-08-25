@@ -140,34 +140,44 @@ function createPureJsBackend(w, h, opts) {
     return tbl[ch];
   }
   function drawVecGlyph(vg, ox, oy, u, rgb) {
+    /* Each stroke rasterizes as a CAPSULE: a pixel is inked iff its
+       CENTER lies within the pen radius of the SEGMENT itself. Sampling
+       discs along the line instead looks the same in theory but beads in
+       practice: a stroke optically centred on a pixel boundary (the
+       refined face does that on purpose -- a T stem between columns) has
+       its edge pixels at EXACTLY pen radius, and they only inked on rows
+       where a sampled disc happened to align -- scalloped stems every
+       few rows. The exact-boundary tie resolves half-open (left/top in),
+       the classic rasterisation rule, so such strokes come out uniform
+       with a constant half-pixel bias instead of an oscillating edge. */
     var penR = u * 0.5;
-    function disc(cx2, cy2) {
-      /* Ink every pixel whose CENTER lies inside the pen. Iterating
-         integer offsets around Math.round(centre) instead reads natural,
-         but stroke centres sit on exact .5 fractions whenever u is odd,
-         and round-half-up then biased every disc one device pixel down
-         and right -- the whole HD face drifted visibly. */
-      var px0 = Math.floor(cx2 - penR), px1 = Math.ceil(cx2 + penR);
-      var py0 = Math.floor(cy2 - penR), py1 = Math.ceil(cy2 + penR);
+    var r2 = penR * penR;
+    function capsule(x0, y0, x1, y1) {
+      var sx = x1 - x0, sy = y1 - y0;
+      var ll = sx * sx + sy * sy;
+      var px0 = Math.floor(Math.min(x0, x1) - penR), px1 = Math.ceil(Math.max(x0, x1) + penR);
+      var py0 = Math.floor(Math.min(y0, y1) - penR), py1 = Math.ceil(Math.max(y0, y1) + penR);
       for (var py = py0; py <= py1; py++) {
         for (var px = px0; px <= px1; px++) {
-          var ddx = px + 0.5 - cx2, ddy = py + 0.5 - cy2;
-          if (ddx * ddx + ddy * ddy <= penR * penR) setPixel(px, py, rgb);
+          var cx3 = px + 0.5, cy3 = py + 0.5;
+          var t = ll > 0 ? ((cx3 - x0) * sx + (cy3 - y0) * sy) / ll : 0;
+          if (t < 0) t = 0;
+          if (t > 1) t = 1;
+          var ddx = cx3 - (x0 + sx * t), ddy = cy3 - (y0 + sy * t);
+          var d2 = ddx * ddx + ddy * ddy;
+          if (d2 < r2 || (d2 === r2 && (ddx < 0 || (ddx === 0 && ddy < 0)))) {
+            setPixel(px, py, rgb);
+          }
         }
       }
     }
     for (var si = 0; si < vg.s.length; si++) {
       var sg = vg.s[si];
-      var x0 = ox + sg[0] * u, y0 = oy + sg[1] * u;
-      var x1 = ox + sg[2] * u, y1 = oy + sg[3] * u;
-      var len = Math.max(1, Math.hypot(x1 - x0, y1 - y0));
-      var steps = Math.ceil(len / Math.max(0.75, penR * 0.3));
-      for (var t = 0; t <= steps; t++) {
-        disc(x0 + (x1 - x0) * (t / steps), y0 + (y1 - y0) * (t / steps));
-      }
+      capsule(ox + sg[0] * u, oy + sg[1] * u, ox + sg[2] * u, oy + sg[3] * u);
     }
     for (si = 0; si < vg.d.length; si++) {
-      disc(ox + vg.d[si][0] * u, oy + vg.d[si][1] * u);
+      capsule(ox + vg.d[si][0] * u, oy + vg.d[si][1] * u,
+              ox + vg.d[si][0] * u, oy + vg.d[si][1] * u);
     }
   }
 
