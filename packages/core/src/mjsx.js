@@ -103,6 +103,20 @@ function em(n) {
  * and line height. Without it, metrics scale linearly from FONT.advance /
  * FONT.lineH exactly as before. */
 function fadv(size) { return FONT.pick ? FONT.pick(size).advance : FONT.advance * size; }
+/* Visible CAP-INK height of a text cell -- the line box carries leading
+   and (in the 6x8 family) a blank baseline row below the caps, so
+   centring the line box leaves text riding high. Centre this instead. */
+function fink(size) {
+  if (FONT.pick) {
+    var f = FONT.pick(size);
+    if (f.h && f.scale) {
+      var hh = f.h * f.scale;
+      return f.fam === '6x8' ? hh - Math.floor(hh / 8) : hh;
+    }
+    return (f.lineH || FONT.lineH * size) - 2;
+  }
+  return FONT.lineH * size - 2;
+}
 function flh(size) { return FONT.pick ? FONT.pick(size).lineH - 2 : FONT.lineH * size; }
 
 /* Truncate to a width, marking the cut with the fonts' ellipsis glyph —
@@ -548,6 +562,10 @@ function draw(node, x, y, availW, forcedH) {
     if (ist.sx > sxm) ist.sx = sxm;
     if (ist.sx < 0) ist.sx = 0;
     ist.geom = { pad: ipd, adv: iadv, w: iw };
+    /* odd remainder goes ABOVE the text: caps carry their visual weight
+       high, so erring low reads as centred while erring high reads as
+       floating -- and the field's own border makes a high bias obvious */
+    var ity = y + Math.ceil((ih - fink(isz)) / 2);
     var iclip0 = pushClip(x + 1, y + 1, iw - 2, ih - 2);
     var shown = ist.text;
     if (p.password) {
@@ -556,13 +574,13 @@ function draw(node, x, y, availW, forcedH) {
       shown = msk;
     }
     if (!shown.length && p.placeholder) {
-      gfx.text(x + ipd, y + ipd, isz, UI.theme.muted, p.placeholder);
+      gfx.text(x + ipd, ity, isz, UI.theme.muted, p.placeholder);
     } else {
-      gfx.text(x + ipd - ist.sx, y + ipd, isz,
+      gfx.text(x + ipd - ist.sx, ity, isz,
                p.color === undefined ? UI.theme.text : p.color, shown);
     }
     if (ifoc && (Math.floor((sys.millis() - ist.bt) / 530) % 2) === 0) {
-      gfx.frect(x + ipd - ist.sx + icx, y + ipd - 1, isz > 1 ? 2 : 1, ilh, UI.theme.accent, 0);
+      gfx.frect(x + ipd - ist.sx + icx, ity - 1, isz > 1 ? 2 : 1, fink(isz) + 2, UI.theme.accent, 0);
     }
     popClip(iclip0);
     /* Focus order and scroll-into-view remember CONTENT coordinates, so a
