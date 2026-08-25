@@ -14,6 +14,7 @@
     "example:sensors:terminal": "bun backends/terminal/src/interactive.js examples/sensors/app.jsx",
     "examples": "bun backends/terminal/src/launcher.js",
     "example:window": "bun backends/sdl/src/run.js examples/counter/app.jsx",
-    "sim": "bun backends/sdl/src/sim.js"
+    "sim": "bun backends/sdl/src/sim.js",
+    "sim:web": "bun backends/sdl/src/sim.js --http"
   }
 }

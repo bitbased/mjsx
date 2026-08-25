@@ -81,6 +81,33 @@ for (var fsi = 0; fsi < flagArgs.length; fsi++) {
    at dpr = scale the GPU's linear upscale covers the last 2x with no
    visible cost. --hd2 opts into true device-pixel HD anyway. */
 var hd2 = flagArgs.indexOf('--hd2') !== -1;
+
+/* --http[=port]: serve the SAME running sim to browsers -- a live mirror
+   of the panel (frames out, touches/keys in), phone-testable over the
+   LAN, mobile OSK included. Default port 8080. */
+var httpPort = 0;
+for (var hpi = 0; hpi < flagArgs.length; hpi++) {
+  if (flagArgs[hpi] === '--http') httpPort = 8080;
+  else if (flagArgs[hpi].slice(0, 7) === '--http=') httpPort = parseInt(flagArgs[hpi].slice(7), 10) || 8080;
+}
+var mirror = null;
+if (httpPort) {
+  mirror = require('../../http/src/mirror.js').createMirror({
+    port: httpPort,
+    /* route through globalThis.UI at CALL time -- freshCore swaps the
+       core identity under us on every example load. Web pointer ids get
+       their own namespace so a browser drag and a window drag can run
+       at once without fighting over one stroke. */
+    pointer: function (id, phase, x, y) {
+      UI.pointer('web:' + id, phase, x, y);
+      if (UI.dirty()) render();
+    },
+    key: function (type, key) { UI.key(type, key); if (UI.dirty()) render(); },
+    wheel: function (x, y, dy) { UI.scrollBy(x, y, dy > 0 ? 24 : -24); if (UI.dirty()) render(); },
+    connect: function () { render(); }
+  });
+  console.log('mirror: http://localhost:' + httpPort + '  (--http=PORT to change)');
+}
 function dprNow() {
   if (!hd) return 1;
   var ds = hd2 && typeof win !== 'undefined' && win ? win.drawableScale() : 1;
@@ -169,6 +196,7 @@ globalThis.Keyboard = core.Keyboard;
   /* Every fresh core learns the current font's metrics, so em() spacing and
      fitText widths always match what the backend actually rasterizes. */
   if (safeBands) core.UI.safe = safeBands;
+  if (mirror) core.UI.onFocusChange = function (id) { mirror.focus(!!id); };
   if (typeof backend !== 'undefined' && backend.font) {
     core.FONT.advance = backend.font.advance;
     core.FONT.lineH = backend.font.lineH;
@@ -381,12 +409,19 @@ function frame() {
     }
     if (ev.x !== undefined) { lastX = ev.x; lastY = ev.y; }
   }
-  if (UI.ticker() || UI.dirty()) {
-    UI.render();
-    win.present(pixels(), toolbarFrame());
+  if (UI.ticker() || UI.dirty()) render();
+}
+
+/* One render, both displays: the OS window and every connected browser
+   get the same frame. */
+function render() {
+  UI.render();
+  win.present(pixels(), toolbarFrame());
+  if (mirror) {
+    var d = backend.dpr || 1;
+    mirror.frame(backend.raw, pxW * d, pxH * d, pxW, pxH);
   }
 }
 
-UI.render();
-win.present(pixels(), toolbarFrame());
+render();
 setInterval(frame, 33);
