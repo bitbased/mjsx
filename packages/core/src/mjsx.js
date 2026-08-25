@@ -627,7 +627,8 @@ function draw(node, x, y, availW, forcedH) {
        wheel over the box no longer scroll a zone underneath it. The hit
        an overlay panel (a keyboard, a docked toolbar) wants. */
     if (p.shield) {
-      UI._hit(x, y, availW, hgt, p.onTap || function () {}, 0, 0, null);
+      UI._hits.push({ x: x, y: y, w: availW, h: hgt, fn: p.onTap || null,
+                      hold: 0, every: 0, draw: null, shield: true });
       UI._swipeZone(x, y, availW, hgt, null, 0, 0);
     }
 
@@ -1089,9 +1090,10 @@ function Keyboard(p) {
       xkids.unshift(h('text', { text: xp.label || xp.placeholder,
                                 size: 1, color: UI.theme.muted }));
     }
-    return h('abs', { x: UI.safe.left, y: UI.safe.top,
-                      w: gfx.width() - UI.safe.left - UI.safe.right },
-      h('box', { h: gfx.height() - UI.safe.top - UI.safe.bottom,
+    var sfXI = UI.safe.inset;
+    return h('abs', { x: sfXI ? UI.safe.left : 0, y: sfXI ? UI.safe.top : 0,
+                      w: gfx.width() - (sfXI ? UI.safe.left + UI.safe.right : 0) },
+      h('box', { h: gfx.height() - (sfXI ? UI.safe.top + UI.safe.bottom : 0),
                  bg: UI.theme.bg, pad: 6, gap: 6, shield: true }, xkids));
   }
   if (pos === 'bottom' || pos === 'top') {
@@ -1100,13 +1102,16 @@ function Keyboard(p) {
        tells scroll-into-view how much of the screen the keyboard hides,
        so a revealed field lands above it, not under it. */
     var totalH = rowsN * kh + (rowsN - 1) * 2 + 4;  /* one padded edge: the docked side has none */
-    /* docked inside the safe rect; the inset it reports spans from the
-       TRUE screen edge, dead band included, so reveal math stays honest */
-    var sfKT = UI.safe.top, sfKB = UI.safe.bottom, sfKL = UI.safe.left;
+    /* Docked at the TRUE screen edge: the flush outer row plus safe-band
+       hit extension means a press below (or above) it still lands on it.
+       Only inset mode pulls the dock inside the safe rect. */
+    var sfIns = UI.safe.inset;
+    var sfKT = sfIns ? UI.safe.top : 0, sfKB = sfIns ? UI.safe.bottom : 0;
+    var sfKL = sfIns ? UI.safe.left : 0, sfKR = sfIns ? UI.safe.right : 0;
     UI.inset(pos, totalH + (pos === 'top' ? sfKT : sfKB));
     return h('abs', {
       x: sfKL, y: pos === 'top' ? sfKT : gfx.height() - totalH - sfKB,
-      w: gfx.width() - sfKL - UI.safe.right
+      w: gfx.width() - sfKL - sfKR
     }, panel);
   }
   return panel;
@@ -1160,20 +1165,40 @@ var UI = {
 
   /* Edge bands where the DISPLAY's touch is unreliable -- cheap panels,
      rotated controllers and round glass all have them. Set by the host or
-     the app per device (UI.safe.bottom = 8). Three things honour it:
-     layout is held inside the safe rect (the background still paints
-     full-bleed, so nothing looks cropped), overlays dock inside it, and
-     every incoming touch in the band is clamped to the nearest safe
-     edge -- so a control sitting against the band effectively owns it,
-     the same as making the edge row's target taller. */
-  safe: { top: 0, left: 0, bottom: 0, right: 0 },
+     the app per device (UI.safe.bottom = 8).
+
+     The DEFAULT treatment changes nothing visually: any control or
+     scroll zone whose rect borders or enters a band has its TOUCH TARGET
+     extended to the physical edge -- the bottom row of a keyboard
+     accepts presses from below itself, an edge button grows into the
+     band beside it. The display's flaky rim still reports SOMETHING for
+     most presses; extension makes whatever it reports land on the thing
+     the finger meant.
+
+     safe.inset = true additionally holds the LAYOUT inside the safe rect
+     (background still paints full-bleed) and snaps band touches to the
+     content edge -- for panels whose rim is truly dead, or round glass
+     where drawing there is pointless anyway. */
+  safe: { top: 0, left: 0, bottom: 0, right: 0, inset: false },
   _safeX: function (x) {
+    if (!this.safe.inset) return x;
     var r = gfx.width() - 1 - this.safe.right;
     return x < this.safe.left ? this.safe.left : (x > r ? r : x);
   },
   _safeY: function (y) {
+    if (!this.safe.inset) return y;
     var b = gfx.height() - 1 - this.safe.bottom;
     return y < this.safe.top ? this.safe.top : (y > b ? b : y);
+  },
+  /* The extended bounds of a rect for touch tests: an edge that reaches
+     its safe band stretches to the physical edge of the display. */
+  _safeRect: function (t) {
+    var x1 = t.x, y1 = t.y, x2 = t.x + t.w, y2 = t.y + t.h;
+    if (this.safe.left && x1 <= this.safe.left) x1 = 0;
+    if (this.safe.top && y1 <= this.safe.top) y1 = 0;
+    if (this.safe.right && x2 >= gfx.width() - this.safe.right) x2 = gfx.width();
+    if (this.safe.bottom && y2 >= gfx.height() - this.safe.bottom) y2 = gfx.height();
+    return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
   },
 
   /* A default palette. Entirely a starting point — replace UI.theme wholesale
@@ -1334,11 +1359,13 @@ var UI = {
     this._hits = kept;
   },
 
-  /* Topmost control under a point — later-drawn wins, as with taps. */
+  /* Topmost control under a point — later-drawn wins, as with taps. The
+     test uses safe-extended bounds: a control against a flaky edge band
+     owns the band beside it. */
   _hitAt: function (x, y) {
     for (var i = this._hits.length - 1; i >= 0; i--) {
-      var t = this._hits[i];
-      if (x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h) return t;
+      var t = this._safeRect(this._hits[i]);
+      if (x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h) return this._hits[i];
     }
     return null;
   },
@@ -1358,14 +1385,14 @@ var UI = {
     this._insetT = 0;
     this._insetB = 0;
     gfx.clear(this.theme.bg);
-    var sfL = this.safe.left, sfT = this.safe.top;
-    var sfW = gfx.width() - sfL - this.safe.right;
-    var sfH = gfx.height() - sfT - this.safe.bottom;
-    /* forcedH pins the root to the safe height -- an app's usual
+    var sfIns = this.safe.inset;
+    var sfL = sfIns ? this.safe.left : 0, sfT = sfIns ? this.safe.top : 0;
+    var sfW = gfx.width() - (sfIns ? sfL + this.safe.right : 0);
+    var sfH = gfx.height() - (sfIns ? sfT + this.safe.bottom : 0);
+    /* inset mode pins the root to the safe height -- an app's usual
        h: gfx.height() must not push its bottom row into the dead band.
-       Only when a vertical band exists; otherwise the root keeps sizing
-       itself exactly as before. */
-    var sfF = (sfT || this.safe.bottom) ? sfH : undefined;
+       Default mode draws exactly as before: full bleed. */
+    var sfF = (sfIns && (sfT || this.safe.bottom)) ? sfH : undefined;
     draw(h(this.root, {}), sfL, sfT, sfW, sfF);
     if (this.modal) {
       /* Everything under the modal stops listening. A dialog you can press
@@ -1383,8 +1410,8 @@ var UI = {
      whose extent may have changed since the finger went down. */
   _zoneAt: function (x, y) {
     for (var i = this._swipes.length - 1; i >= 0; i--) {
-      var z = this._swipes[i];
-      if (x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h) return z;
+      var z = this._safeRect(this._swipes[i]);
+      if (x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h) return this._swipes[i];
     }
     return null;
   },
@@ -1880,8 +1907,28 @@ var UI = {
   tap: function (x, y) {
     for (var i = this._hits.length - 1; i >= 0; i--) {
       var t = this._hits[i];
-      if (x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h) {
-        t.fn(x - t.x, y - t.y);
+      var r = this._safeRect(t);
+      if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) {
+        if (t.shield) {
+          /* A shield's surface has no dead spots: the press goes to the
+             NEAREST control on top of it (its children register after
+             it), within a small reach so genuinely empty stretches stay
+             inert. Between two keys the nearer one wins -- a keyboard
+             has no gaps from a touch point of view. */
+          var best = null, bd = 13 * 13, j, c, dx, dy, d2;
+          for (j = i + 1; j < this._hits.length; j++) {
+            c = this._hits[j];
+            if (!c.fn || c.shield) continue;
+            dx = x < c.x ? c.x - x : (x >= c.x + c.w ? x - (c.x + c.w - 1) : 0);
+            dy = y < c.y ? c.y - y : (y >= c.y + c.h ? y - (c.y + c.h - 1) : 0);
+            d2 = dx * dx + dy * dy;
+            if (d2 < bd) { bd = d2; best = c; }
+          }
+          if (best) best.fn(x - best.x, y - best.y);
+          else if (t.fn) t.fn(x - t.x, y - t.y);
+          return true;
+        }
+        if (t.fn) t.fn(x - t.x, y - t.y);
         return true;
       }
     }
