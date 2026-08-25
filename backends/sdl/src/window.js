@@ -45,7 +45,7 @@ var EV_MOUSEMOTION = 0x400, EV_MOUSEDOWN = 0x401, EV_MOUSEUP = 0x402, EV_MOUSEWH
 var KEYNAMES = {
   0x40000052: 'ArrowUp', 0x40000051: 'ArrowDown', 0x40000050: 'ArrowLeft', 0x4000004F: 'ArrowRight',
   0x0D: 'Enter', 0x1B: 'Escape', 0x08: 'Backspace', 0x09: 'Tab', 0x7F: 'Delete',
-  0x4000004A: 'Home', 0x4000004D: 'End', 0x20: ' '
+  0x4000004A: 'Home', 0x4000004D: 'End', 0x400000E1: 'Shift', 0x400000E5: 'Shift', 0x20: ' '
 };
 
 function createSdlWindow(pxW, pxH, opts) {

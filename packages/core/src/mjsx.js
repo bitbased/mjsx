@@ -1226,6 +1226,12 @@ var UI = {
      content edge -- for panels whose rim is truly dead, or round glass
      where drawing there is pointless anyway. */
   safe: { top: 0, left: 0, bottom: 0, right: 0, inset: false },
+
+  /* Which keys walk the focus order while an input holds focus. Both on
+     by default; an app that needs Tab or the vertical arrows for itself
+     turns the flag off and the key falls through to UI.onKey instead --
+     as does ANY key the editor has no meaning for. */
+  focusNav: { tab: true, arrows: true },
   _safeX: function (x) {
     if (!this.safe.inset) return x;
     var r = gfx.width() - 1 - this.safe.right;
@@ -1600,7 +1606,9 @@ var UI = {
        the stroke reaches UI.onKey -- an app shortcut must not fire off a
        character someone was typing into a field. */
     if (this._focus && this._inputs[this._focus]) {
-      if (type === 'press') this._editKey(key);
+      /* presses the editor gives no meaning to fall through to the app;
+         down/up strokes stay swallowed while typing */
+      if (type === 'press' && !this._editKey(key) && this.onKey) this.onKey(type, key);
       return;
     }
     if (this.onKey) this.onKey(type, key);
@@ -1711,10 +1719,12 @@ var UI = {
   type: function (str) {
     for (var i = 0; i < str.length; i++) this._editKey(str.charAt(i));
   },
+  /* Returns true when the key meant something to the editor -- false
+     lets key() hand it to the app instead. */
   _editKey: function (k) {
     var id = this._focus;
     var st = id && this._inputs[id];
-    if (!st) return;
+    if (!st) return false;
     var pp = st.p || {};
     var v = st.text;
     var c = st.cur > v.length ? v.length : st.cur;
@@ -1731,15 +1741,23 @@ var UI = {
     else if (k === 'ArrowRight') st.cur = c < v.length ? c + 1 : v.length;
     else if (k === 'Home') st.cur = 0;
     else if (k === 'End') st.cur = v.length;
-    else if (k === 'Tab') { this.focusNext(1); return; }
-    else if (k === 'ShiftTab') { this.focusNext(-1); return; }
+    else if (k === 'Tab' || k === 'ShiftTab') {
+      if (!this.focusNav.tab) return false;
+      this.focusNext(k === 'Tab' ? 1 : -1);
+      return true;
+    }
+    else if (k === 'ArrowUp' || k === 'ArrowDown') {
+      if (!this.focusNav.arrows) return false;
+      this.focusNext(k === 'ArrowDown' ? 1 : -1);
+      return true;
+    }
     else if (k === 'Enter') {
       if (pp.onSubmit) pp.onSubmit(st.text);
       this.blur();
-      return;
+      return true;
     }
-    else if (k === 'Escape') { this.blur(); return; }
-    else return;
+    else if (k === 'Escape') { this.blur(); return true; }
+    else return false;
     if (nv !== null) {
       st.text = nv;
       if (pp.onChange) pp.onChange(nv);
@@ -1747,6 +1765,7 @@ var UI = {
     st.bt = sys.millis();
     st.follow = 1;
     this._dirty = true;
+    return true;
   },
   /* The whole-stroke handler an input registers -- the same capture an
      onDraw canvas uses, but classified rather than owned outright: the

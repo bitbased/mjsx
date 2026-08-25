@@ -229,6 +229,9 @@ process.stdin.on('data', function (chunk) {
     var named = chunk === '\x7f' || chunk === '\b' ? 'Backspace'
               : chunk === '\r' ? 'Enter'
               : chunk === '\t' ? 'Tab'
+              : chunk === '\x1b[Z' ? 'ShiftTab'
+              : chunk === ARROW_UP ? 'ArrowUp'
+              : chunk === ARROW_DOWN ? 'ArrowDown'
               : chunk === ARROW_LEFT ? 'ArrowLeft'
               : chunk === ARROW_RIGHT ? 'ArrowRight'
               : null;
