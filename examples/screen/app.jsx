@@ -36,8 +36,9 @@ function applySleep() {
    stay a clean row of their own -- narrow screens fit both rows. */
 var SLEEPS = [[15, '15s'], [30, '30s'], [60, '1m'], [300, '5m'], [900, '15m']];
 
-/* On a scaled view, how text reaches the glass: NATIVE draws glyphs
-   panel-sharp at flush time, SCALED stretches them with the blit. */
+/* The render-scale mode, sys.fonts(1|0): NATIVE composes every op at
+   panel resolution (device-pixel sharp -- clearer fonts), PIXEL renders
+   logical and upscales uniformly (the chunky look). */
 var HAVE_FONTS = HAVE && typeof sys.fonts === 'function';
 function applyFonts(n) {
   if (HAVE_FONTS) sys.fonts(n);
@@ -145,7 +146,7 @@ function App() {
         <text text="SCALE" size={1} color={UI.theme.muted} />
         {h('row', { gap: 4 }, scaleChips.concat([
           h('box', { w: em(0.6) }),
-          h(Button, { label: UI.state.fnative ? 'SHARP' : 'SOFT', size: 1, pad: em(0.5),
+          h(Button, { label: UI.state.fnative ? 'NATIVE' : 'PIXEL', size: 1, pad: em(0.5),
                       bg: UI.state.fnative ? UI.theme.accent : UI.theme.key,
                       onTap: function () { applyFonts(UI.state.fnative ? 0 : 1); } })
         ]))}
