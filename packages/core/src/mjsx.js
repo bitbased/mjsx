@@ -340,7 +340,7 @@ function draw(node, x, y, availW, forcedH) {
     var pc5 = p.color === undefined ? UI.theme.muted : p.color;
     var pw5 = p.w || 1;
 
-    function scanFill5(polys, colr, nonzero) {
+    var scanFill5 = function scanFill5(polys, colr, nonzero) {
       if (gfx.poly) {
         /* Backend can fill float polygons at its own (device) resolution
            - hand the geometry over untouched except for tree position. */
@@ -395,7 +395,7 @@ function draw(node, x, y, availW, forcedH) {
           }
         }
       }
-    }
+    };
 
     if (p.fill !== undefined) scanFill5(subs5, p.fill, false);
 
@@ -403,7 +403,7 @@ function draw(node, x, y, availW, forcedH) {
       var hw5 = pw5 / 2;
       var miter5 = p.join === 'miter';
 
-      function arc5(out5, cx6, cy6, a0, a1, viaA) {
+      var arc5 = function arc5(out5, cx6, cy6, a0, a1, viaA) {
         /* sample from angle a0 to a1, sweeping in the direction that
            passes nearest viaA when given, else the short way */
         var d6 = a1 - a0;
@@ -421,9 +421,9 @@ function draw(node, x, y, availW, forcedH) {
           var a6 = a0 + (d6 * k6) / n6;
           out5.push({ x: cx6 + Math.cos(a6) * hw5, y: cy6 + Math.sin(a6) * hw5 });
         }
-      }
+      };
 
-      function sideJoin5(out5, pt6, nA, nB, cross6, sgn6) {
+      var sideJoin5 = function sideJoin5(out5, pt6, nA, nB, cross6, sgn6) {
         out5.push({ x: pt6.x + nA.x * sgn6, y: pt6.y + nA.y * sgn6 });
         var outside6 = sgn6 * cross6 < 0;
         if (outside6) {
@@ -442,7 +442,7 @@ function draw(node, x, y, availW, forcedH) {
           }
         }
         out5.push({ x: pt6.x + nB.x * sgn6, y: pt6.y + nB.y * sgn6 });
-      }
+      };
 
       for (var sp6 = 0; sp6 < subs5.length; sp6++) {
         var pts5 = subs5[sp6];

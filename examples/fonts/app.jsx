@@ -31,7 +31,7 @@ function App() {
         <text text="ABCDEFGHIJKLMNOPQRSTUVWXYZ" size={1} color={UI.theme.text} />
         <text text="abcdefghijklmnopqrstuvwxyz" size={1} color={UI.theme.text} />
         <text text="0123456789" size={1} color={UI.theme.text} />
-        <text text={'!"#$%&\'()*+,-./'} size={1} color={UI.theme.text} />
+        <text text={'!"#$%&' + "'()*+,-./"} size={1} color={UI.theme.text} />
         <text text={':;<=>?@'} size={1} color={UI.theme.text} />
         <text text={'[\\]^_`{|}~'} size={1} color={UI.theme.text} />
       </box>
@@ -43,7 +43,7 @@ function App() {
         <text text="abcdefghijklmnopq" size={2} color={UI.theme.text} />
         <text text="rstuvwxyz" size={2} color={UI.theme.text} />
         <text text="0123456789" size={2} color={UI.theme.text} />
-        <text text={'!"#$%&\'()*+,-./'} size={2} color={UI.theme.text} />
+        <text text={'!"#$%&' + "'()*+,-./"} size={2} color={UI.theme.text} />
         <text text={':;<=>?@'} size={2} color={UI.theme.text} />
         <text text={'[\\]^_`{|}~'} size={2} color={UI.theme.text} />
         <text text="Sphinx of black quartz, judge my vow" size={2} color={UI.theme.text} wrap={true} />
@@ -57,7 +57,7 @@ function App() {
         <text text="abcdefghijklm" size={3} color={UI.theme.text} />
         <text text="nopqrstuvwxyz" size={3} color={UI.theme.text} />
         <text text="0123456789" size={3} color={UI.theme.text} />
-        <text text={'!"#$%&\'()*'} size={3} color={UI.theme.text} />
+        <text text={'!"#$%&' + "'()*"} size={3} color={UI.theme.text} />
         <text text={'+,-./:;<=>?@'} size={3} color={UI.theme.text} />
         <text text={'[\\]^_`{|}~'} size={3} color={UI.theme.text} />
       </box>
