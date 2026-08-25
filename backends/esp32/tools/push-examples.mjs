@@ -116,13 +116,20 @@ s.on("connect", async () => {
     if (!r.ok) { console.error("fput failed:", r.err); process.exit(1); }
     process.stdout.write(".");
   }
-  console.log("\nrunning ...");
-  const r = await send({ c: "frun", name: "/app.js" });
-  if (!r.ok) { console.error("frun refused:", r.err); process.exit(1); }
-  for (let i = 0; i < 40; i++) {
-    await new Promise((x) => setTimeout(x, 250));
-    const j = await send({ c: "jsresult" });
-    if (j.ready) { console.log(j.success ? "OK: " + j.value : "SCRIPT ERROR: " + j.value); process.exit(j.success ? 0 : 1); }
+  // Reboot rather than frun: the firmware's run marker EVALS INTO THE
+  // EXISTING context (jsBegin returns the live one), so a re-push loads
+  // the new bundle on top of the old app and everything it retained --
+  // enough, with a ~115KB bundle, to exhaust the 2MB heap. A boot runs
+  // /app.js in a fresh arena.
+  console.log("\nrebooting into the new bundle ...");
+  send({ c: "reboot" }).catch(() => {});
+  await new Promise((x) => setTimeout(x, 15000));
+  for (let i = 0; i < 20; i++) {
+    try {
+      const t = await fetch("http://" + ip + "/state", { signal: AbortSignal.timeout(3000) });
+      if (t.ok) { console.log("OK: rebooted, bundle running"); process.exit(0); }
+    } catch (e) {}
+    await new Promise((x) => setTimeout(x, 1500));
   }
-  console.error("no result"); process.exit(1);
+  console.error("board did not come back"); process.exit(1);
 });

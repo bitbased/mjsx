@@ -81,8 +81,10 @@ function App() {
     }
   }));
 
-  var kids = [
-    <text text="INPUT" size={2} align="center" color={UI.theme.accent} />,
+  /* The whole form reuses across frames: focus borders, carets and
+     typed text are all DRAW-time reads, so typing and tabbing never
+     rebuild it -- only the chip selections and the submit line do. */
+  var form = UI.memo('inputForm', [kb, pos, UI.state.last], function () { return (
     <box flex={1} scroll="form" pad={em(1)} gap={em(0.75)}>
       <text text="virtual keyboard layout" size={1} color={UI.theme.muted} />
       {h('row', { gap: 4 }, chips)}
@@ -97,6 +99,10 @@ function App() {
       <text text={UI.state.last || 'enter submits: results show here'}
             size={1} color={UI.theme.ok} wrap={true} />
     </box>
+  ); });
+  var kids = [
+    <text text="INPUT" size={2} align="center" color={UI.theme.accent} />,
+    form
   ];
   if (focused) {
     /* height is a hint: the keys scale so the whole keyboard fits it */

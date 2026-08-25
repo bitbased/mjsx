@@ -32,17 +32,40 @@ function App() {
   var slot = UI.state.slot || 'sc';                              /* which slot the palette edits */
   var tool = UI.state.tool || 'pen';
 
-  var marks = [];
-  for (var si = 0; si < strokes.length; si++) {
-    var st = strokes[si];
+  function markFor(st) {
     var closed = st.tool === 'rect' || st.tool === 'circle';
-    marks.push(<path pts={shapePts(st)}
-                     color={st.sc === null ? undefined : st.sc}
-                     w={st.w || 2}
-                     close={closed}
-                     join={st.tool === 'rect' ? 'miter' : undefined}
-                     fill={st.fc === null ? undefined : st.fc} />);
+    return <path pts={shapePts(st)}
+                 color={st.sc === null ? undefined : st.sc}
+                 w={st.w || 2}
+                 close={closed}
+                 join={st.tool === 'rect' ? 'miter' : undefined}
+                 fill={st.fc === null ? undefined : st.fc} />;
   }
+  /* Strokes still being drawn mutate IN PLACE inside the strokes array,
+     so the memo covers only the ones below the lowest live index --
+     those are final. Reused path nodes then replay their cached stroke
+     geometry instead of re-running the outliner (see the path node),
+     which is what keeps a canvas with many finished shapes cheap while
+     the pen is moving. */
+  var liveMap = UI.state.live || {};
+  var liveMin = strokes.length;
+  for (var lk in liveMap) {
+    if (liveMap[lk] < liveMin) liveMin = liveMap[lk];
+  }
+  var finished = UI.memo('drawFinished', [strokes, liveMin], function () {
+    var ms = [];
+    for (var si = 0; si < liveMin; si++) ms.push(markFor(strokes[si]));
+    return h('box', {}, ms);
+  });
+  /* The LIVE stroke renders plainly every frame. It was briefly frozen
+     into memoized chunks for speed, but memo deps over mutating stroke
+     state proved impossible to get right (a cleared canvas's next
+     stroke matched the old keys and REPLAYED OLD INK) -- and the honest
+     measurement said the win was small. Finished strokes carry the
+     optimization instead: their content is immutable, so the memo above
+     and the path geometry cache are safe there. */
+  var marks = [finished];
+  for (var si2 = liveMin; si2 < strokes.length; si2++) marks.push(markFor(strokes[si2]));
 
   var previewC = sc !== null ? sc : (fc !== null ? fc : 0x555555);
   var tools = ['pen', 'line', 'rect', 'circle'];

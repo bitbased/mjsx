@@ -128,29 +128,48 @@ gfx = {
     __NGFX.unclip();
   },
   poly: function (polys, c, rule) {
-    /* round ONCE, then use the rounded rings for both the record and
-       the fill -- glass and browser must consume identical numbers */
-    var rr = [];
-    for (var pi = 0; pi < polys.length; pi++) {
-      var ring = [];
-      for (var vi = 0; vi < polys[pi].length; vi++) {
-        ring.push([__r10(polys[pi][vi].x), __r10(polys[pi][vi].y)]);
-      }
-      rr.push(ring);
-    }
-    if (__REC) __O.push('["p",' + JSON.stringify(rr) + ',' + (c | 0) + ',"' + (rule === 'nonzero' ? 'nonzero' : 'evenodd') + '"]');
-    if (__NGFX.poly) {
-      /* native fill (C scanline): hand it the ROUNDED points, so panel,
-         JSON replay and binary replay all consume identical numbers */
-      var op = [];
-      for (var oi = 0; oi < rr.length; oi++) {
-        var oring = [];
-        for (var oj = 0; oj < rr[oi].length; oj++) {
-          oring.push({ x: rr[oi][oj][0], y: rr[oi][oj][1] });
+    /* mjsx-core's geometry cache hands the SAME rings array back every
+       frame for an unchanged shape -- so both the rounded copy and the
+       PACKED form (base-127 chars the firmware decodes with one C
+       pointer walk instead of per-point property gets) are computed
+       once and stamped onto it. That one string per cached shape is
+       what keeps a canvas full of finished strokes cheap. */
+    var rr = polys.__rr;
+    if (!rr) {
+      rr = [];
+      for (var pi = 0; pi < polys.length; pi++) {
+        var ring = [];
+        for (var vi = 0; vi < polys[pi].length; vi++) {
+          ring.push([__r10(polys[pi][vi].x), __r10(polys[pi][vi].y)]);
         }
-        op.push(oring);
+        rr.push(ring);
       }
-      __NGFX.poly(op, c, rule);
+      polys.__rr = rr;
+      if (__NGFX.poly) {
+        var chars = [String.fromCharCode(rr.length + 1)];
+        for (var ci = 0; ci < rr.length; ci++) {
+          var n = rr[ci].length;
+          chars.push(String.fromCharCode(Math.floor(n / 127) + 1, (n % 127) + 1));
+          for (var ck = 0; ck < n; ck++) {
+            var vx = Math.round(rr[ci][ck][0] * 10) + 1000000;
+            var vy = Math.round(rr[ci][ck][1] * 10) + 1000000;
+            if (vx < 0) vx = 0;
+            if (vy < 0) vy = 0;
+            chars.push(String.fromCharCode(
+              Math.floor(vx / 16129) + 1, Math.floor(vx / 127) % 127 + 1, vx % 127 + 1,
+              Math.floor(vy / 16129) + 1, Math.floor(vy / 127) % 127 + 1, vy % 127 + 1));
+          }
+        }
+        polys.__pk = chars.join('');
+      }
+    }
+    if (__REC) {
+      /* the JSON form is as cacheable as the packed one */
+      if (!polys.__pj) polys.__pj = JSON.stringify(rr);
+      __O.push('["p",' + polys.__pj + ',' + (c | 0) + ',"' + (rule === 'nonzero' ? 'nonzero' : 'evenodd') + '"]');
+    }
+    if (__NGFX.poly) {
+      __NGFX.poly(polys.__pk, c, rule);
     } else {
       __fillPoly(rr, c, rule);
     }
@@ -184,6 +203,16 @@ function __OPSGET() {
 }
 
 /* ---- key routing through the patch queue ---- */
+var __FEED = {};   /* last patch per state key -- see __replayFeed */
+function __replayFeed() {
+  /* UI.reset() (menu return, example switch) wipes UI.state, but the
+     firmware feeds dedup on THEIR last-sent copy and will not resend
+     until the physical state changes -- so the printer panel (or any
+     module feed) would sit empty after navigation. The shim remembers
+     the newest patch per top-level key and replays them after every
+     reset; pure JS, no firmware resync needed. */
+  for (var k in __FEED) UI.patch(__FEED[k]);
+}
 (function () {
   var corePatch = UI.patch;
   UI.patch = function (json) {
@@ -196,6 +225,10 @@ function __OPSGET() {
       UI.key('up', k);
       return;
     }
+    try {
+      var o = JSON.parse('' + json);
+      for (var fk in o) __FEED[fk] = json;
+    } catch (e) {}
     return corePatch.call(UI, json);
   };
 })();

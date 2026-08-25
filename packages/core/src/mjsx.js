@@ -326,6 +326,24 @@ function draw(node, x, y, availW, forcedH) {
     }
     return 0;
   } else if (t === 'path') {
+    /* Geometry cache: a path node REUSED across frames (UI.memo, or any
+       node reuse) at the same position replays its computed polygons
+       instead of re-running the outline stroker -- with many finished
+       strokes on screen the stroker's per-point trig is the frame's
+       dominant cost by far. Poly-capable backends only: every emission
+       funnels through gfx.poly (or the recorded dot cases). */
+    if (gfx.poly && node._pg && node._pgx === x && node._pgy === y) {
+      var pgc = node._pg;
+      for (var pgi = 0; pgi < pgc.length; pgi++) {
+        var pge = pgc[pgi];
+        if (pge[0] === 'p') gfx.poly(pge[1], pge[2], pge[3]);
+        else if (pge[0] === 'c') gfx.circle(pge[1], pge[2], pge[3], pge[4], pge[5]);
+        else gfx.line(pge[1], pge[2], pge[3], pge[4], pge[5]);
+      }
+      return 0;
+    }
+    var pgCap = gfx.poly ? [] : null;
+    if (pgCap) { node._pg = pgCap; node._pgx = x; node._pgy = y; }
     /* A polyline stroke, and optionally an SVG-style filled shape.
        `pts` is a point list, or a list of point lists (subpaths). `fill`
        scanline-fills with the EVEN-ODD rule (SVG fill-rule=evenodd:
@@ -352,7 +370,9 @@ function draw(node, x, y, availW, forcedH) {
           }
           tp5.push(tr5);
         }
-        gfx.poly(tp5, colr, nonzero ? 'nonzero' : 'evenodd');
+        var rule5 = nonzero ? 'nonzero' : 'evenodd';
+        if (pgCap) pgCap.push(['p', tp5, colr, rule5]);
+        gfx.poly(tp5, colr, rule5);
         return;
       }
       var minY5 = 1e9, maxY5 = -1e9, e5 = [];
@@ -448,8 +468,14 @@ function draw(node, x, y, availW, forcedH) {
         var pts5 = subs5[sp6];
         var closed5 = (p.close || p.fill !== undefined) && pts5.length > 2;
         if (pts5.length === 1) {
-          if (pw5 >= 2) gfx.circle(x + pts5[0].x, y + pts5[0].y, Math.max(1, Math.round(hw5)), pc5, true);
-          else gfx.line(x + pts5[0].x, y + pts5[0].y, x + pts5[0].x, y + pts5[0].y, pc5);
+          if (pw5 >= 2) {
+            var dr5 = Math.max(1, Math.round(hw5));
+            if (pgCap) pgCap.push(['c', x + pts5[0].x, y + pts5[0].y, dr5, pc5, true]);
+            gfx.circle(x + pts5[0].x, y + pts5[0].y, dr5, pc5, true);
+          } else {
+            if (pgCap) pgCap.push(['l', x + pts5[0].x, y + pts5[0].y, x + pts5[0].x, y + pts5[0].y, pc5]);
+            gfx.line(x + pts5[0].x, y + pts5[0].y, x + pts5[0].x, y + pts5[0].y, pc5);
+          }
           continue;
         }
         if (pw5 <= 1 && !gfx.poly) {
@@ -1088,23 +1114,34 @@ function Keyboard(p) {
   if (p.height) kh = Math.floor((p.height - 8 - (rowsN - 1) * 2) / rowsN);
   else kh = p.keyH || (flh(2) + em(1));
   if (kh < 8) kh = 8;
-  var rows;
-  if (layout === 'numbers') rows = kbNumbers(kh);
-  else if (layout === 't9') rows = kbT9(kh);
-  else if (layout === 'strip') rows = kbStrip(kh);
-  else rows = kbQwerty(kh);
-  var pos = p.position || 'inline';
+  var pos0 = p.position || 'inline';
+  /* The panel is ~40 nodes rebuilt per keystroke without this; its real
+     inputs are just these. KB.strip rebuilds per drag frame (the offset
+     is a prop); everything read at DRAW time needs no dep. */
+  function kbRows() {
+    if (layout === 'numbers') return kbNumbers(kh);
+    if (layout === 't9') return kbT9(kh);
+    if (layout === 'strip') return kbStrip(kh);
+    return kbQwerty(kh);
+  }
+  var rows = null; /* built lazily; the exclusive branch always builds fresh */
+  var pos = pos0;
   /* The panel swallows taps: a press between keys must not fall through
      to whatever the overlay is covering. A DOCKED panel drops the
      padding on its docked edge, so the outermost row runs flush to the
      safe edge and owns every clamped edge press -- the tallest target
      the display can honestly offer. */
-  var panel = h('box', {
-    bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2,
-    padB: pos === 'bottom' ? 0 : undefined,
-    padT: pos === 'top' ? 0 : undefined,
-    shield: true
-  }, rows);
+  var panel = UI.memo('_kbPanel',
+    [layout, kh, pos, KB.shift, KB.page, KB.strip, KB.t9k, KB.t9i,
+     p.bg, gfx.width()],
+    function () {
+      return h('box', {
+        bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2,
+        padB: pos === 'bottom' ? 0 : undefined,
+        padT: pos === 'top' ? 0 : undefined,
+        shield: true
+      }, kbRows());
+    });
   if (UI.exclusive()) {
     /* Full-display: a MIRROR of the focused input above the keys. Input
        state is keyed by id, so a second input node with the same id IS
@@ -1327,6 +1364,7 @@ var UI = {
     this.onLongPressFeedback = null;
     this._focus = null;
     this._inputs = {};
+    this._memo = {};
     this._focusables = [];
     this._reveal = null;
     this._curZone = null;
@@ -1643,6 +1681,29 @@ var UI = {
   },
   _insetTop: function () { return this._insetT > this._insetTP ? this._insetT : this._insetTP; },
   _insetBot: function () { return this._insetB > this._insetBP ? this._insetB : this._insetBP; },
+  /* Reuse a built subtree while its deps are unchanged. The engine
+     memoises expand() and measure() ON NODE INSTANCES, so handing the
+     SAME node back skips the component calls, the h() allocations and
+     the layout math for the whole subtree -- on a small moving-GC
+     engine the allocations are the expensive part of a frame. Deps are
+     compared shallowly (===): list everything the subtree's build reads
+     (state, sizes) AND everything its closures capture. Draw-time reads
+     (an input's text, scroll offsets) need no dep -- nodes are reused,
+     drawing still happens every frame. */
+  _memo: {},
+  memo: function (key, deps, build) {
+    var m = this._memo[key];
+    if (m && m.deps.length === deps.length) {
+      var same = true;
+      for (var i = 0; i < deps.length; i++) {
+        if (m.deps[i] !== deps[i]) { same = false; break; }
+      }
+      if (same) return m.node;
+    }
+    var node = build();
+    this._memo[key] = { deps: deps, node: node };
+    return node;
+  },
   focused: function () { return this._focus; },
   focus: function (id) {
     if (this._focus === id) return;
