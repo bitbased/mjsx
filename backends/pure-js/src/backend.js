@@ -142,10 +142,17 @@ function createPureJsBackend(w, h, opts) {
   function drawVecGlyph(vg, ox, oy, u, rgb) {
     var penR = u * 0.5;
     function disc(cx2, cy2) {
-      var ri = Math.ceil(penR);
-      for (var dy = -ri; dy <= ri; dy++) {
-        for (var dx = -ri; dx <= ri; dx++) {
-          if (dx * dx + dy * dy <= penR * penR) setPixel(Math.round(cx2 + dx), Math.round(cy2 + dy), rgb);
+      /* Ink every pixel whose CENTER lies inside the pen. Iterating
+         integer offsets around Math.round(centre) instead reads natural,
+         but stroke centres sit on exact .5 fractions whenever u is odd,
+         and round-half-up then biased every disc one device pixel down
+         and right -- the whole HD face drifted visibly. */
+      var px0 = Math.floor(cx2 - penR), px1 = Math.ceil(cx2 + penR);
+      var py0 = Math.floor(cy2 - penR), py1 = Math.ceil(cy2 + penR);
+      for (var py = py0; py <= py1; py++) {
+        for (var px = px0; px <= px1; px++) {
+          var ddx = px + 0.5 - cx2, ddy = py + 0.5 - cy2;
+          if (ddx * ddx + ddy * ddy <= penR * penR) setPixel(px, py, rgb);
         }
       }
     }
