@@ -1060,21 +1060,31 @@ function Keyboard(p) {
        order and leaves the original's remembered position alone. */
     var xst = UI._inputs[UI._focus];
     var xp = (xst && xst.p) || {};
-    return h('abs', { x: 0, y: 0, w: gfx.width() },
-      h('box', { h: gfx.height(), bg: UI.theme.bg, pad: 6, gap: 6, shield: true }, [
-        h('row', { gap: 4 }, [
-          h('text', { text: xp.label || xp.placeholder || UI._focus,
-                      size: 1, color: UI.theme.muted, middle: true }),
-          kbKey('x', function () { kbSend('Escape'); },
-                { w: em(3), bg: UI.theme.panel, color: UI.theme.err })
-        ]),
-        h('input', { id: UI._focus, size: xp.size || 2, password: xp.password,
+    /* The close key rides WITH the mirror input, full input height --
+       one obvious target, no header chrome. A label line above is
+       opt-in via header={true}. */
+    var xsz = xp.size || 2;
+    var xlh = flh(xsz) + 2;
+    var xpd = Math.max(4, Math.floor(xlh / 3));
+    var xkids = [
+      h('row', { gap: 4 }, [
+        h('input', { id: UI._focus, size: xsz, password: xp.password,
                      maxLen: xp.maxLen, placeholder: xp.placeholder, label: xp.label,
                      value: xp.value, onChange: xp.onChange, onSubmit: xp.onSubmit,
                      focusable: false }),
-        h('box', { flex: 1 }),
-        h('box', { bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2 }, rows)
-      ]));
+        kbKey('x', function () { kbSend('Escape'); },
+              { w: em(4), h: xlh + xpd * 2, size: 2,
+                bg: UI.theme.panel, color: UI.theme.err })
+      ]),
+      h('box', { flex: 1 }),
+      h('box', { bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2 }, rows)
+    ];
+    if (p.header && (xp.label || xp.placeholder)) {
+      xkids.unshift(h('text', { text: xp.label || xp.placeholder,
+                                size: 1, color: UI.theme.muted }));
+    }
+    return h('abs', { x: 0, y: 0, w: gfx.width() },
+      h('box', { h: gfx.height(), bg: UI.theme.bg, pad: 6, gap: 6, shield: true }, xkids));
   }
   var pos = p.position || 'inline';
   if (pos === 'bottom' || pos === 'top') {
