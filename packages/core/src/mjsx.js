@@ -225,6 +225,34 @@ function rowWidths(node, availW) {
   return out;
 }
 
+/* The native clip is a SINGLE rect, not a stack. Anything that clips
+   inside something already clipped -- an input inside a scroll viewport,
+   a clip box in a scroll row -- must INTERSECT with the active rect and
+   restore it afterwards, or it would punch a hole in the outer clip and
+   paint over whatever the viewport was keeping it away from (a sticky
+   header, an overlay). These two keep the one honest rect. */
+var CLIP = null;
+function pushClip(cx, cy, cw, ch) {
+  var prev = CLIP;
+  if (prev) {
+    var nx = cx > prev.x ? cx : prev.x;
+    var ny = cy > prev.y ? cy : prev.y;
+    var nr = cx + cw < prev.x + prev.w ? cx + cw : prev.x + prev.w;
+    var nb = cy + ch < prev.y + prev.h ? cy + ch : prev.y + prev.h;
+    cx = nx; cy = ny;
+    cw = nr - nx > 0 ? nr - nx : 0;
+    ch = nb - ny > 0 ? nb - ny : 0;
+  }
+  CLIP = { x: cx, y: cy, w: cw, h: ch };
+  gfx.clip(cx, cy, cw, ch);
+  return prev;
+}
+function popClip(prev) {
+  CLIP = prev;
+  if (prev) gfx.clip(prev.x, prev.y, prev.w, prev.h);
+  else gfx.unclip();
+}
+
 /* Draw the node at (x, y) within availW. Returns the height consumed. */
 function draw(node, x, y, availW, forcedH) {
   node = expand(node);
@@ -520,7 +548,7 @@ function draw(node, x, y, availW, forcedH) {
     if (ist.sx > sxm) ist.sx = sxm;
     if (ist.sx < 0) ist.sx = 0;
     ist.geom = { pad: ipd, adv: iadv, w: iw };
-    gfx.clip(x + 1, y + 1, iw - 2, ih - 2);
+    var iclip0 = pushClip(x + 1, y + 1, iw - 2, ih - 2);
     var shown = ist.text;
     if (p.password) {
       var msk = '';
@@ -536,7 +564,7 @@ function draw(node, x, y, availW, forcedH) {
     if (ifoc && (Math.floor((sys.millis() - ist.bt) / 530) % 2) === 0) {
       gfx.frect(x + ipd - ist.sx + icx, y + ipd - 1, isz > 1 ? 2 : 1, ilh, UI.theme.accent, 0);
     }
-    gfx.unclip();
+    popClip(iclip0);
     /* Focus order and scroll-into-view remember CONTENT coordinates, so a
        field scrolled out of sight can still be tabbed to and revealed. */
     if (p.focusable !== false) {
@@ -637,10 +665,10 @@ function draw(node, x, y, availW, forcedH) {
        its edges cannot paint over the neighbours. Scroll viewports clip
        already; the native clip is a single rect, not a stack, so nesting
        clips inside one another is not supported. */
-    var clipHits0 = -1;
+    var clipHits0 = -1, clipPrev0 = null;
     if (p.clip && !p.scroll) {
       clipHits0 = UI._hits.length;
-      gfx.clip(x, y, availW, hgt);
+      clipPrev0 = pushClip(x, y, availW, hgt);
     }
 
     if (p.scroll && boxH) {
@@ -672,7 +700,7 @@ function draw(node, x, y, availW, forcedH) {
          spilling over the neighbours — and the hit areas are trimmed to
          match once the children have registered theirs. */
       var hits0 = UI._hits.length;
-      gfx.clip(x, y, availW, boxH);
+      var sclip0 = pushClip(x, y, availW, boxH);
       var pz0 = UI._curZone;
       UI._curZone = p.scroll;
       var sy = y + padT(p) - off, seenS = false;
@@ -686,7 +714,7 @@ function draw(node, x, y, availW, forcedH) {
         sy += chh;
       }
       UI._curZone = pz0;
-      gfx.unclip();
+      popClip(sclip0);
       UI._clipHits(hits0, x, y, availW, boxH);
       /* The viewport is a swipe target; a fixed step, or its own height. */
       UI._swipeZone(x, y, availW, boxH, p.scroll,
@@ -749,7 +777,7 @@ function draw(node, x, y, availW, forcedH) {
       }
     }
     if (clipHits0 >= 0) {
-      gfx.unclip();
+      popClip(clipPrev0);
       UI._clipHits(clipHits0, x, y, availW, hgt);
     }
 
@@ -1402,6 +1430,7 @@ var UI = {
     this._insetBP = this._insetB;
     this._insetT = 0;
     this._insetB = 0;
+    CLIP = null;
     gfx.clear(this.theme.bg);
     var sfIns = this.safe.inset;
     var sfL = sfIns ? this.safe.left : 0, sfT = sfIns ? this.safe.top : 0;
