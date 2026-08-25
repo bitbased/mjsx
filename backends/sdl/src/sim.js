@@ -155,9 +155,10 @@ for (var sfi = 0; sfi < flagArgs.length; sfi++) {
 }
 
 var CORE = require.resolve('../../../packages/core/src/mjsx.js');
+var curCore = null;
 function freshCore() {
   delete require.cache[CORE];
-  var core = require(CORE);
+  var core = curCore = require(CORE);
   globalThis.h = core.h;
   globalThis.UI = core.UI;
   globalThis.Button = core.Button;
@@ -302,7 +303,19 @@ function rebuild() {
   win.setScreenSize(pxW, pxH, dprNow());
   backend = createPureJsBackend(pxW, pxH, backendOpts());
   globalThis.gfx = backend.gfx;
-  if (current) loadExample(current); else showMenu();
+  /* The RUNNING app is kept, not re-run: immediate mode means the next
+     render simply lays out on the new surface, and everything the user
+     had -- state, scroll positions, half-typed inputs, drawn strokes --
+     survives an HD toggle, a font change, even a resize or rotation.
+     The only real coupling is font metrics, re-taught to the live core;
+     RESTART is there for an actual reboot. */
+  if (!UI.root) {
+    if (current) loadExample(current); else showMenu();
+  } else if (curCore && backend.font) {
+    curCore.FONT.advance = backend.font.advance;
+    curCore.FONT.lineH = backend.font.lineH;
+    curCore.FONT.pick = backend.font.pick || null;
+  }
   UI._dirty = true;
 }
 
