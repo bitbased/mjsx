@@ -60,8 +60,10 @@ function App() {
                   : 'camera failed to start'}
               size={1} color={ok ? UI.theme.ok : UI.theme.warn} />
       </abs>
-      <abs x={W - 150} y={H - 48}>
-        <row gap={8}>
+      <abs x={0} y={H - 48}>
+        {/* full-width row, flex spacer: right-aligned at ANY size */}
+        <row w={W} padR={8} gap={8}>
+          <box flex={1} />
           <Button label="SNAP" size={2} bg={UI.theme.accent}
                   onTap={function () {
                     if (HAVE_CAM) sys.modCtl('cam', 'snap');
