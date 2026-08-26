@@ -32,48 +32,48 @@ function App() {
   var ok = UI.state.camOk;
   var rot = UI.state.camrot || 0;
   var odd = rot % 2 === 1;
-  var w = gfx.width();
-  var pw = Math.floor(w / 3);            /* the preview stays small */
-  var ph = Math.floor(pw * 3 / 4);
-  var bw = w - 16;
-  var bh = Math.floor(bw * 3 / 4);
-  if (odd) {
-    /* quarter-turned: the sources are portrait now */
-    ph = pw; pw = Math.floor(ph * 3 / 4);
-    bh = Math.floor((gfx.height() - 140));
-    bw = Math.floor(bh * 3 / 4);
-  }
+  var W = gfx.width(), H = gfx.height();
+  /* the PHOTO is the background: contained in the screen at the
+     mounted aspect, so any orientation just works */
+  var aw = odd ? 3 : 4, ah = odd ? 4 : 3;
+  var bw = Math.min(W, Math.floor(H * aw / ah));
+  var bh = Math.floor(bw * ah / aw);
+  if (bh > H) { bh = H; bw = Math.floor(bh * aw / ah); }
+  var bx = Math.floor((W - bw) / 2), by = Math.floor((H - bh) / 2);
+  /* the PREVIEW overlays as picture-in-picture, same aspect */
+  var pw = Math.floor(W / 4);
+  var ph = Math.floor(pw * ah / aw);
 
   return (
-    <box h={gfx.height()} pad={8} gap={8}>
-      {/* padR keeps the controls clear of the floating exit dot */}
-      <row gap={8} padR={36}>
-        <box gap={4}>
-          <text text="PREVIEW" size={1} color={UI.theme.muted} />
+    <box h={H} bg={0x000000}>
+      <abs x={bx} y={by}>
+        {h('canvas', { src: 3, w: bw, h: bh })}
+      </abs>
+      <abs x={8} y={H - ph - 8}>
+        <box border={0xffffff} borderW={1}>
           {h('canvas', { src: 2, w: pw, h: ph })}
         </box>
-        <box gap={4} flex={1}>
-          <text text={!HAVE_CAM ? 'no camera module here'
-                    : ok ? 'LIVE  frame ' + (UI.state.camf || 0)
-                    : 'camera failed to start'}
-                size={1} color={ok ? UI.theme.ok : UI.theme.warn} />
-          <row gap={8}>
-            <Button label="SNAP" size={2} bg={UI.theme.accent}
-                    onTap={function () {
-                      if (HAVE_CAM) sys.modCtl('cam', 'snap');
-                    }} />
-            <Button label="ROT" size={2} bg={UI.theme.key}
-                    onTap={function () {
-                      if (!HAVE_CAM) return;
-                      sys.modCtl('cam', 'rot');
-                      configStorage.set('cam.rot', ((UI.state.camrot || 0) + 1) % 4);
-                    }} />
-          </row>
-        </box>
-      </row>
-      <text text={'PHOTO' + (UI.state.snap ? '' : '  (none yet)')}
-            size={1} color={UI.theme.muted} />
-      {h('canvas', { src: 3, w: bw, h: bh })}
+      </abs>
+      <abs x={8} y={8}>
+        <text text={!HAVE_CAM ? 'no camera module here'
+                  : ok ? 'LIVE ' + (UI.state.camf || 0)
+                  : 'camera failed to start'}
+              size={1} color={ok ? UI.theme.ok : UI.theme.warn} />
+      </abs>
+      <abs x={W - 150} y={H - 48}>
+        <row gap={8}>
+          <Button label="SNAP" size={2} bg={UI.theme.accent}
+                  onTap={function () {
+                    if (HAVE_CAM) sys.modCtl('cam', 'snap');
+                  }} />
+          <Button label="ROT" size={2} bg={UI.theme.key}
+                  onTap={function () {
+                    if (!HAVE_CAM) return;
+                    sys.modCtl('cam', 'rot');
+                    configStorage.set('cam.rot', ((UI.state.camrot || 0) + 1) % 4);
+                  }} />
+        </row>
+      </abs>
     </box>
   );
 }
