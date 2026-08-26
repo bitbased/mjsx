@@ -17,6 +17,10 @@ if (typeof sys !== 'undefined' && typeof sys.mods === 'function') {
 }
 if (HAVE_CAM) {
   UI.set({ camOk: sys.modCtl('cam', 'start') ? 1 : 0 });
+  /* the mounted rotation is a SETTING: restore it before first frame */
+  var savedRot = parseInt(configStorage.get('cam.rot', '0')) || 0;
+  if (savedRot) sys.modCtl('cam', 'rot' + savedRot);
+  UI.set({ camrot: savedRot });
   /* leaving the example RELEASES the sensor: no background capture,
      no per-frame nudges re-rendering the menu */
   if (typeof UI.onCleanup === 'function') {
@@ -60,7 +64,9 @@ function App() {
                     }} />
             <Button label="ROT" size={2} bg={UI.theme.key}
                     onTap={function () {
-                      if (HAVE_CAM) sys.modCtl('cam', 'rot');
+                      if (!HAVE_CAM) return;
+                      sys.modCtl('cam', 'rot');
+                      configStorage.set('cam.rot', ((UI.state.camrot || 0) + 1) % 4);
                     }} />
           </row>
         </box>

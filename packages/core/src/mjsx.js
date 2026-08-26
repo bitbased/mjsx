@@ -2153,12 +2153,47 @@ var UI = {
   }
 };
 
+/* Persistent key/value settings, one name on every host: NVS on the
+   bridge (sys.store/sys.fetch), localStorage on the web and sim, plain
+   memory as the last resort. STRING values -- JSON-encode structures
+   yourself. Named configStorage, not localStorage: it means "the app's
+   settings survive a power cycle", wherever that lives. */
+var configStorage = {
+  _mem: {},
+  get: function (key, dflt) {
+    if (typeof sys !== 'undefined' && typeof sys.fetch === 'function') {
+      var v = '' + sys.fetch(key);
+      return v === '' ? dflt : v;
+    }
+    if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') {
+      try {
+        var l = localStorage.getItem('mjsx.' + key);
+        return l === null ? dflt : l;
+      } catch (e) { return dflt; }
+    }
+    return this._mem[key] === undefined ? dflt : this._mem[key];
+  },
+  set: function (key, value) {
+    var v = '' + value;
+    if (typeof sys !== 'undefined' && typeof sys.store === 'function') {
+      sys.store(key, v);
+      return;
+    }
+    if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+      try { localStorage.setItem('mjsx.' + key, v); } catch (e) {}
+      return;
+    }
+    this._mem[key] = v;
+  }
+};
+
 /* Loadable as a flat eval (MicroQuickJS: h/UI/etc. land as globals) or as a
    CommonJS module (Node/Bun: require('mjsx') for the same objects). Both
    forms see the identical ES5 source — nothing here branches on the host. */
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     h: h, UI: UI, FONT: FONT, em: em, Button: Button, Swatch: Swatch, Modal: Modal, Keyboard: Keyboard,
-    measure: measure, draw: draw, fitText: fitText, textLines: textLines
+    measure: measure, draw: draw, fitText: fitText, textLines: textLines,
+    configStorage: configStorage
   };
 }
