@@ -1409,7 +1409,17 @@ var UI = {
      can remount its own root; reset() is for hosts swapping scripts in one
      persistent context — an ESP32 loading a new bundle, a launcher
      switching examples. Everything app-visible goes back to nothing. */
+  /* App lifecycle: register teardown for whatever the app started
+     outside the UI (a sensor module, a camera) -- reset() runs and
+     clears these FIRST, so switching apps releases the hardware. */
+  _cleanups: [],
+  onCleanup: function (fn) { this._cleanups.push(fn); },
   reset: function () {
+    var cl = this._cleanups;
+    this._cleanups = [];
+    for (var ci = 0; ci < cl.length; ci++) {
+      try { cl[ci](); } catch (e) {}
+    }
     this.root = null;
     this.modal = null;
     this.state = {};
