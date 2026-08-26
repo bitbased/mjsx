@@ -71,6 +71,13 @@ function App() {
     label: 'CLEAR', size: 1, pad: em(0.5), bg: UI.theme.panel,
     onTap: function () { clearCanvas(); }
   }));
+  /* DIRECT: no live polyline layer -- every move rasterizes its segment
+     straight into the canvas, and the frame is just the blit */
+  chips.push(h(Button, {
+    label: 'DIRECT', size: 1, pad: em(0.5),
+    bg: UI.state.direct ? UI.theme.accent : UI.theme.panel,
+    onTap: function () { UI.set({ direct: UI.state.direct ? 0 : 1 }); }
+  }));
 
   var layers = [
     HAVE_CV
@@ -89,6 +96,17 @@ function App() {
     <box h={gfx.height()}>
       <box h={areaH} clip={true}
            onDraw={function (phase, x, y, id) {
+             if (UI.state.direct && HAVE_CV) {
+               /* straight into the bitmap, one segment per move */
+               var lp = UI.state._dl;
+               var pt = { x: x, y: y };
+               sys.canvasTarget(0);
+               strokeInto(lp && phase !== 0 ? [lp, pt] : [pt], color, 4);
+               sys.canvasTarget(-1);
+               UI.set({ _dl: phase === 2 ? null : pt,
+                        liveTick: (UI.state.liveTick || 0) + 1 });
+               return;
+             }
              var st = UI.state.liveStroke;
              if (phase === 0) {
                UI.set({ liveStroke: { pts: [{ x: x, y: y }], color: color, w: 4 } });
