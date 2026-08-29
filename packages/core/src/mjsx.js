@@ -1065,7 +1065,7 @@ function kbOkKey(kh, w) {
   return kbKey('OK', function () { kbSend('Enter'); }, { h: kh, w: w, bg: UI.theme.accent });
 }
 
-function kbQwerty(kh, availW) {
+function kbQwerty(kh, availW, okElsewhere) {
   var letters = KB.page === 0;
   /* two symbol pages: #+= flips between them, so every glyph the face
      carries is typeable -- brackets, backslash, pipe, tilde, backtick */
@@ -1091,7 +1091,7 @@ function kbQwerty(kh, availW) {
     h('row', { gap: 2 }, kbCharRow(letters ? 'qwertyuiop' : (sym2 ? '[]{}<>()^~' : '1234567890'), kh)),
     h('row', { gap: 2 }, kbCharRow(letters ? 'asdfghjkl' : (sym2 ? '*/\\|=+-#%' : '@#$%&-+()'), kh)),
     h('row', { gap: 2 }, r3k),
-    kbBottomRow(kh, availW)
+    kbBottomRow(kh, availW, okElsewhere)
   ];
 }
 
@@ -1109,13 +1109,17 @@ function kbQwerty(kh, availW) {
  * SPACE, OK -- are sized from the words they carry, so every one of them
  * is readable at any width worth calling a keyboard.
  */
-function kbBottomRow(kh, availW) {
+/* okElsewhere: the caller is placing OK itself (round glass parks it in
+   the bottom arc), so this row must not draw a second one. T9 and the
+   number pad have always taken this; QWERTY did not, which is why round
+   QWERTY showed TWO OK keys -- its own and the arc's. */
+function kbBottomRow(kh, availW, okElsewhere) {
   var letters = KB.page === 0;
   var W = availW || gfx.width();
   var gap = 2;
   var modeLbl = letters ? '123' : 'abc';
   var modeW = Math.max(em(5), kbLabelW(modeLbl));
-  var okW = Math.max(em(5), kbLabelW('OK'));
+  var okW = okElsewhere ? 0 : Math.max(em(5), kbLabelW('OK'));
   var punct = em(3);
   /* the space bar wears the ␣ mark, so what it needs is room for a
      thumb, not room for a word */
@@ -1125,17 +1129,19 @@ function kbBottomRow(kh, availW) {
     /* down to three keys: hand the words exactly what they need and let
        the space bar have everything else */
     modeW = kbLabelW(modeLbl);
-    okW = kbLabelW('OK');
+    if (!okElsewhere) okW = kbLabelW('OK');
   }
   var ks = [kbKey(modeLbl,
     function () { KB.page = letters ? 1 : 0; UI._dirty = true; },
     { h: kh, w: modeW, bg: UI.theme.panel })];
   if (nP) ks.push(kbKey(',', function () { kbTapChar(','); }, { h: kh, w: punct }));
-  var spW = W - modeW - okW - punct * nP - gap * (3 + nP);
+  /* one fewer key means one fewer gap; the width OK is not taking goes to
+     the space bar, which is the key that most wants it */
+  var spW = W - modeW - okW - punct * nP - gap * (3 + nP - (okElsewhere ? 1 : 0));
   if (spW < em(3)) spW = em(3);
   ks.push(kbSpaceKey(kh, spW));
   if (nP) ks.push(kbKey('.', function () { kbTapChar('.'); }, { h: kh, w: punct }));
-  ks.push(kbOkKey(kh, okW));
+  if (!okElsewhere) ks.push(kbOkKey(kh, okW));
   return h('row', { gap: gap }, ks);
 }
 
@@ -1370,10 +1376,6 @@ function Keyboard(p) {
      spend a whole row on the single OK key, which made every other key
      shorter for nothing. */
   var rowsN = layout === 'strip' ? 2 : 4;
-  /* Round glass parks OK in the BOTTOM ARC -- the sliver below the keys
-     that the grid can never use, because a full-width row down there
-     would be mostly bezel. It costs the keyboard no height at all. */
-  var okInArc = UI.isRound() && layout !== 'strip';
   var kh;
   if (p.height) kh = Math.floor((p.height - 8 - (rowsN - 1) * 2) / rowsN);
   else kh = p.keyH || (flh(2) + em(1));
@@ -1386,6 +1388,16 @@ function Keyboard(p) {
     UI._exclusive = true;
     UI._dirty = true;
   }
+  /* Round glass parks OK in the BOTTOM ARC -- the sliver below the keys
+     that the grid can never use, because a full-width row down there
+     would be mostly bezel. It costs the keyboard no height at all.
+     ONLY THE EXCLUSIVE VIEW DRAWS THAT ARC. This flag also tells each
+     layout to leave OK out of its own rows, so computing it before the
+     auto-exclusive decision above meant a DOCKED round keyboard dropped
+     its OK and got no arc to put it in: round T9 and NUMBERS had no OK
+     key at all, and QWERTY only kept one because it was not passed the
+     flag. It is decided after the mode is known. */
+  var okInArc = UI.isRound() && layout !== 'strip' && !!UI._exclusive;
   var pos0 = p.position || 'inline';
   /* The panel is ~40 nodes rebuilt per keystroke without this; its real
      inputs are just these. KB.strip rebuilds per drag frame (the offset
@@ -1399,7 +1411,7 @@ function Keyboard(p) {
     if (layout === 'numbers') return kbNumbers(kh, okInArc);
     if (layout === 't9') return kbT9(kh, okInArc);
     if (layout === 'strip') return kbStrip(kh, rowW);
-    return kbQwerty(kh, rowW);
+    return kbQwerty(kh, rowW, okInArc);
   }
   var rows = null; /* built lazily; the exclusive branch always builds fresh */
   var pos = pos0;
@@ -1479,7 +1491,7 @@ function Keyboard(p) {
     if (layout === 'numbers') xrows = kbNumbers(xkh, okInArc);
     else if (layout === 't9') xrows = kbT9(xkh, okInArc);
     else if (layout === 'strip') xrows = kbStrip(xkh, xRowW);
-    else xrows = kbQwerty(xkh, xRowW);
+    else xrows = kbQwerty(xkh, xRowW, okInArc);
     var xMirror = h('row', { gap: 4 }, [
       h('input', { id: UI._focus, size: xsz, password: xp.password,
                    maxLen: xp.maxLen, placeholder: xp.placeholder, label: xp.label,

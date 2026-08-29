@@ -150,3 +150,51 @@ describe('keyboard fits its glass', function () {
     expect(typesASpace(r)).toBe(true);
   });
 });
+
+/* Round glass parks OK in the bottom arc, which is space the key grid can
+   never use. Every layout must then LEAVE IT OUT of its own rows -- T9 and
+   the number pad always did, QWERTY did not, and round QWERTY drew two OK
+   keys on a 240px circle, where width is the scarcest thing there is.
+
+   There are TWO code paths that build those rows, docked and exclusive,
+   and they are reached by different keyboard heights. The first version of
+   this test only ever hit the exclusive one -- renderKb asks for
+   height/2.6, which on a 240px circle is 92px, whose keys come out under
+   30px and trip auto-exclusive -- so it passed with the docked bug still
+   in place. Both are exercised deliberately now. */
+function okCount(w, h, round, layout, height) {
+  if (round) {
+    var seed = load.fresh(w, h);
+    seed.backend.sys.store('round', '1');
+  }
+  var t = load.fresh(w, h, { textMode: 'capture' });
+  if (round) t.backend.sys.store('round', '1');
+  globalThis.UI.mount(function () {
+    return globalThis.h('box', { h: globalThis.gfx.height() }, [
+      globalThis.h('input', { id: 'f', size: 2, placeholder: 'x' }),
+      globalThis.h(globalThis.Keyboard,
+        { layout: layout, position: 'bottom', height: height })
+    ]);
+  });
+  globalThis.UI.render();
+  globalThis.UI.focus('f');
+  globalThis.UI.render();
+  return t.backend.textOps.filter(function (o) { return o.str === 'OK'; }).length;
+}
+
+describe('OK is drawn exactly once', function () {
+  ['qwerty', 't9', 'numbers', 'auto'].forEach(function (layout) {
+    SHAPES.forEach(function (shape) {
+      it(layout + ' on ' + shape.name, function () {
+        var r = renderKb(shape, layout);
+        expect(r.labels.filter(function (l) { return l === 'OK'; }).length).toBe(1);
+      });
+    });
+
+    /* keys tall enough that the keyboard DOCKS instead of taking over:
+       kh = (height - 14) / 4, so 150px keeps it above the 30px rule */
+    it(layout + ' docked on round glass (not exclusive)', function () {
+      expect(okCount(240, 240, true, layout, 150)).toBe(1);
+    });
+  });
+});

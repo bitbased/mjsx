@@ -713,9 +713,9 @@ if (okW2 < kbLabelW('OK')) okW2 = kbLabelW('OK');
 
 ![qwerty on round glass](./img/kb-qwerty-round128.png)
 
-*QWERTY on round glass shows **two** OK keys — QWERTY's bottom row carries
-its own, and the arc adds one. T9 and NUMBERS pass `okElsewhere` and show
-only the arc's.*
+*QWERTY on round glass. Every layout passes `okElsewhere` when the arc is
+carrying OK, so the bottom row leaves it out and the space bar takes the
+width it would have used.*
 
 ![auto on round glass](./img/kb-auto-round128.png)
 
