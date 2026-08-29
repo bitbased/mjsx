@@ -42,16 +42,51 @@ if (focused) kids.push(h(Keyboard, { position: 'bottom',
                                      height: Math.floor(gfx.height() / 2.8) }));
 ```
 
-![wifi join on a 320x480 panel](/img/ex-wifi-join-lcd35.png)
+<div class="shapes">
+  <input type="radio" name="sw-ex-wifi-join-0" id="sw-ex-wifi-join-0-0">
+  <label for="sw-ex-wifi-join-0-0">
+    <img src="/img/ex-wifi-join-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-wifi-join-0" id="sw-ex-wifi-join-0-1" checked>
+  <label for="sw-ex-wifi-join-0-1">
+    <img src="/img/ex-wifi-join-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-wifi-join-round128.png" alt="The same wifi password step on round glass: the same unnamed Keyboard resolves to T9 here, and at this height it takes the whole display and mirrors the field.">
+      <figcaption><strong>Round, 240×240.</strong> The same wifi password step on round glass: the same unnamed Keyboard resolves to T9 here, and at this height it takes the whole display and mirrors the field.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-wifi-join-lcd35.png" alt="examples/wifi after tapping a secured network: the password field appears and the keyboard comes up with no layout named — the app asked for &quot;whatever types best here&quot;, and 320px of glass buys QWERTY.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/wifi after tapping a secured network: the password field appears and the keyboard comes up with no layout named — the app asked for &quot;whatever types best here&quot;, and 320px of glass buys QWERTY.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*The same source, 320x480: tapping a secured network opens the masked
-password field and that unnamed `Keyboard` resolves to QWERTY.*
-
-![wifi join on 240x240 round glass](/img/ex-wifi-join-round128.png)
-
-*The identical call on 240x240 round glass: the same unnamed `Keyboard`
-resolves to T9, and at this height it takes the whole display and mirrors
-the field. Nothing in the app changed.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-wifi-join-1" id="sw-ex-wifi-join-1-0" checked>
+  <label for="sw-ex-wifi-join-1-0">
+    <img src="/img/ex-wifi-join-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-wifi-join-1" id="sw-ex-wifi-join-1-1">
+  <label for="sw-ex-wifi-join-1-1">
+    <img src="/img/ex-wifi-join-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-wifi-join-round128.png" alt="The same wifi password step on round glass: the same unnamed Keyboard resolves to T9 here, and at this height it takes the whole display and mirrors the field.">
+      <figcaption><strong>Round, 240×240.</strong> The same wifi password step on round glass: the same unnamed Keyboard resolves to T9 here, and at this height it takes the whole display and mirrors the field.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-wifi-join-lcd35.png" alt="examples/wifi after tapping a secured network: the password field appears and the keyboard comes up with no layout named — the app asked for &quot;whatever types best here&quot;, and 320px of glass buys QWERTY.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/wifi after tapping a secured network: the password field appears and the keyboard comes up with no layout named — the app asked for &quot;whatever types best here&quot;, and 320px of glass buys QWERTY.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ## The five layouts, at a glance
 
@@ -134,16 +169,87 @@ rounding accident.
 | 172x320 panel | 172 | `t9` |
 | 240x240 round | 154 (chord) | `t9` |
 
-![auto on a 480x320 window](/img/kb-auto-wide.png)
+<div class="shapes">
+  <input type="radio" name="sw-kb-auto-2" id="sw-kb-auto-2-0">
+  <label for="sw-kb-auto-2-0">
+    <img src="/img/kb-auto-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-auto-2" id="sw-kb-auto-2-1">
+  <label for="sw-kb-auto-2-1">
+    <img src="/img/kb-auto-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-auto-2" id="sw-kb-auto-2-2">
+  <label for="sw-kb-auto-2-2">
+    <img src="/img/kb-auto-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-auto-2" id="sw-kb-auto-2-3" checked>
+  <label for="sw-kb-auto-2-3">
+    <img src="/img/kb-auto-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-auto-round128.png" alt="The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.">
+      <figcaption><strong>Round, 240×240.</strong> The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd147.png" alt="The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.">
+      <figcaption><strong>Portrait, 172×320.</strong> The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd35.png" alt="The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.">
+      <figcaption><strong>Portrait, 320×480.</strong> The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-wide.png" alt="The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.">
+      <figcaption><strong>Landscape, 480×320.</strong> The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*`auto` at 480px: QWERTY with room to spare — ten columns and both
-punctuation keys on the bottom row.*
-
-![auto on 240x240 round glass](/img/kb-auto-round128.png)
-
-*`auto` on round glass picks T9 from a 154px chord, then goes full-display
-because the keys would otherwise be too short. Note the trapezoid: each row
-is inset to its own chord, and OK has moved into the bottom arc.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-0" checked>
+  <label for="sw-kb-auto-3-0">
+    <img src="/img/kb-auto-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-1">
+  <label for="sw-kb-auto-3-1">
+    <img src="/img/kb-auto-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-2">
+  <label for="sw-kb-auto-3-2">
+    <img src="/img/kb-auto-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-3">
+  <label for="sw-kb-auto-3-3">
+    <img src="/img/kb-auto-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-auto-round128.png" alt="The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.">
+      <figcaption><strong>Round, 240×240.</strong> The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd147.png" alt="The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.">
+      <figcaption><strong>Portrait, 172×320.</strong> The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd35.png" alt="The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.">
+      <figcaption><strong>Portrait, 320×480.</strong> The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-wide.png" alt="The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.">
+      <figcaption><strong>Landscape, 480×320.</strong> The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ## A named layout is honoured exactly
 
@@ -152,14 +258,87 @@ downgrade and no width check — the named layout draws, however cramped, and
 the round insets below keep even a squeezed QWERTY on the glass rather than
 under the bezel.
 
-![qwerty forced onto a 172x320 panel](/img/kb-qwerty-lcd147.png)
+<div class="shapes">
+  <input type="radio" name="sw-kb-qwerty-4" id="sw-kb-qwerty-4-0">
+  <label for="sw-kb-qwerty-4-0">
+    <img src="/img/kb-qwerty-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-qwerty-4" id="sw-kb-qwerty-4-1" checked>
+  <label for="sw-kb-qwerty-4-1">
+    <img src="/img/kb-qwerty-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-qwerty-4" id="sw-kb-qwerty-4-2">
+  <label for="sw-kb-qwerty-4-2">
+    <img src="/img/kb-qwerty-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-qwerty-4" id="sw-kb-qwerty-4-3">
+  <label for="sw-kb-qwerty-4-3">
+    <img src="/img/kb-qwerty-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-qwerty-round128.png" alt="The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.">
+      <figcaption><strong>Round, 240×240.</strong> The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd147.png" alt="The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd35.png" alt="The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-wide.png" alt="The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.">
+      <figcaption><strong>Landscape, 480×320.</strong> The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*`layout="qwerty"` on 172px of glass. Ten columns still get ten columns.
-Compare `auto` on the same panel, which chose T9.*
-
-![qwerty at the width it was drawn for](/img/kb-qwerty-wide.png)
-
-*The same layout at 480px — the width ten columns were drawn for.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-qwerty-5" id="sw-kb-qwerty-5-0">
+  <label for="sw-kb-qwerty-5-0">
+    <img src="/img/kb-qwerty-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-qwerty-5" id="sw-kb-qwerty-5-1">
+  <label for="sw-kb-qwerty-5-1">
+    <img src="/img/kb-qwerty-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-qwerty-5" id="sw-kb-qwerty-5-2">
+  <label for="sw-kb-qwerty-5-2">
+    <img src="/img/kb-qwerty-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-qwerty-5" id="sw-kb-qwerty-5-3" checked>
+  <label for="sw-kb-qwerty-5-3">
+    <img src="/img/kb-qwerty-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-qwerty-round128.png" alt="The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.">
+      <figcaption><strong>Round, 240×240.</strong> The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd147.png" alt="The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd35.png" alt="The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-wide.png" alt="The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.">
+      <figcaption><strong>Landscape, 480×320.</strong> The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.</figcaption>
+    </figure>
+  </div>
+</div>
 
 Apps that want the choice exposed can just cycle the string.
 `examples/input/app.jsx` does, with a row of chips:
@@ -275,10 +454,28 @@ h('input', { id: 'f', size: 2, placeholder: 'tap to type', label: 'SSID',
              exclusive: true })
 ```
 
-![exclusive on a panel with room to dock](/img/kb-exclusive-lcd35.png)
-
-*`exclusive={true}` on a 320x480 panel that had plenty of room to dock: the
-field is mirrored above the keys and the page behind it is gone.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-exclusive-6" id="sw-kb-exclusive-6-0">
+  <label for="sw-kb-exclusive-6-0">
+    <img src="/img/kb-exclusive-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-exclusive-6" id="sw-kb-exclusive-6-1" checked>
+  <label for="sw-kb-exclusive-6-1">
+    <img src="/img/kb-exclusive-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-exclusive-lcd147.png" alt="The auto-exclusive state: on a 172x320 panel a docked keyboard's keys land under 30px, so the keyboard takes the whole display and mirrors the focused field above the keys (the x key closes it).">
+      <figcaption><strong>Portrait, 172×320.</strong> The auto-exclusive state: on a 172x320 panel a docked keyboard's keys land under 30px, so the keyboard takes the whole display and mirrors the focused field above the keys (the x key closes it).</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-exclusive-lcd35.png" alt="exclusive={true} asks for the same takeover on a panel that had room to dock: the field is mirrored above the keys and the page behind is gone.">
+      <figcaption><strong>Portrait, 320×480.</strong> exclusive={true} asks for the same takeover on a panel that had room to dock: the field is mirrored above the keys and the page behind is gone.</figcaption>
+    </figure>
+  </div>
+</div>
 
 **Or let it trigger itself.** If the docked keys work out under a finger's
 height, docking is a fiction, so the keyboard takes the display instead:
@@ -297,11 +494,28 @@ if (!UI._exclusive && UI._focus && kh < 30) {
 30px is the threshold. A 172x320 panel asked for a keyboard of
 `gfx.height() / 2.6` crosses it on every layout.
 
-![auto-exclusive on a 172x320 panel](/img/kb-exclusive-lcd147.png)
-
-*Nobody opted in here. The panel is 172x320, the docked keys would have
-landed under 30px, so the keyboard took the display. The red `x` sends
-`Escape`, which blurs.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-exclusive-7" id="sw-kb-exclusive-7-0" checked>
+  <label for="sw-kb-exclusive-7-0">
+    <img src="/img/kb-exclusive-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-exclusive-7" id="sw-kb-exclusive-7-1">
+  <label for="sw-kb-exclusive-7-1">
+    <img src="/img/kb-exclusive-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-exclusive-lcd147.png" alt="The auto-exclusive state: on a 172x320 panel a docked keyboard's keys land under 30px, so the keyboard takes the whole display and mirrors the focused field above the keys (the x key closes it).">
+      <figcaption><strong>Portrait, 172×320.</strong> The auto-exclusive state: on a 172x320 panel a docked keyboard's keys land under 30px, so the keyboard takes the whole display and mirrors the focused field above the keys (the x key closes it).</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-exclusive-lcd35.png" alt="exclusive={true} asks for the same takeover on a panel that had room to dock: the field is mirrored above the keys and the page behind is gone.">
+      <figcaption><strong>Portrait, 320×480.</strong> exclusive={true} asks for the same takeover on a panel that had room to dock: the field is mirrored above the keys and the page behind is gone.</figcaption>
+    </figure>
+  </div>
+</div>
 
 `UI._revealFocus()` is the third route in: when a fixed field is covered by
 an overlay, or a scroll zone has less viewport left than the field is tall,
@@ -354,10 +568,46 @@ obvious target, no header chrome.
 
 ## QWERTY
 
-![qwerty at rest](/img/kb-qwerty-lcd35.png)
-
-*Three letter rows and a bottom row. The shift key and DEL bracket the
-third row; `123`, space and `OK` make up the fourth.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-qwerty-8" id="sw-kb-qwerty-8-0">
+  <label for="sw-kb-qwerty-8-0">
+    <img src="/img/kb-qwerty-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-qwerty-8" id="sw-kb-qwerty-8-1">
+  <label for="sw-kb-qwerty-8-1">
+    <img src="/img/kb-qwerty-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-qwerty-8" id="sw-kb-qwerty-8-2" checked>
+  <label for="sw-kb-qwerty-8-2">
+    <img src="/img/kb-qwerty-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-qwerty-8" id="sw-kb-qwerty-8-3">
+  <label for="sw-kb-qwerty-8-3">
+    <img src="/img/kb-qwerty-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-qwerty-round128.png" alt="The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.">
+      <figcaption><strong>Round, 240×240.</strong> The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd147.png" alt="The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd35.png" alt="The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-wide.png" alt="The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.">
+      <figcaption><strong>Landscape, 480×320.</strong> The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ### Shift is shift-once
 
@@ -444,9 +694,37 @@ the input.*
 
 ## T9
 
-![t9 at rest](/img/kb-t9-lcd35.png)
-
-*Nine character keys plus a utility row. Each key shows its **letters**
+<div class="shapes">
+  <input type="radio" name="sw-kb-t9-9" id="sw-kb-t9-9-0">
+  <label for="sw-kb-t9-9-0">
+    <img src="/img/kb-t9-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-t9-9" id="sw-kb-t9-9-1">
+  <label for="sw-kb-t9-9-1">
+    <img src="/img/kb-t9-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-t9-9" id="sw-kb-t9-9-2" checked>
+  <label for="sw-kb-t9-9-2">
+    <img src="/img/kb-t9-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-t9-round128.png" alt="The T9 layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.">
+      <figcaption><strong>Round, 240×240.</strong> The T9 layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-t9-lcd147.png" alt="The T9 layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The T9 layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-t9-lcd35.png" alt="The T9 layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The T9 layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+  </div>
+</div>
 large, with the digit as a small muted hint below — this is a text pad that
 can also do digits, not a dial pad with letters printed on it.*
 
@@ -522,10 +800,37 @@ is what tapping it repeatedly walks through. The space key keeps its own
 
 ## NUMBERS
 
-![the number pad](/img/kb-numbers-lcd35.png)
-
-*A 3x3 digit grid, then a utility row of `.`, `0` and DEL — plus `OK`,
-unless the caller has parked it elsewhere.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-numbers-10" id="sw-kb-numbers-10-0">
+  <label for="sw-kb-numbers-10-0">
+    <img src="/img/kb-numbers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-numbers-10" id="sw-kb-numbers-10-1">
+  <label for="sw-kb-numbers-10-1">
+    <img src="/img/kb-numbers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-numbers-10" id="sw-kb-numbers-10-2" checked>
+  <label for="sw-kb-numbers-10-2">
+    <img src="/img/kb-numbers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-numbers-round128.png" alt="The NUMBERS layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.">
+      <figcaption><strong>Round, 240×240.</strong> The NUMBERS layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-numbers-lcd147.png" alt="The NUMBERS layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The NUMBERS layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-numbers-lcd35.png" alt="The NUMBERS layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The NUMBERS layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ```js
 function kbNumbers(kh, okElsewhere) {
@@ -557,12 +862,37 @@ grows into the whole display with the masked field mirrored above it.*
 For glass with no room for a grid at all: one scrolling row of characters,
 drag to scroll, tap to type.
 
-![strip on a 320x480 panel](/img/kb-strip-lcd35.png)
-
-*Two rows: `abc`, the scrolling character strip and DEL on the first; the
-space bar and `OK` on the second. The strip is a horizontal scroller — a
-clipped `box` with `offX` and `contentW`, the same mechanism any horizontal
-scroll zone uses.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-strip-11" id="sw-kb-strip-11-0">
+  <label for="sw-kb-strip-11-0">
+    <img src="/img/kb-strip-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-strip-11" id="sw-kb-strip-11-1">
+  <label for="sw-kb-strip-11-1">
+    <img src="/img/kb-strip-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-strip-11" id="sw-kb-strip-11-2" checked>
+  <label for="sw-kb-strip-11-2">
+    <img src="/img/kb-strip-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-strip-round128.png" alt="STRIP on round glass. Its two rows are tall enough to stay DOCKED, and a docked panel is NOT chord-inset — so the side keys run under the rim. The four-row layouts go full-display instead, and inset.">
+      <figcaption><strong>Round, 240×240.</strong> STRIP on round glass. Its two rows are tall enough to stay DOCKED, and a docked panel is NOT chord-inset — so the side keys run under the rim. The four-row layouts go full-display instead, and inset.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-strip-lcd147.png" alt="The STRIP layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The STRIP layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-strip-lcd35.png" alt="The STRIP layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The STRIP layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+  </div>
+</div>
 
 The character set is 26 letters, ten digits and 21 punctuation marks — 57
 cells:
@@ -672,14 +1002,69 @@ and the whole row huddles in the middle, narrower than the letters above
 it. Giving the box the full display width makes the pad an inset rather
 than a shrink-wrap.
 
-![t9 on round glass](/img/kb-t9-round128.png)
+<div class="shapes">
+  <input type="radio" name="sw-kb-t9-12" id="sw-kb-t9-12-0" checked>
+  <label for="sw-kb-t9-12-0">
+    <img src="/img/kb-t9-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-t9-12" id="sw-kb-t9-12-1">
+  <label for="sw-kb-t9-12-1">
+    <img src="/img/kb-t9-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-t9-12" id="sw-kb-t9-12-2">
+  <label for="sw-kb-t9-12-2">
+    <img src="/img/kb-t9-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-t9-round128.png" alt="The T9 layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.">
+      <figcaption><strong>Round, 240×240.</strong> The T9 layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-t9-lcd147.png" alt="The T9 layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The T9 layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-t9-lcd35.png" alt="The T9 layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The T9 layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*The trapezoid. Row 1 is widest, the utility row narrowest, each inset to
-the chord it actually has.*
-
-![the number pad on round glass](/img/kb-numbers-round128.png)
-
-*The same insets on the number pad.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-numbers-13" id="sw-kb-numbers-13-0" checked>
+  <label for="sw-kb-numbers-13-0">
+    <img src="/img/kb-numbers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-numbers-13" id="sw-kb-numbers-13-1">
+  <label for="sw-kb-numbers-13-1">
+    <img src="/img/kb-numbers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-numbers-13" id="sw-kb-numbers-13-2">
+  <label for="sw-kb-numbers-13-2">
+    <img src="/img/kb-numbers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-numbers-round128.png" alt="The NUMBERS layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.">
+      <figcaption><strong>Round, 240×240.</strong> The NUMBERS layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-numbers-lcd147.png" alt="The NUMBERS layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The NUMBERS layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-numbers-lcd35.png" alt="The NUMBERS layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The NUMBERS layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ### The mirror is pushed off the top arc
 
@@ -713,16 +1098,87 @@ var okW2 = Math.min(kbChordHW(okTop, okTop + okH2) * 2, em(10));
 if (okW2 < kbLabelW('OK')) okW2 = kbLabelW('OK');
 ```
 
-![qwerty on round glass](/img/kb-qwerty-round128.png)
+<div class="shapes">
+  <input type="radio" name="sw-kb-qwerty-14" id="sw-kb-qwerty-14-0" checked>
+  <label for="sw-kb-qwerty-14-0">
+    <img src="/img/kb-qwerty-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-qwerty-14" id="sw-kb-qwerty-14-1">
+  <label for="sw-kb-qwerty-14-1">
+    <img src="/img/kb-qwerty-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-qwerty-14" id="sw-kb-qwerty-14-2">
+  <label for="sw-kb-qwerty-14-2">
+    <img src="/img/kb-qwerty-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-qwerty-14" id="sw-kb-qwerty-14-3">
+  <label for="sw-kb-qwerty-14-3">
+    <img src="/img/kb-qwerty-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-qwerty-round128.png" alt="The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.">
+      <figcaption><strong>Round, 240×240.</strong> The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd147.png" alt="The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd35.png" alt="The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-wide.png" alt="The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.">
+      <figcaption><strong>Landscape, 480×320.</strong> The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*QWERTY on round glass shows **two** OK keys — QWERTY's bottom row carries
-its own, and the arc adds one. T9 and NUMBERS pass `okElsewhere` and show
-only the arc's.*
-
-![auto on round glass](/img/kb-auto-round128.png)
-
-*`auto` here: T9, full-display, trapezoid rows, mirror pushed down off the
-top arc, OK in the bottom arc. Every rule on this page, in one frame.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-auto-15" id="sw-kb-auto-15-0" checked>
+  <label for="sw-kb-auto-15-0">
+    <img src="/img/kb-auto-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-auto-15" id="sw-kb-auto-15-1">
+  <label for="sw-kb-auto-15-1">
+    <img src="/img/kb-auto-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-auto-15" id="sw-kb-auto-15-2">
+  <label for="sw-kb-auto-15-2">
+    <img src="/img/kb-auto-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-auto-15" id="sw-kb-auto-15-3">
+  <label for="sw-kb-auto-15-3">
+    <img src="/img/kb-auto-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-auto-round128.png" alt="The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.">
+      <figcaption><strong>Round, 240×240.</strong> The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd147.png" alt="The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.">
+      <figcaption><strong>Portrait, 172×320.</strong> The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd35.png" alt="The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.">
+      <figcaption><strong>Portrait, 320×480.</strong> The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-wide.png" alt="The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.">
+      <figcaption><strong>Landscape, 480×320.</strong> The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ### STRIP is the exception
 
@@ -730,12 +1186,37 @@ STRIP has two rows, not four, so its keys stay above the 30px threshold and
 it stays **docked**. A docked panel is not chord-inset — the insets only run
 in the exclusive branch.
 
-![strip on round glass](/img/kb-strip-round128.png)
-
-*The consequence, shown rather than hidden: `abc` and `DEL` run under the
-rim, clipped to `bc` and a partial `DEL`. The four-row layouts go
-full-display and inset; this one does not. On round glass, prefer letting
-`auto` choose.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-strip-16" id="sw-kb-strip-16-0" checked>
+  <label for="sw-kb-strip-16-0">
+    <img src="/img/kb-strip-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-strip-16" id="sw-kb-strip-16-1">
+  <label for="sw-kb-strip-16-1">
+    <img src="/img/kb-strip-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-strip-16" id="sw-kb-strip-16-2">
+  <label for="sw-kb-strip-16-2">
+    <img src="/img/kb-strip-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-strip-round128.png" alt="STRIP on round glass. Its two rows are tall enough to stay DOCKED, and a docked panel is NOT chord-inset — so the side keys run under the rim. The four-row layouts go full-display instead, and inset.">
+      <figcaption><strong>Round, 240×240.</strong> STRIP on round glass. Its two rows are tall enough to stay DOCKED, and a docked panel is NOT chord-inset — so the side keys run under the rim. The four-row layouts go full-display instead, and inset.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-strip-lcd147.png" alt="The STRIP layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The STRIP layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-strip-lcd35.png" alt="The STRIP layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The STRIP layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ## A custom keyboard is just JSX
 

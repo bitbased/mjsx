@@ -63,13 +63,37 @@ Because height comes from content, a page that should fill the screen has
 to say so — `h={gfx.height()}` — and a page that should just be as tall as
 its content says nothing.
 
-![The hello example on a 320x480 panel](/img/ex-hello-lcd35.png)
-
-<a class="run-example" href="/play/#ex=hello&shape=lcd35">▶ Run <code>hello</code> in the simulator</a>
-
-*Look at the vertical extent: nothing here is given a height, so the outer
-box is exactly its two children plus the padding and the gap, and the rest
-of the panel stays background.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-hello-0" id="sw-ex-hello-0-0">
+  <label for="sw-ex-hello-0-0">
+    <img src="/img/ex-hello-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-hello-0" id="sw-ex-hello-0-1">
+  <label for="sw-ex-hello-0-1">
+    <img src="/img/ex-hello-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-hello-0" id="sw-ex-hello-0-2" checked>
+  <label for="sw-ex-hello-0-2">
+    <img src="/img/ex-hello-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-hello-round128.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Round, 240×240.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd147.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd35.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 // examples/hello/app.jsx
@@ -88,14 +112,37 @@ of the panel stays background.*
 `box` is the block container: children stack top to bottom, separated by
 `gap` (default 4). Any unknown element type renders as a box.
 
-![The counter example: a padded box holding a text and a button](/img/ex-counter-lcd35.png)
-
-<a class="run-example" href="/play/#ex=counter&shape=lcd35">▶ Run <code>counter</code> in the simulator</a>
-
-*Look at the two gaps — `em(2)` above the label from the box's own padding,
-`em(2)` between label and button from `gap` — and at the button, which is
-exactly as tall as its label plus its own padding because nothing told it
-otherwise.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-counter-1" id="sw-ex-counter-1-0">
+  <label for="sw-ex-counter-1-0">
+    <img src="/img/ex-counter-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-counter-1" id="sw-ex-counter-1-1">
+  <label for="sw-ex-counter-1-1">
+    <img src="/img/ex-counter-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-counter-1" id="sw-ex-counter-1-2" checked>
+  <label for="sw-ex-counter-1-2">
+    <img src="/img/ex-counter-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-counter-round128.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Round, 240×240.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-counter-lcd147.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-counter-lcd35.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 // examples/counter/app.jsx
@@ -591,16 +638,51 @@ unconditionally:
 if (UI.isRound()) maxOff += gfx.height() >> 2;
 ```
 
-![The same scroll zone scrolled to its end on 240x240 round glass](/img/layout-scroll-end-round128.png)
+<div class="shapes">
+  <input type="radio" name="sw-layout-scroll-end-2" id="sw-layout-scroll-end-2-0" checked>
+  <label for="sw-layout-scroll-end-2-0">
+    <img src="/img/layout-scroll-end-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-layout-scroll-end-2" id="sw-layout-scroll-end-2-1">
+  <label for="sw-layout-scroll-end-2-1">
+    <img src="/img/layout-scroll-end-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/layout-scroll-end-round128.png" alt="The round end-margin: every scroll zone on round glass gets a quarter-screen of extra range at the end, so the last rows can be lifted out of the narrow bottom arc into the wide middle.">
+      <figcaption><strong>Round, 240×240.</strong> The round end-margin: every scroll zone on round glass gets a quarter-screen of extra range at the end, so the last rows can be lifted out of the narrow bottom arc into the wide middle.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/layout-scroll-end-lcd35.png" alt="The same zone scrolled to its end on square glass, for comparison: the last row stops at the bottom edge with no extra margin.">
+      <figcaption><strong>Portrait, 320×480.</strong> The same zone scrolled to its end on square glass, for comparison: the last row stops at the bottom edge with no extra margin.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*Look at where ROW 24 stops: in the wide middle of the circle, with empty
-arc below it. Without the extra quarter-screen it would rest in the narrow
-bottom arc, where a finger cannot reach it and the row is half rim.*
-
-![The same zone scrolled to its end on the 320x480 panel](/img/layout-scroll-end-lcd35.png)
-
-*And the comparison on square glass: the last row stops flush against the
-bottom edge, with no margin, because none is added there.*
+<div class="shapes">
+  <input type="radio" name="sw-layout-scroll-end-3" id="sw-layout-scroll-end-3-0">
+  <label for="sw-layout-scroll-end-3-0">
+    <img src="/img/layout-scroll-end-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-layout-scroll-end-3" id="sw-layout-scroll-end-3-1" checked>
+  <label for="sw-layout-scroll-end-3-1">
+    <img src="/img/layout-scroll-end-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/layout-scroll-end-round128.png" alt="The round end-margin: every scroll zone on round glass gets a quarter-screen of extra range at the end, so the last rows can be lifted out of the narrow bottom arc into the wide middle.">
+      <figcaption><strong>Round, 240×240.</strong> The round end-margin: every scroll zone on round glass gets a quarter-screen of extra range at the end, so the last rows can be lifted out of the narrow bottom arc into the wide middle.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/layout-scroll-end-lcd35.png" alt="The same zone scrolled to its end on square glass, for comparison: the last row stops at the bottom edge with no extra margin.">
+      <figcaption><strong>Portrait, 320×480.</strong> The same zone scrolled to its end on square glass, for comparison: the last row stops at the bottom edge with no extra margin.</figcaption>
+    </figure>
+  </div>
+</div>
 
 `UI.isRound()` reads `configStorage`'s `'round'` key once and caches it —
 the host seeds it, and the answer never changes while running. For what
@@ -613,14 +695,55 @@ There is no z-index. **Draw order is paint order, and later-drawn wins
 hit-testing** — `UI.tap` and `_hitAt` walk `UI._hits` backwards. So an
 overlay is simply a node placed later in the tree.
 
-![The layers example: badge over the header edge, floating button over the list](/img/ex-layers-lcd35.png)
-
-<a class="run-example" href="/play/#ex=layers&shape=lcd35">▶ Run <code>layers</code> in the simulator</a>
-
-*Look at the badge straddling the header/list boundary and the `+0` button
-sitting over the scrolling list. Both are `abs` nodes written after the
-header and after the scroll box, which is the only reason they paint on top
-and stay tappable.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-layers-4" id="sw-ex-layers-4-0">
+  <label for="sw-ex-layers-4-0">
+    <img src="/img/ex-layers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-layers-4" id="sw-ex-layers-4-1">
+  <label for="sw-ex-layers-4-1">
+    <img src="/img/ex-layers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-layers-4" id="sw-ex-layers-4-2">
+  <label for="sw-ex-layers-4-2">
+    <img src="/img/ex-layers-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-layers-4" id="sw-ex-layers-4-3" checked>
+  <label for="sw-ex-layers-4-3">
+    <img src="/img/ex-layers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-ex-layers-4" id="sw-ex-layers-4-4">
+  <label for="sw-ex-layers-4-4">
+    <img src="/img/ex-layers-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-layers-round128.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Round, 240×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd147.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd169.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd35.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-wide.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 480×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 // examples/layers/app.jsx — the floating action button, last in the tree
@@ -677,14 +800,46 @@ fill it with `line` or `path` children, and it is a plotting area. Note the
 difference from `abs`: a mark's coordinates are *offsets from the flow
 position*, not screen coordinates.
 
-![The shapes example: four filled paths inside one flex box](/img/ex-shapes-lcd35.png)
-
-<a class="run-example" href="/play/#ex=shapes&shape=lcd35">▶ Run <code>shapes</code> in the simulator</a>
-
-*Look at where the shapes sit. All four are children of a single
-`<box flex={1}>` and every point is written relative to that box's top-left
-— the star at `(60, 62)`, the donut at `(175, 62)` — and they overlap
-freely because none of them consumes any of the box's height.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-shapes-5" id="sw-ex-shapes-5-0">
+  <label for="sw-ex-shapes-5-0">
+    <img src="/img/ex-shapes-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-shapes-5" id="sw-ex-shapes-5-1">
+  <label for="sw-ex-shapes-5-1">
+    <img src="/img/ex-shapes-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-shapes-5" id="sw-ex-shapes-5-2">
+  <label for="sw-ex-shapes-5-2">
+    <img src="/img/ex-shapes-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-shapes-5" id="sw-ex-shapes-5-3" checked>
+  <label for="sw-ex-shapes-5-3">
+    <img src="/img/ex-shapes-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-shapes-round128.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Round, 240×240.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-shapes-lcd147.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-shapes-lcd169.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-shapes-lcd35.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 // examples/shapes/app.jsx

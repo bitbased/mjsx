@@ -85,6 +85,20 @@ export default defineConfig({
       /* No repo link: this project is not published yet, and a dead
          "edit this page" link is worse than none. */
       customCss: ['./src/styles/mjsx.css'],
+      /* An embedded simulator measures itself and posts its height; this
+         resizes the frame to match, so a live simulator in an article never
+         has its own scrollbar and never leaves a gap. Same-origin only —
+         the message is ignored otherwise. */
+      head: [{
+        tag: 'script',
+        content:
+          "addEventListener('message',function(e){" +
+          "if(e.origin!==location.origin)return;" +
+          "var d=e.data;if(!d||d.mjsx!=='sim-height')return;" +
+          "var f=document.querySelectorAll('iframe.sim-embed');" +
+          "for(var i=0;i<f.length;i++){if(f[i].contentWindow===e.source)" +
+          "f[i].style.height=d.height+'px';}});"
+      }],
       sidebar: [
         ...group('Start here', [
           { label: 'Overview', slug: 'index' },

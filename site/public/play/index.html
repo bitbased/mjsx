@@ -106,6 +106,29 @@
   .status.ok { color:var(--ok); }
   .status.err { color:var(--err); background:var(--err-soft); white-space:pre-wrap; }
   .note { font-size:.75rem; color:var(--muted); margin:.75rem 0 0; }
+
+  /* EMBED MODE (?embed=1): the same page, inside a docs page's iframe.
+     The chrome a standalone page needs — title, standfirst, closing note —
+     is duplication once the surrounding article has said it, and the
+     height is an iframe's, so the editor cannot be 30rem tall. */
+  body.embed { background:transparent; overflow:hidden; }
+  body.embed h1, body.embed .sub, body.embed .note { display:none; }
+  body.embed .wrap { padding:.75rem; max-width:none; }
+  body.embed .bar { gap:.8rem; margin-bottom:.75rem; }
+  /* Stack much later than the standalone page does. Inside an article the
+     frame is ~700-800px wide, which is plenty for a 240-480px panel beside
+     a code pane; using the standalone 900px breakpoint made every embed
+     stack and doubled its height for no reason. */
+  body.embed .cols { gap:.9rem; grid-template-columns:1fr minmax(15rem,auto); }
+  @media (max-width:640px) { body.embed .cols { grid-template-columns:1fr; } }
+  body.embed .device { padding:.9rem; }
+  /* The editor gets a modest fixed height and scrolls inside itself; the
+     frame is then sized to the content by the host page (see the postMessage
+     below), so an embedded simulator never gets its own scrollbar. */
+  body.embed textarea { min-height:15rem; max-height:15rem; resize:none; }
+  body.embed .ed { max-height:15rem; overflow:auto; }
+  .embed-out { display:none; }
+  body.embed .embed-out { display:inline; }
   a { color:var(--accent); }
 </style>
 </head>
@@ -134,6 +157,7 @@
         <button class="btn primary" id="run">Run</button>
         <button class="btn" id="reset">Reset</button>
         <button class="btn" id="share">Copy link</button>
+        <a class="btn embed-out" id="popout" href="/play/" target="_top">Open full page \u2197</a>
       </div>
     </div>
   </div>
@@ -189,6 +213,12 @@
   var elEx = $('ex'), elShape = $('shape'), elZoom = $('zoom'), elCode = $('code');
   var elCv = $('cv'), elGlass = $('glass'), elStatus = $('status'), elGutter = $('gutter');
   var elDevInfo = $('devinfo'), elEdInfo = $('edinfo'), elHint = $('hint');
+
+  /* embed mode is a QUERY parameter, not a hash one: the hash already
+     carries the app state and a docs page must be able to set the mode
+     without fighting over it */
+  var EMBED = /[?&]embed=1\b/.test(location.search);
+  if (EMBED) document.body.classList.add('embed');
 
   var examples = [];
   var shape = SHAPES[0], zoom = 2;
@@ -281,6 +311,7 @@
          fix a typo */
     }
     drawGutter();
+    reportHeight();
   }
 
   /* one recorded pass, purely to report the frame's size in draw calls —
@@ -397,6 +428,32 @@
     say(same ? 'link copied (this example)' : 'link copied (your edited source)', 'ok');
   });
 
+  /* An iframe cannot size itself, and a fixed height is wrong on every
+     viewport but one — too short and the device is cut off, too tall and
+     the article has a hole in it. So the frame measures itself and the
+     host resizes it (site/astro.config.mjs installs the listener). */
+  var lastH = 0;
+  function reportHeight() {
+    if (!EMBED) return;
+    var el = document.querySelector('.wrap');
+    if (!el) return;
+    var h = Math.ceil(el.getBoundingClientRect().height) + 24;
+    if (Math.abs(h - lastH) < 4) return;
+    lastH = h;
+    try { parent.postMessage({ mjsx: 'sim-height', height: h }, '*'); } catch (e) {}
+  }
+  if (EMBED) {
+    window.addEventListener('resize', reportHeight);
+    if (window.ResizeObserver) {
+      new ResizeObserver(reportHeight).observe(document.querySelector('.wrap'));
+    }
+  }
+
+  function syncPopout() {
+    var a = $('popout');
+    if (a) a.href = '/play/' + location.hash;
+  }
+
   function current() {
     for (var i = 0; i < examples.length; i++) {
       if (examples[i].name === elEx.value) return examples[i];
@@ -472,6 +529,7 @@
       }
     }
     drawGutter();
+    syncPopout();
     start();
   }
 

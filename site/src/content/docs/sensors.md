@@ -23,13 +23,46 @@ rather than repeating it.
 - [Developing with no hardware](#developing-with-no-hardware)
 - [Raw pins and raw bus](#raw-pins-and-raw-bus)
 
-![The sensors example on 320x480](/img/ex-sensors-lcd35.png)
-
-<a class="run-example" href="/play/#ex=sensors&shape=lcd35">▶ Run <code>sensors</code> in the simulator</a>
-
-*`examples/sensors` on the 3.5" panel: three views of the same state —
-LEVEL, TRACE, DATA. The line under the title names the part that answered,
-or says plainly that the reading is simulated.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-sensors-0" id="sw-ex-sensors-0-0">
+  <label for="sw-ex-sensors-0-0">
+    <img src="/img/ex-sensors-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-0" id="sw-ex-sensors-0-1">
+  <label for="sw-ex-sensors-0-1">
+    <img src="/img/ex-sensors-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-sensors-0" id="sw-ex-sensors-0-2">
+  <label for="sw-ex-sensors-0-2">
+    <img src="/img/ex-sensors-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-0" id="sw-ex-sensors-0-3" checked>
+  <label for="sw-ex-sensors-0-3">
+    <img src="/img/ex-sensors-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-sensors-round128.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd147.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd169.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd35.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ## Starting the module
 
@@ -245,13 +278,46 @@ Three facts to design against:
 The probe tries `0x6B` then `0x6A` and confirms with a WHO_AM_I of `0x05`,
 so an address hit alone is never taken as a QMI8658.
 
-![The sensors example on round glass](/img/ex-sensors-round128.png)
-
-<a class="run-example" href="/play/#ex=sensors&shape=round128">▶ Run <code>sensors</code> in the simulator</a>
-
-*The LEVEL view on the round board — gravity as a bubble drifting in rings
-with a horizon line tilting by roll. It is the one view a round display
-renders better than a rectangle, because a circle is already the frame.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-sensors-1" id="sw-ex-sensors-1-0" checked>
+  <label for="sw-ex-sensors-1-0">
+    <img src="/img/ex-sensors-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-1" id="sw-ex-sensors-1-1">
+  <label for="sw-ex-sensors-1-1">
+    <img src="/img/ex-sensors-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-sensors-1" id="sw-ex-sensors-1-2">
+  <label for="sw-ex-sensors-1-2">
+    <img src="/img/ex-sensors-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-1" id="sw-ex-sensors-1-3">
+  <label for="sw-ex-sensors-1-3">
+    <img src="/img/ex-sensors-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-sensors-round128.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd147.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd169.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd35.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ## Ranges and scale factors
 
@@ -353,15 +419,46 @@ kids.push(h('box', {
 }, levelNodes(a, cx, cy, R)));
 ```
 
-![The sensors example's LEVEL view on 280x240 landscape](/img/ex-sensors-lcd169.png)
-
-<a class="run-example" href="/play/#ex=sensors">▶ Run <code>sensors</code> in the simulator</a>
-
-*The LEVEL view, and the mapping made visible: the footer's `tap:-y,-x`
-names the entry currently chosen out of `MAPS` — `MAP_DEFAULT = 7` — so
-the reading that produced the bubble and the tilted horizon can be checked
-against the axes it was drawn from. Tapping the dial advances to the next
-one and writes it to `configStorage`.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-sensors-2" id="sw-ex-sensors-2-0">
+  <label for="sw-ex-sensors-2-0">
+    <img src="/img/ex-sensors-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-2" id="sw-ex-sensors-2-1">
+  <label for="sw-ex-sensors-2-1">
+    <img src="/img/ex-sensors-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-sensors-2" id="sw-ex-sensors-2-2" checked>
+  <label for="sw-ex-sensors-2-2">
+    <img src="/img/ex-sensors-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-2" id="sw-ex-sensors-2-3">
+  <label for="sw-ex-sensors-2-3">
+    <img src="/img/ex-sensors-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-sensors-round128.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd147.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd169.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd35.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 The other trap in that view is a layout one, and it is general: **`abs` is
 page-absolute, not parent-relative.** A dial drawn at box coordinates and
@@ -445,29 +542,101 @@ when you are chasing a sensor:
   though some devices clear interrupt flags on read; a stray register write
   to the PMU is not. **Scan first, write only registers you know.**
 
-![The gpio example on 320x480](/img/ex-gpio-lcd35.png)
+<div class="shapes">
+  <input type="radio" name="sw-ex-gpio-3" id="sw-ex-gpio-3-0">
+  <label for="sw-ex-gpio-3-0">
+    <img src="/img/ex-gpio-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-gpio-3" id="sw-ex-gpio-3-1">
+  <label for="sw-ex-gpio-3-1">
+    <img src="/img/ex-gpio-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-gpio-3" id="sw-ex-gpio-3-2" checked>
+  <label for="sw-ex-gpio-3-2">
+    <img src="/img/ex-gpio-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-gpio-round128.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-gpio-lcd147.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-gpio-lcd35.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-<a class="run-example" href="/play/#ex=gpio&shape=lcd35">▶ Run <code>gpio</code> in the simulator</a>
+<div class="shapes">
+  <input type="radio" name="sw-ex-gpio-4" id="sw-ex-gpio-4-0">
+  <label for="sw-ex-gpio-4-0">
+    <img src="/img/ex-gpio-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-gpio-4" id="sw-ex-gpio-4-1" checked>
+  <label for="sw-ex-gpio-4-1">
+    <img src="/img/ex-gpio-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-gpio-4" id="sw-ex-gpio-4-2">
+  <label for="sw-ex-gpio-4-2">
+    <img src="/img/ex-gpio-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-gpio-round128.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-gpio-lcd147.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-gpio-lcd35.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-*`examples/gpio`: a pin picker, the three ops, and the firmware's refusals
-shown rather than hidden. Under the pure-js backend there is no native, so
-the app draws a labelled simulated board.*
-
-![The gpio example on the 172x320 panel](/img/ex-gpio-lcd147.png)
-
-<a class="run-example" href="/play/#ex=gpio&shape=lcd147">▶ Run <code>gpio</code> in the simulator</a>
-
-*The same page on the narrow panel — the simulated board models the 1.69"
-denylist, so the refused pins answer -1 exactly as the firmware does.*
-
-![The i2c example on 320x480](/img/ex-i2c-lcd35.png)
-
-<a class="run-example" href="/play/#ex=i2c&shape=lcd35">▶ Run <code>i2c</code> in the simulator</a>
-
-*`examples/i2c` with no `sys.i2c` present: the page is its title and one
-honest fallback line. On a board it scans 8..119 a few addresses per tick,
-so the UI stays live while it walks the bus, and a tap on a responder peeks
-registers 0..15.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-i2c-5" id="sw-ex-i2c-5-0">
+  <label for="sw-ex-i2c-5-0">
+    <img src="/img/ex-i2c-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-i2c-5" id="sw-ex-i2c-5-1">
+  <label for="sw-ex-i2c-5-1">
+    <img src="/img/ex-i2c-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-i2c-5" id="sw-ex-i2c-5-2" checked>
+  <label for="sw-ex-i2c-5-2">
+    <img src="/img/ex-i2c-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-i2c-round128.png" alt="examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing.">
+      <figcaption><strong>Round, 240×240.</strong> examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing. <a class="run-example" href="/play/#ex=i2c&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-i2c-lcd147.png" alt="examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing. <a class="run-example" href="/play/#ex=i2c&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-i2c-lcd35.png" alt="examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing. <a class="run-example" href="/play/#ex=i2c&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 The scan's shape is worth borrowing — a missing device NACKs quickly, but
 112 probes inside one tap would still stall a frame:
@@ -487,12 +656,37 @@ UI.onTick = function () {
 };
 ```
 
-![The i2c example on the 172x320 panel](/img/ex-i2c-lcd147.png)
-
-<a class="run-example" href="/play/#ex=i2c&shape=lcd147">▶ Run <code>i2c</code> in the simulator</a>
-
-*The same near-blank fallback frame on the narrow panel. A page that has
-nothing to report says so.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-i2c-6" id="sw-ex-i2c-6-0">
+  <label for="sw-ex-i2c-6-0">
+    <img src="/img/ex-i2c-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-i2c-6" id="sw-ex-i2c-6-1" checked>
+  <label for="sw-ex-i2c-6-1">
+    <img src="/img/ex-i2c-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-i2c-6" id="sw-ex-i2c-6-2">
+  <label for="sw-ex-i2c-6-2">
+    <img src="/img/ex-i2c-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-i2c-round128.png" alt="examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing.">
+      <figcaption><strong>Round, 240×240.</strong> examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing. <a class="run-example" href="/play/#ex=i2c&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-i2c-lcd147.png" alt="examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing. <a class="run-example" href="/play/#ex=i2c&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-i2c-lcd35.png" alt="examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing. <a class="run-example" href="/play/#ex=i2c&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 Related: [`hardware-api.md`](/hardware-api) for the pin and bus
 contract, [`devices.md`](/devices) for the boards and the push/OTA

@@ -1,9 +1,11 @@
 # The simulator
 
-[Open the simulator](/play/) — pick an example, edit it, and it re-runs on
-the panel beside it.
+Pick an example, edit it, and it re-runs on the panel beside it. Click and
+drag on the glass; type into it. It is running here, on this page.
 
-It is not a preview or a mock-up. The page loads the real engine
+<!-- simulator: counter -->
+
+It is not a preview or a mock-up. It loads the real engine
 (`packages/core/src/mjsx.js`), the real rasterizer every documentation
 figure is drawn with (`backends/pure-js`), and the real JSX transpiler
 (`packages/core/src/jsx.js`) that turns `<box>` into `h('box', …)` when a

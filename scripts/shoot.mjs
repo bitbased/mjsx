@@ -466,6 +466,8 @@ function runShot(spec) {
     name: spec.name,
     profile: spec.profile,
     size: { w: prof.w, h: prof.h, round: round, dpr: dpr, scale: spec.scale || 1 },
+    caption: spec.caption || undefined,
+    topic: spec.topic || undefined,
     source: spec.file || (spec.code ? '-e <inline>' : null),
     code: spec.file ? undefined : spec.code,
     actions: spec.actions && spec.actions.length ? spec.actions : undefined,

@@ -27,16 +27,51 @@ handle the rest. The page below is the same source on both shapes.
 One list, one footer, one source file. The shot script runs it unchanged
 on the 3.5" rectangle and on the round 1.28".
 
-![The SPOOLS page on 320x480 square glass](/img/round-page-lcd35.png)
+<div class="shapes">
+  <input type="radio" name="sw-round-page-0" id="sw-round-page-0-0">
+  <label for="sw-round-page-0-0">
+    <img src="/img/round-page-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-round-page-0" id="sw-round-page-0-1" checked>
+  <label for="sw-round-page-0-1">
+    <img src="/img/round-page-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/round-page-round128.png" alt="The identical source on round glass: UI.safe.inset holds the rows inside the chord, the footer follows the rim, and the corners stay empty because they do not exist.">
+      <figcaption><strong>Round, 240×240.</strong> The identical source on round glass: UI.safe.inset holds the rows inside the chord, the footer follows the rim, and the corners stay empty because they do not exist.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/round-page-lcd35.png" alt="One page, square glass: full-bleed rows, the ArcFooter riding the bottom edge.">
+      <figcaption><strong>Portrait, 320×480.</strong> One page, square glass: full-bleed rows, the ArcFooter riding the bottom edge.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*Square glass: the rows run full-bleed to the panel edges and the footer's
-three buttons flatten onto the bottom edge.*
-
-![The identical source on 240x240 round glass](/img/round-page-round128.png)
-
-*The same source on round glass: `UI.safe.inset` pulls every row inside
-the chord, the footer's buttons follow the rim instead of a straight edge,
-and the corners stay empty because there are no corners.*
+<div class="shapes">
+  <input type="radio" name="sw-round-page-1" id="sw-round-page-1-0" checked>
+  <label for="sw-round-page-1-0">
+    <img src="/img/round-page-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-round-page-1" id="sw-round-page-1-1">
+  <label for="sw-round-page-1-1">
+    <img src="/img/round-page-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/round-page-round128.png" alt="The identical source on round glass: UI.safe.inset holds the rows inside the chord, the footer follows the rim, and the corners stay empty because they do not exist.">
+      <figcaption><strong>Round, 240×240.</strong> The identical source on round glass: UI.safe.inset holds the rows inside the chord, the footer follows the rim, and the corners stay empty because they do not exist.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/round-page-lcd35.png" alt="One page, square glass: full-bleed rows, the ArcFooter riding the bottom edge.">
+      <figcaption><strong>Portrait, 320×480.</strong> One page, square glass: full-bleed rows, the ArcFooter riding the bottom edge.</figcaption>
+    </figure>
+  </div>
+</div>
 
 The whole of the shape-awareness is the first three lines
 (`scripts/shoot.mjs`, `SHAPE_PAGE` — the page these two shots run):
@@ -118,33 +153,104 @@ three sides leaves a 168px-wide band; its top corners sit
 whole rectangle is on the glass. The bottom band is 60px instead of 36
 because the footer lives there.
 
-![Fields at rest on round glass](/img/input-empty-round128.png)
-
-*A field page on round glass. The insets hold the controls in the
-rectangle the circle contains; the dark corners are the area the layout is
-deliberately refusing to use.*
+<div class="shapes">
+  <input type="radio" name="sw-input-empty-2" id="sw-input-empty-2-0" checked>
+  <label for="sw-input-empty-2-0">
+    <img src="/img/input-empty-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-input-empty-2" id="sw-input-empty-2-1">
+  <label for="sw-input-empty-2-1">
+    <img src="/img/input-empty-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/input-empty-round128.png" alt="The same field page on round glass, unfocused: the corners the layout cannot use.">
+      <figcaption><strong>Round, 240×240.</strong> The same field page on round glass, unfocused: the corners the layout cannot use.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/input-empty-lcd35.png" alt="Fields at rest: muted border, placeholder text, no caret — nothing is focused.">
+      <figcaption><strong>Portrait, 320×480.</strong> Fields at rest: muted border, placeholder text, no caret — nothing is focused.</figcaption>
+    </figure>
+  </div>
+</div>
 
 Text metrics need no round-specific handling at all — `em()` follows the
 picked font face, so a page written once relays out for the smaller panel
 with no size in the source changing:
 
-![The font page on round glass](/img/font-auto-round128.png)
-
-*The same font page as the square shots, on the circle: spacing scales
-from the face rather than from a hardcoded pixel count.*
+<div class="shapes">
+  <input type="radio" name="sw-font-auto-3" id="sw-font-auto-3-0" checked>
+  <label for="sw-font-auto-3-0">
+    <img src="/img/font-auto-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-font-auto-3" id="sw-font-auto-3-1">
+  <label for="sw-font-auto-3-1">
+    <img src="/img/font-auto-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/font-auto-round128.png" alt="The font page on round glass: em() spacing follows the picked face, so the same source lays out for the smaller panel without a size in it changing.">
+      <figcaption><strong>Round, 240×240.</strong> The font page on round glass: em() spacing follows the picked face, so the same source lays out for the smaller panel without a size in it changing.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/font-auto-lcd35.png" alt="The AUTO ladder (the default): every text size picks the sharpest native font that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.">
+      <figcaption><strong>Portrait, 320×480.</strong> The AUTO ladder (the default): every text size picks the sharpest native font that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.</figcaption>
+    </figure>
+  </div>
+</div>
 
 Modals get it for free, because their margins are minimums rather than
 fixed offsets:
 
-![A modal on 320x480](/img/comp-modal-lcd35.png)
+<div class="shapes">
+  <input type="radio" name="sw-comp-modal-4" id="sw-comp-modal-4-0">
+  <label for="sw-comp-modal-4-0">
+    <img src="/img/comp-modal-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-comp-modal-4" id="sw-comp-modal-4-1" checked>
+  <label for="sw-comp-modal-4-1">
+    <img src="/img/comp-modal-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/comp-modal-round128.png" alt="The same modal on round glass — margins are minimums, so the panel keeps clear of the rim.">
+      <figcaption><strong>Round, 240×240.</strong> The same modal on round glass — margins are minimums, so the panel keeps clear of the rim.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-modal-lcd35.png" alt="Modal: a centred panel over the page it interrupts, with sticky header and footer rows. Everything under it stops listening.">
+      <figcaption><strong>Portrait, 320×480.</strong> Modal: a centred panel over the page it interrupts, with sticky header and footer rows. Everything under it stops listening.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*Square: the panel centres in the leftover space, header and footer rows
-sticky.*
-
-![The same modal on round glass](/img/comp-modal-round128.png)
-
-*Round: the same call, the same component. Because the margins are
-minimums the panel simply keeps further clear of the rim.*
+<div class="shapes">
+  <input type="radio" name="sw-comp-modal-5" id="sw-comp-modal-5-0" checked>
+  <label for="sw-comp-modal-5-0">
+    <img src="/img/comp-modal-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-comp-modal-5" id="sw-comp-modal-5-1">
+  <label for="sw-comp-modal-5-1">
+    <img src="/img/comp-modal-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/comp-modal-round128.png" alt="The same modal on round glass — margins are minimums, so the panel keeps clear of the rim.">
+      <figcaption><strong>Round, 240×240.</strong> The same modal on round glass — margins are minimums, so the panel keeps clear of the rim.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-modal-lcd35.png" alt="Modal: a centred panel over the page it interrupts, with sticky header and footer rows. Everything under it stops listening.">
+      <figcaption><strong>Portrait, 320×480.</strong> Modal: a centred panel over the page it interrupts, with sticky header and footer rows. Everything under it stops listening.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ## The chord: how wide the glass is at a given height
 
@@ -179,36 +285,159 @@ On the 240px circle that band is 154px across, not 240. QWERTY wants ~220,
 T9 wants ~115, so the honest measurement picks T9 and the naive one would
 have picked a QWERTY whose outer columns were under the bezel.
 
-![The AUTO keyboard on round glass](/img/kb-auto-round128.png)
-
-*`auto` on round glass resolves to T9: measured against the chord where
-the keys actually land, ten columns do not fit and four do. Note also that
-the panel has taken the whole display and every row is inset differently.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-auto-6" id="sw-kb-auto-6-0" checked>
+  <label for="sw-kb-auto-6-0">
+    <img src="/img/kb-auto-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-auto-6" id="sw-kb-auto-6-1">
+  <label for="sw-kb-auto-6-1">
+    <img src="/img/kb-auto-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-auto-6" id="sw-kb-auto-6-2">
+  <label for="sw-kb-auto-6-2">
+    <img src="/img/kb-auto-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-auto-6" id="sw-kb-auto-6-3">
+  <label for="sw-kb-auto-6-3">
+    <img src="/img/kb-auto-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-auto-round128.png" alt="The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.">
+      <figcaption><strong>Round, 240×240.</strong> The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd147.png" alt="The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.">
+      <figcaption><strong>Portrait, 172×320.</strong> The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd35.png" alt="The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.">
+      <figcaption><strong>Portrait, 320×480.</strong> The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-wide.png" alt="The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.">
+      <figcaption><strong>Landscape, 480×320.</strong> The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.</figcaption>
+    </figure>
+  </div>
+</div>
 
 **Two: shaping each row.** `kbRoundRow` insets a row to the chord at its
 own height, so a round keyboard is a **trapezoid** — the bottom row is
 narrowest because it is nearest the rim, which is exactly where an un-inset
 layout puts the space bar and OK.
 
-![QWERTY on round glass](/img/kb-qwerty-round128.png)
+<div class="shapes">
+  <input type="radio" name="sw-kb-qwerty-7" id="sw-kb-qwerty-7-0" checked>
+  <label for="sw-kb-qwerty-7-0">
+    <img src="/img/kb-qwerty-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-qwerty-7" id="sw-kb-qwerty-7-1">
+  <label for="sw-kb-qwerty-7-1">
+    <img src="/img/kb-qwerty-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-qwerty-7" id="sw-kb-qwerty-7-2">
+  <label for="sw-kb-qwerty-7-2">
+    <img src="/img/kb-qwerty-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-qwerty-7" id="sw-kb-qwerty-7-3">
+  <label for="sw-kb-qwerty-7-3">
+    <img src="/img/kb-qwerty-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-qwerty-round128.png" alt="The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.">
+      <figcaption><strong>Round, 240×240.</strong> The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd147.png" alt="The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd35.png" alt="The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-wide.png" alt="The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.">
+      <figcaption><strong>Landscape, 480×320.</strong> The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*A named layout is honoured exactly, however cramped — but each row is
-still inset to its own chord. Look at the left and right edges stepping
-inward row by row: that is the trapezoid.*
-
-![The T9 pad on round glass](/img/kb-t9-round128.png)
-
-*T9 with the same row insets, and OK moved down into the bottom arc —
-space a full-width row could never have used.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-t9-8" id="sw-kb-t9-8-0" checked>
+  <label for="sw-kb-t9-8-0">
+    <img src="/img/kb-t9-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-t9-8" id="sw-kb-t9-8-1">
+  <label for="sw-kb-t9-8-1">
+    <img src="/img/kb-t9-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-t9-8" id="sw-kb-t9-8-2">
+  <label for="sw-kb-t9-8-2">
+    <img src="/img/kb-t9-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-t9-round128.png" alt="The T9 layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.">
+      <figcaption><strong>Round, 240×240.</strong> The T9 layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-t9-lcd147.png" alt="The T9 layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The T9 layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-t9-lcd35.png" alt="The T9 layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The T9 layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+  </div>
+</div>
 
 The exception proves the mechanism. A keyboard that stays **docked** is not
 chord-inset, because a docked panel is a screen-edge overlay:
 
-![STRIP on round glass](/img/kb-strip-round128.png)
-
-*STRIP's two rows are tall enough to stay docked, and a docked panel gets
-no chord inset — so its side keys run under the rim. The four-row layouts
-go full-display and inset instead.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-strip-9" id="sw-kb-strip-9-0" checked>
+  <label for="sw-kb-strip-9-0">
+    <img src="/img/kb-strip-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-strip-9" id="sw-kb-strip-9-1">
+  <label for="sw-kb-strip-9-1">
+    <img src="/img/kb-strip-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-strip-9" id="sw-kb-strip-9-2">
+  <label for="sw-kb-strip-9-2">
+    <img src="/img/kb-strip-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-strip-round128.png" alt="STRIP on round glass. Its two rows are tall enough to stay DOCKED, and a docked panel is NOT chord-inset — so the side keys run under the rim. The four-row layouts go full-display instead, and inset.">
+      <figcaption><strong>Round, 240×240.</strong> STRIP on round glass. Its two rows are tall enough to stay DOCKED, and a docked panel is NOT chord-inset — so the side keys run under the rim. The four-row layouts go full-display instead, and inset.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-strip-lcd147.png" alt="The STRIP layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The STRIP layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-strip-lcd35.png" alt="The STRIP layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The STRIP layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ## Chord-fitted rows vs one uniform width
 
@@ -231,12 +460,46 @@ var round = UI.isRound();
 var narrow = round || gfx.width() < 200;
 ```
 
-![The sensors page on round glass](/img/ex-sensors-round128.png)
-
-<a class="run-example" href="/play/#ex=sensors&shape=round128">▶ Run <code>sensors</code> in the simulator</a>
-
-*Uniform inset: every panel shares one width, so the stack reads as a
-column. Compare the stepped edges of the keyboard shots above.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-sensors-10" id="sw-ex-sensors-10-0" checked>
+  <label for="sw-ex-sensors-10-0">
+    <img src="/img/ex-sensors-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-10" id="sw-ex-sensors-10-1">
+  <label for="sw-ex-sensors-10-1">
+    <img src="/img/ex-sensors-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-sensors-10" id="sw-ex-sensors-10-2">
+  <label for="sw-ex-sensors-10-2">
+    <img src="/img/ex-sensors-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-10" id="sw-ex-sensors-10-3">
+  <label for="sw-ex-sensors-10-3">
+    <img src="/img/ex-sensors-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-sensors-round128.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd147.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd169.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd35.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 The second half of that comment is the other half of the lesson. **Narrow
 is not the same question as round.** Label truncation is a width problem,
@@ -244,12 +507,46 @@ and the 172px 1.47" rectangle hits it just as hard as the circle, so the
 example gates short labels on `round || gfx.width() < 200` rather than on
 shape alone:
 
-![The same page on the 172x320 panel](/img/ex-sensors-lcd147.png)
-
-<a class="run-example" href="/play/#ex=sensors&shape=lcd147">▶ Run <code>sensors</code> in the simulator</a>
-
-*The narrow rectangle takes the same short labels the circle does — the
-condition that chose them was width, not roundness.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-sensors-11" id="sw-ex-sensors-11-0">
+  <label for="sw-ex-sensors-11-0">
+    <img src="/img/ex-sensors-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-11" id="sw-ex-sensors-11-1" checked>
+  <label for="sw-ex-sensors-11-1">
+    <img src="/img/ex-sensors-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-sensors-11" id="sw-ex-sensors-11-2">
+  <label for="sw-ex-sensors-11-2">
+    <img src="/img/ex-sensors-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-11" id="sw-ex-sensors-11-3">
+  <label for="sw-ex-sensors-11-3">
+    <img src="/img/ex-sensors-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-sensors-round128.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd147.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd169.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd35.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ## ArcFooter: controls along the rim
 
@@ -284,20 +581,101 @@ and the default, 270 = top), `spread` (total sweep, default 120), `inset`
 (margin from the boundary, default 10 round / 8 square). Full prop notes
 live in [`components.md`](/components).
 
-![ArcFooter on round glass](/img/comp-arcfooter-round128.png)
+<div class="shapes">
+  <input type="radio" name="sw-comp-arcfooter-12" id="sw-comp-arcfooter-12-0" checked>
+  <label for="sw-comp-arcfooter-12-0">
+    <img src="/img/comp-arcfooter-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-comp-arcfooter-12" id="sw-comp-arcfooter-12-1">
+  <label for="sw-comp-arcfooter-12-1">
+    <img src="/img/comp-arcfooter-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-comp-arcfooter-12" id="sw-comp-arcfooter-12-2">
+  <label for="sw-comp-arcfooter-12-2">
+    <img src="/img/comp-arcfooter-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/comp-arcfooter-round128.png" alt="ArcFooter on round glass: five items on the bottom arc, each pulled in from the rim by its own size, all upright.">
+      <figcaption><strong>Round, 240×240.</strong> ArcFooter on round glass: five items on the bottom arc, each pulled in from the rim by its own size, all upright.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-arcfooter-lcd35.png" alt="The identical ArcFooter call on a rectangle: the boundary is the perimeter, so the arc becomes the bottom edge and a wide spread walks the corners.">
+      <figcaption><strong>Portrait, 320×480.</strong> The identical ArcFooter call on a rectangle: the boundary is the perimeter, so the arc becomes the bottom edge and a wide spread walks the corners.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-arcfooter-wide.png" alt="The same call again on a 480x320 desktop window.">
+      <figcaption><strong>Landscape, 480×320.</strong> The same call again on a 480x320 desktop window.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*Five items on the bottom arc, each pulled in from the rim by its own
-size. Every item is upright.*
+<div class="shapes">
+  <input type="radio" name="sw-comp-arcfooter-13" id="sw-comp-arcfooter-13-0">
+  <label for="sw-comp-arcfooter-13-0">
+    <img src="/img/comp-arcfooter-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-comp-arcfooter-13" id="sw-comp-arcfooter-13-1" checked>
+  <label for="sw-comp-arcfooter-13-1">
+    <img src="/img/comp-arcfooter-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-comp-arcfooter-13" id="sw-comp-arcfooter-13-2">
+  <label for="sw-comp-arcfooter-13-2">
+    <img src="/img/comp-arcfooter-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/comp-arcfooter-round128.png" alt="ArcFooter on round glass: five items on the bottom arc, each pulled in from the rim by its own size, all upright.">
+      <figcaption><strong>Round, 240×240.</strong> ArcFooter on round glass: five items on the bottom arc, each pulled in from the rim by its own size, all upright.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-arcfooter-lcd35.png" alt="The identical ArcFooter call on a rectangle: the boundary is the perimeter, so the arc becomes the bottom edge and a wide spread walks the corners.">
+      <figcaption><strong>Portrait, 320×480.</strong> The identical ArcFooter call on a rectangle: the boundary is the perimeter, so the arc becomes the bottom edge and a wide spread walks the corners.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-arcfooter-wide.png" alt="The same call again on a 480x320 desktop window.">
+      <figcaption><strong>Landscape, 480×320.</strong> The same call again on a 480x320 desktop window.</figcaption>
+    </figure>
+  </div>
+</div>
 
-![The identical call on 320x480](/img/comp-arcfooter-lcd35.png)
-
-*The identical call on a rectangle: the boundary is the perimeter, so the
-arc flattens into the bottom edge and a wide spread walks the end items
-around the corners onto the sides.*
-
-![The same call on a 480x320 window](/img/comp-arcfooter-wide.png)
-
-*And again on a landscape window — same source, same three properties.*
+<div class="shapes">
+  <input type="radio" name="sw-comp-arcfooter-14" id="sw-comp-arcfooter-14-0">
+  <label for="sw-comp-arcfooter-14-0">
+    <img src="/img/comp-arcfooter-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-comp-arcfooter-14" id="sw-comp-arcfooter-14-1">
+  <label for="sw-comp-arcfooter-14-1">
+    <img src="/img/comp-arcfooter-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-comp-arcfooter-14" id="sw-comp-arcfooter-14-2" checked>
+  <label for="sw-comp-arcfooter-14-2">
+    <img src="/img/comp-arcfooter-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/comp-arcfooter-round128.png" alt="ArcFooter on round glass: five items on the bottom arc, each pulled in from the rim by its own size, all upright.">
+      <figcaption><strong>Round, 240×240.</strong> ArcFooter on round glass: five items on the bottom arc, each pulled in from the rim by its own size, all upright.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-arcfooter-lcd35.png" alt="The identical ArcFooter call on a rectangle: the boundary is the perimeter, so the arc becomes the bottom edge and a wide spread walks the corners.">
+      <figcaption><strong>Portrait, 320×480.</strong> The identical ArcFooter call on a rectangle: the boundary is the perimeter, so the arc becomes the bottom edge and a wide spread walks the corners.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-arcfooter-wide.png" alt="The same call again on a 480x320 desktop window.">
+      <figcaption><strong>Landscape, 480×320.</strong> The same call again on a 480x320 desktop window.</figcaption>
+    </figure>
+  </div>
+</div>
 
 Two rules the pictures make concrete:
 
@@ -345,16 +723,51 @@ content already fits, because its `maxOff` is zero and without this line it
 cannot be scrolled at all — leaving its last row parked in the arc
 permanently.
 
-![A scroll zone at its end on round glass](/img/layout-scroll-end-round128.png)
+<div class="shapes">
+  <input type="radio" name="sw-layout-scroll-end-15" id="sw-layout-scroll-end-15-0" checked>
+  <label for="sw-layout-scroll-end-15-0">
+    <img src="/img/layout-scroll-end-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-layout-scroll-end-15" id="sw-layout-scroll-end-15-1">
+  <label for="sw-layout-scroll-end-15-1">
+    <img src="/img/layout-scroll-end-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/layout-scroll-end-round128.png" alt="The round end-margin: every scroll zone on round glass gets a quarter-screen of extra range at the end, so the last rows can be lifted out of the narrow bottom arc into the wide middle.">
+      <figcaption><strong>Round, 240×240.</strong> The round end-margin: every scroll zone on round glass gets a quarter-screen of extra range at the end, so the last rows can be lifted out of the narrow bottom arc into the wide middle.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/layout-scroll-end-lcd35.png" alt="The same zone scrolled to its end on square glass, for comparison: the last row stops at the bottom edge with no extra margin.">
+      <figcaption><strong>Portrait, 320×480.</strong> The same zone scrolled to its end on square glass, for comparison: the last row stops at the bottom edge with no extra margin.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*Scrolled to the end on round glass: the content has travelled past its
-natural stop, lifting the final rows out of the bottom arc into the wide
-middle.*
-
-![The same zone at its end on square glass](/img/layout-scroll-end-lcd35.png)
-
-*The same zone on square glass, for comparison: the last row stops flush
-at the bottom edge with no extra margin, because none is needed.*
+<div class="shapes">
+  <input type="radio" name="sw-layout-scroll-end-16" id="sw-layout-scroll-end-16-0">
+  <label for="sw-layout-scroll-end-16-0">
+    <img src="/img/layout-scroll-end-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-layout-scroll-end-16" id="sw-layout-scroll-end-16-1" checked>
+  <label for="sw-layout-scroll-end-16-1">
+    <img src="/img/layout-scroll-end-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/layout-scroll-end-round128.png" alt="The round end-margin: every scroll zone on round glass gets a quarter-screen of extra range at the end, so the last rows can be lifted out of the narrow bottom arc into the wide middle.">
+      <figcaption><strong>Round, 240×240.</strong> The round end-margin: every scroll zone on round glass gets a quarter-screen of extra range at the end, so the last rows can be lifted out of the narrow bottom arc into the wide middle.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/layout-scroll-end-lcd35.png" alt="The same zone scrolled to its end on square glass, for comparison: the last row stops at the bottom edge with no extra margin.">
+      <figcaption><strong>Portrait, 320×480.</strong> The same zone scrolled to its end on square glass, for comparison: the last row stops at the bottom edge with no extra margin.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ![The round SPOOLS page scrolled to its end](/img/round-page-scrolled-round128.png)
 
@@ -417,28 +830,90 @@ var okW2 = Math.min(kbChordHW(okTop, okTop + okH2) * 2, em(10));
 Because the arc was unusable space, moving OK there costs the key grid no
 height at all.
 
-![The number pad on round glass](/img/kb-numbers-round128.png)
-
-*The number pad full-display, rows inset to their chords, OK sitting alone
-in the bottom arc under them.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-numbers-17" id="sw-kb-numbers-17-0" checked>
+  <label for="sw-kb-numbers-17-0">
+    <img src="/img/kb-numbers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-numbers-17" id="sw-kb-numbers-17-1">
+  <label for="sw-kb-numbers-17-1">
+    <img src="/img/kb-numbers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-numbers-17" id="sw-kb-numbers-17-2">
+  <label for="sw-kb-numbers-17-2">
+    <img src="/img/kb-numbers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-numbers-round128.png" alt="The NUMBERS layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.">
+      <figcaption><strong>Round, 240×240.</strong> The NUMBERS layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. OK moves into the bottom arc — space a full-width row could never use.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-numbers-lcd147.png" alt="The NUMBERS layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The NUMBERS layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-numbers-lcd35.png" alt="The NUMBERS layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The NUMBERS layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+  </div>
+</div>
 
 The mirrored input in exclusive mode gets the same treatment from the other
 end — it is pushed a tenth of the display down, off the narrow top arc,
 where at `y = 0` the chord is nearly nothing.
 
-![The wifi password step on round glass](/img/ex-wifi-join-round128.png)
-
-*A real app hitting all of it at once: `examples/wifi` asks for a keyboard
-with no layout named, and on this glass that resolves to T9, takes the full
-display, and mirrors the password field above the keys.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-wifi-join-18" id="sw-ex-wifi-join-18-0" checked>
+  <label for="sw-ex-wifi-join-18-0">
+    <img src="/img/ex-wifi-join-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-wifi-join-18" id="sw-ex-wifi-join-18-1">
+  <label for="sw-ex-wifi-join-18-1">
+    <img src="/img/ex-wifi-join-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-wifi-join-round128.png" alt="The same wifi password step on round glass: the same unnamed Keyboard resolves to T9 here, and at this height it takes the whole display and mirrors the field.">
+      <figcaption><strong>Round, 240×240.</strong> The same wifi password step on round glass: the same unnamed Keyboard resolves to T9 here, and at this height it takes the whole display and mirrors the field.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-wifi-join-lcd35.png" alt="examples/wifi after tapping a secured network: the password field appears and the keyboard comes up with no layout named — the app asked for &quot;whatever types best here&quot;, and 320px of glass buys QWERTY.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/wifi after tapping a secured network: the password field appears and the keyboard comes up with no layout named — the app asked for &quot;whatever types best here&quot;, and 320px of glass buys QWERTY.</figcaption>
+    </figure>
+  </div>
+</div>
 
 **Everything else goes on an arc.** `at: 90` is the bottom arc (the
 default), `at: 270` the top. Buttons need no round variant to sit there:
 
-![Buttons on round glass](/img/comp-button-round128.png)
-
-*The standard `Button` on round glass — the same component, the same
-`hitPad` growing the touch target past the paint.*
+<div class="shapes">
+  <input type="radio" name="sw-comp-button-19" id="sw-comp-button-19-0" checked>
+  <label for="sw-comp-button-19-0">
+    <img src="/img/comp-button-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-comp-button-19" id="sw-comp-button-19-1">
+  <label for="sw-comp-button-19-1">
+    <img src="/img/comp-button-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/comp-button-round128.png" alt="The same button page on round glass.">
+      <figcaption><strong>Round, 240×240.</strong> The same button page on round glass.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-button-lcd35.png" alt="Button: the default key colour, the theme colours passed as bg, and a small button whose hitPad grows the touch target past the paint (the outlined box).">
+      <figcaption><strong>Portrait, 320×480.</strong> Button: the default key colour, the theme colours passed as bg, and a small button whose hitPad grows the touch target past the paint (the outlined box).</figcaption>
+    </figure>
+  </div>
+</div>
 
 **Exit is the edge-back swipe**, not a control. That is the trade the
 section above buys: no rim space spent on a close affordance, and the
@@ -460,12 +935,37 @@ this page has a square counterpart generated from identical source, and
 that is the point: round is a shape the layout absorbs, not a fork of the
 app.
 
-![hello on round glass](/img/ex-hello-round128.png)
-
-<a class="run-example" href="/play/#ex=hello&shape=round128">▶ Run <code>hello</code> in the simulator</a>
-
-*The smallest example, unmodified, on the circle — the baseline that
-everything above is protecting.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-hello-20" id="sw-ex-hello-20-0" checked>
+  <label for="sw-ex-hello-20-0">
+    <img src="/img/ex-hello-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-hello-20" id="sw-ex-hello-20-1">
+  <label for="sw-ex-hello-20-1">
+    <img src="/img/ex-hello-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-hello-20" id="sw-ex-hello-20-2">
+  <label for="sw-ex-hello-20-2">
+    <img src="/img/ex-hello-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-hello-round128.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Round, 240×240.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd147.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd35.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 Related: [`ui.md`](/ui) for `UI.safe` and scroll zones,
 [`components.md`](/components) for `ArcFooter` and `Keyboard` props,

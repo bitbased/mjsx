@@ -2,10 +2,12 @@
 title: "The simulator"
 description: "Edit an example and run it, on the real engine, in the browser."
 ---
-<!-- GENERATED from docs/simulator.md by scripts/docs-sync.mjs. Edit that file. -->[Open the simulator](/play/) — pick an example, edit it, and it re-runs on
-the panel beside it.
+<!-- GENERATED from docs/simulator.md by scripts/docs-sync.mjs. Edit that file. -->Pick an example, edit it, and it re-runs on the panel beside it. Click and
+drag on the glass; type into it. It is running here, on this page.
 
-It is not a preview or a mock-up. The page loads the real engine
+<iframe class="sim-embed" src="/play/?embed=1#ex=counter" title="mjsx simulator running the counter example" loading="lazy"></iframe>
+
+It is not a preview or a mock-up. It loads the real engine
 (`packages/core/src/mjsx.js`), the real rasterizer every documentation
 figure is drawn with (`backends/pure-js`), and the real JSX transpiler
 (`packages/core/src/jsx.js`) that turns `<box>` into `h('box', …)` when a

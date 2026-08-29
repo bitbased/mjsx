@@ -20,34 +20,34 @@ all decided from the room available.
 <div class="shapes">
   <input type="radio" name="shape-input" id="shape-input-round" checked>
   <label for="shape-input-round">
-    <img src="./img/shape-input-round128-round128.png" alt="">
+    <img src="/img/shape-input-round128-round128.png" alt="">
     round<br>240×240
   </label>
   <input type="radio" name="shape-input" id="shape-input-portrait">
   <label for="shape-input-portrait">
-    <img src="./img/shape-input-lcd169p-lcd169p.png" alt="">
+    <img src="/img/shape-input-lcd169p-lcd169p.png" alt="">
     portrait<br>240×280
   </label>
   <input type="radio" name="shape-input" id="shape-input-narrowp">
   <label for="shape-input-narrowp">
-    <img src="./img/shape-input-lcd147-lcd147.png" alt="">
+    <img src="/img/shape-input-lcd147-lcd147.png" alt="">
     narrow<br>172×320
   </label>
   <input type="radio" name="shape-input" id="shape-input-landscape">
   <label for="shape-input-landscape">
-    <img src="./img/shape-input-lcd147l-lcd147l.png" alt="">
+    <img src="/img/shape-input-lcd147l-lcd147l.png" alt="">
     landscape<br>320×172
   </label>
 
   <input type="radio" name="shape-input" id="shape-input-large">
   <label for="shape-input-large">
-    <img src="./img/shape-input-lcd35l-lcd35l.png" alt="">
+    <img src="/img/shape-input-lcd35l-lcd35l.png" alt="">
     large<br>480×320
   </label>
 
   <div class="shape-panels">
     <figure>
-      <img src="./img/shape-input-round128-round128.png"
+      <img src="/img/shape-input-round128-round128.png"
            alt="The input example on a 240 by 240 round display">
       <figcaption>
         <strong>Round, 240×240 (1.28″).</strong> Auto picks T9: the circle
@@ -59,7 +59,7 @@ all decided from the room available.
       </figcaption>
     </figure>
     <figure>
-      <img src="./img/shape-input-lcd169p-lcd169p.png"
+      <img src="/img/shape-input-lcd169p-lcd169p.png"
            alt="The input example on a 240 by 280 portrait display">
       <figcaption>
         <strong>Portrait, 240×280 (1.69″).</strong> The shape the examples
@@ -69,7 +69,7 @@ all decided from the room available.
       </figcaption>
     </figure>
     <figure>
-      <img src="./img/shape-input-lcd147-lcd147.png"
+      <img src="/img/shape-input-lcd147-lcd147.png"
            alt="The input example on a 172 by 320 narrow portrait display">
       <figcaption>
         <strong>Narrow portrait, 172×320 (1.47″).</strong> 172px is under
@@ -79,7 +79,7 @@ all decided from the room available.
       </figcaption>
     </figure>
     <figure>
-      <img src="./img/shape-input-lcd147l-lcd147l.png"
+      <img src="/img/shape-input-lcd147l-lcd147l.png"
            alt="The input example on a 320 by 172 landscape display">
       <figcaption>
         <strong>Landscape, 320×172 (1.47″ sideways).</strong> Wide enough
@@ -90,7 +90,7 @@ all decided from the room available.
       </figcaption>
     </figure>
     <figure>
-      <img src="./img/shape-input-lcd35l-lcd35l.png"
+      <img src="/img/shape-input-lcd35l-lcd35l.png"
            alt="The input example on a 480 by 320 landscape display">
       <figcaption>
         <strong>Large landscape, 480×320 (3.5″ sideways).</strong> The

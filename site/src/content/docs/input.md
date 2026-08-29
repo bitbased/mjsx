@@ -38,16 +38,51 @@ For the keyboard that usually sits below the field, see
 <input id="name" size={2} placeholder="tap to type" />
 ```
 
-![three fields, none focused](/img/input-empty-lcd35.png)
+<div class="shapes">
+  <input type="radio" name="sw-input-empty-0" id="sw-input-empty-0-0">
+  <label for="sw-input-empty-0-0">
+    <img src="/img/input-empty-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-input-empty-0" id="sw-input-empty-0-1" checked>
+  <label for="sw-input-empty-0-1">
+    <img src="/img/input-empty-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/input-empty-round128.png" alt="The same field page on round glass, unfocused: the corners the layout cannot use.">
+      <figcaption><strong>Round, 240×240.</strong> The same field page on round glass, unfocused: the corners the layout cannot use.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/input-empty-lcd35.png" alt="Fields at rest: muted border, placeholder text, no caret — nothing is focused.">
+      <figcaption><strong>Portrait, 320×480.</strong> Fields at rest: muted border, placeholder text, no caret — nothing is focused.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*At rest: a `UI.theme.key` fill, a muted border, placeholder text in
-`UI.theme.muted`, and no caret. Nothing is focused.*
-
-![the first field focused](/img/input-focused-lcd35.png)
-
-*Focused: the border becomes `UI.theme.accent`, the placeholder is gone,
-and the caret sits at the insertion point. The caret blinks on a 530ms
-half-period, timed from the last edit rather than a global clock.*
+<div class="shapes">
+  <input type="radio" name="sw-input-focused-1" id="sw-input-focused-1-0">
+  <label for="sw-input-focused-1-0">
+    <img src="/img/input-focused-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-input-focused-1" id="sw-input-focused-1-1" checked>
+  <label for="sw-input-focused-1-1">
+    <img src="/img/input-focused-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/input-focused-lcd147.png" alt="A focused field on the 172x320 panel — the narrowest glass in the fleet.">
+      <figcaption><strong>Portrait, 172×320.</strong> A focused field on the 172x320 panel — the narrowest glass in the fleet.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/input-focused-lcd35.png" alt="The focused field: accent border, caret at the insertion point, placeholder gone.">
+      <figcaption><strong>Portrait, 320×480.</strong> The focused field: accent border, caret at the insertion point, placeholder gone.</figcaption>
+    </figure>
+  </div>
+</div>
 
 The whole page above is seven nodes:
 
@@ -63,15 +98,51 @@ h('box', { h: gfx.height(), pad: em(1), gap: em(0.75) }, [
 ])
 ```
 
-![the same page on 172x320](/img/input-focused-lcd147.png)
+<div class="shapes">
+  <input type="radio" name="sw-input-focused-2" id="sw-input-focused-2-0" checked>
+  <label for="sw-input-focused-2-0">
+    <img src="/img/input-focused-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-input-focused-2" id="sw-input-focused-2-1">
+  <label for="sw-input-focused-2-1">
+    <img src="/img/input-focused-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/input-focused-lcd147.png" alt="A focused field on the 172x320 panel — the narrowest glass in the fleet.">
+      <figcaption><strong>Portrait, 172×320.</strong> A focused field on the 172x320 panel — the narrowest glass in the fleet.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/input-focused-lcd35.png" alt="The focused field: accent border, caret at the insertion point, placeholder gone.">
+      <figcaption><strong>Portrait, 320×480.</strong> The focused field: accent border, caret at the insertion point, placeholder gone.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*The same source on the narrowest glass in the fleet, 172x320. The field
-takes the width it is given; nothing about the source changed.*
-
-![the same page on round glass](/img/input-empty-round128.png)
-
-*And on 240x240 round glass. The corners are simply not there to lay out
-into.*
+<div class="shapes">
+  <input type="radio" name="sw-input-empty-3" id="sw-input-empty-3-0" checked>
+  <label for="sw-input-empty-3-0">
+    <img src="/img/input-empty-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-input-empty-3" id="sw-input-empty-3-1">
+  <label for="sw-input-empty-3-1">
+    <img src="/img/input-empty-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/input-empty-round128.png" alt="The same field page on round glass, unfocused: the corners the layout cannot use.">
+      <figcaption><strong>Round, 240×240.</strong> The same field page on round glass, unfocused: the corners the layout cannot use.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/input-empty-lcd35.png" alt="Fields at rest: muted border, placeholder text, no caret — nothing is focused.">
+      <figcaption><strong>Portrait, 320×480.</strong> Fields at rest: muted border, placeholder text, no caret — nothing is focused.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ## Prop reference
 
@@ -342,9 +413,28 @@ Because a submit is just the `Enter` key, any control can raise one. From
 </row>
 ```
 
-![the wifi password step](/img/ex-wifi-join-lcd35.png)
-
-*The field, its JOIN button and the keyboard the focus summoned.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-wifi-join-4" id="sw-ex-wifi-join-4-0">
+  <label for="sw-ex-wifi-join-4-0">
+    <img src="/img/ex-wifi-join-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-wifi-join-4" id="sw-ex-wifi-join-4-1" checked>
+  <label for="sw-ex-wifi-join-4-1">
+    <img src="/img/ex-wifi-join-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-wifi-join-round128.png" alt="The same wifi password step on round glass: the same unnamed Keyboard resolves to T9 here, and at this height it takes the whole display and mirrors the field.">
+      <figcaption><strong>Round, 240×240.</strong> The same wifi password step on round glass: the same unnamed Keyboard resolves to T9 here, and at this height it takes the whole display and mirrors the field.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-wifi-join-lcd35.png" alt="examples/wifi after tapping a secured network: the password field appears and the keyboard comes up with no layout named — the app asked for &quot;whatever types best here&quot;, and 320px of glass buys QWERTY.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/wifi after tapping a secured network: the password field appears and the keyboard comes up with no layout named — the app asked for &quot;whatever types best here&quot;, and 320px of glass buys QWERTY.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ## Focus: order, Tab, arrows, scroll-into-view
 
@@ -416,13 +506,46 @@ var visBot = z.y + z.h < gh ? z.y + z.h : gh;
 <Field id="tag" label="TAG (tab reaches me below the fold)" />
 ```
 
-![the input example, whole](/img/ex-input-lcd35.png)
-
-<a class="run-example" href="/play/#ex=input&shape=lcd35">▶ Run <code>input</code> in the simulator</a>
-
-*The full example: layout chips, a scrolling form of fields, and the
-keyboard docked below. Tab walks the fields in the order they appear, not
-the order they happen to be on screen.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-input-5" id="sw-ex-input-5-0">
+  <label for="sw-ex-input-5-0">
+    <img src="/img/ex-input-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-input-5" id="sw-ex-input-5-1">
+  <label for="sw-ex-input-5-1">
+    <img src="/img/ex-input-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-input-5" id="sw-ex-input-5-2">
+  <label for="sw-ex-input-5-2">
+    <img src="/img/ex-input-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-input-5" id="sw-ex-input-5-3" checked>
+  <label for="sw-ex-input-5-3">
+    <img src="/img/ex-input-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-input-round128.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Round, 240×240.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd147.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd169.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd35.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 `focusable={false}` opts a field out of the cycle entirely. The
 full-display keyboard's mirror uses it, so a takeover does not double every
@@ -437,10 +560,28 @@ that field has focus:
 <Field id="full" label="FULL (exclusive: keyboard takes the display)" exclusive={true} />
 ```
 
-![exclusive on a panel with room to dock](/img/kb-exclusive-lcd35.png)
-
-*A 320x480 panel with plenty of room to dock, taken over anyway because the
-field asked. The page behind is gone; the field is mirrored above the keys.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-exclusive-6" id="sw-kb-exclusive-6-0">
+  <label for="sw-kb-exclusive-6-0">
+    <img src="/img/kb-exclusive-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-exclusive-6" id="sw-kb-exclusive-6-1" checked>
+  <label for="sw-kb-exclusive-6-1">
+    <img src="/img/kb-exclusive-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-exclusive-lcd147.png" alt="The auto-exclusive state: on a 172x320 panel a docked keyboard's keys land under 30px, so the keyboard takes the whole display and mirrors the focused field above the keys (the x key closes it).">
+      <figcaption><strong>Portrait, 172×320.</strong> The auto-exclusive state: on a 172x320 panel a docked keyboard's keys land under 30px, so the keyboard takes the whole display and mirrors the focused field above the keys (the x key closes it).</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-exclusive-lcd35.png" alt="exclusive={true} asks for the same takeover on a panel that had room to dock: the field is mirrored above the keys and the page behind is gone.">
+      <figcaption><strong>Portrait, 320×480.</strong> exclusive={true} asks for the same takeover on a panel that had room to dock: the field is mirrored above the keys and the page behind is gone.</figcaption>
+    </figure>
+  </div>
+</div>
 
 The engine also sets the flag itself, in two situations, both of which mean
 *no amount of scrolling can help*:
@@ -597,23 +738,128 @@ same `Backspace` a physical board sends, `OK` fires the field's `onSubmit`
 by sending `Enter`, and the digits insert at the caret and respect the
 field's `maxLen: 6`.
 
-![the input example on 172x320](/img/ex-input-lcd147.png)
+<div class="shapes">
+  <input type="radio" name="sw-ex-input-7" id="sw-ex-input-7-0">
+  <label for="sw-ex-input-7-0">
+    <img src="/img/ex-input-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-input-7" id="sw-ex-input-7-1" checked>
+  <label for="sw-ex-input-7-1">
+    <img src="/img/ex-input-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-input-7" id="sw-ex-input-7-2">
+  <label for="sw-ex-input-7-2">
+    <img src="/img/ex-input-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-input-7" id="sw-ex-input-7-3">
+  <label for="sw-ex-input-7-3">
+    <img src="/img/ex-input-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-input-round128.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Round, 240×240.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd147.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd169.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd35.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-<a class="run-example" href="/play/#ex=input&shape=lcd147">▶ Run <code>input</code> in the simulator</a>
+<div class="shapes">
+  <input type="radio" name="sw-ex-input-8" id="sw-ex-input-8-0" checked>
+  <label for="sw-ex-input-8-0">
+    <img src="/img/ex-input-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-input-8" id="sw-ex-input-8-1">
+  <label for="sw-ex-input-8-1">
+    <img src="/img/ex-input-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-input-8" id="sw-ex-input-8-2">
+  <label for="sw-ex-input-8-2">
+    <img src="/img/ex-input-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-input-8" id="sw-ex-input-8-3">
+  <label for="sw-ex-input-8-3">
+    <img src="/img/ex-input-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-input-round128.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Round, 240×240.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd147.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd169.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd35.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-*The same source on 172x320.*
-
-![the input example on round glass](/img/ex-input-round128.png)
-
-<a class="run-example" href="/play/#ex=input&shape=round128">▶ Run <code>input</code> in the simulator</a>
-
-*And on 240x240 round glass.*
-
-![the input example on 280x240](/img/ex-input-lcd169.png)
-
-<a class="run-example" href="/play/#ex=input">▶ Run <code>input</code> in the simulator</a>
-
-*And on a 280x240 landscape panel. One source, four shapes.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-input-9" id="sw-ex-input-9-0">
+  <label for="sw-ex-input-9-0">
+    <img src="/img/ex-input-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-input-9" id="sw-ex-input-9-1">
+  <label for="sw-ex-input-9-1">
+    <img src="/img/ex-input-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-input-9" id="sw-ex-input-9-2" checked>
+  <label for="sw-ex-input-9-2">
+    <img src="/img/ex-input-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-input-9" id="sw-ex-input-9-3">
+  <label for="sw-ex-input-9-3">
+    <img src="/img/ex-input-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-input-round128.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Round, 240×240.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd147.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd169.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd35.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 If a custom keyboard overlays the page rather than flowing inline, it
 should do the two things the built-in one does: set `shield: true` on its

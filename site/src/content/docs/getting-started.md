@@ -7,6 +7,12 @@ that same file running on real glass. Everything here runs with
 [bun](https://bun.sh); there are no required dependencies, and nothing
 below needs a device until the last step.
 
+Everything below runs on real hardware — but you can try it right now,
+without any, on the panel here. Edit the code and it re-runs.
+
+<iframe class="sim-embed" src="/play/?embed=1#ex=hello" title="mjsx simulator running the hello example" loading="lazy"></iframe>
+
+
 ## 1. Install, and run an example
 
 ```
@@ -24,15 +30,55 @@ menu, q quits):
 bun run examples
 ```
 
-![](/img/ex-layers-lcd35.png)
-
-<a class="run-example" href="/play/#ex=layers&shape=lcd35">▶ Run <code>layers</code> in the simulator</a>
-
-*`examples/layers`, one of the fourteen the picker offers. The header,
-the `badge` over its right end, the floating `+0` and the footer all stay
-put; the list crops between them. Shown here rendered headlessly at
-320x480 — the terminal draws the same frame with half-block cells, at
-whatever size your window is.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-layers-0" id="sw-ex-layers-0-0">
+  <label for="sw-ex-layers-0-0">
+    <img src="/img/ex-layers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-layers-0" id="sw-ex-layers-0-1">
+  <label for="sw-ex-layers-0-1">
+    <img src="/img/ex-layers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-layers-0" id="sw-ex-layers-0-2">
+  <label for="sw-ex-layers-0-2">
+    <img src="/img/ex-layers-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-layers-0" id="sw-ex-layers-0-3" checked>
+  <label for="sw-ex-layers-0-3">
+    <img src="/img/ex-layers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-ex-layers-0" id="sw-ex-layers-0-4">
+  <label for="sw-ex-layers-0-4">
+    <img src="/img/ex-layers-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-layers-round128.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Round, 240×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd147.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd169.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd35.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-wide.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 480×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 For a window that looks like the hardware — plus a live browser mirror at
 `http://localhost:8080` — use the CLI's dev command:
@@ -41,13 +87,55 @@ For a window that looks like the hardware — plus a live browser mirror at
 bun packages/cli/bin/mjsx.js dev counter
 ```
 
-![](/img/ex-layers-wide.png)
-
-<a class="run-example" href="/play/#ex=layers">▶ Run <code>layers</code> in the simulator</a>
-
-*The same example in a 480x320 desktop window. There is no file watcher:
-the sim re-reads an example from disk each time it loads one, so after an
-edit press RESTART in its toolbar (or Esc, then pick it again).*
+<div class="shapes">
+  <input type="radio" name="sw-ex-layers-1" id="sw-ex-layers-1-0">
+  <label for="sw-ex-layers-1-0">
+    <img src="/img/ex-layers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-layers-1" id="sw-ex-layers-1-1">
+  <label for="sw-ex-layers-1-1">
+    <img src="/img/ex-layers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-layers-1" id="sw-ex-layers-1-2">
+  <label for="sw-ex-layers-1-2">
+    <img src="/img/ex-layers-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-layers-1" id="sw-ex-layers-1-3">
+  <label for="sw-ex-layers-1-3">
+    <img src="/img/ex-layers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-ex-layers-1" id="sw-ex-layers-1-4" checked>
+  <label for="sw-ex-layers-1-4">
+    <img src="/img/ex-layers-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-layers-round128.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Round, 240×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd147.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd169.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd35.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-wide.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 480×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 Two things worth knowing early: `mjsx dev` loads the **bundled examples
 only** — it takes a name (`counter`) or a path inside `examples/` — and
@@ -104,15 +192,37 @@ bun packages/cli/bin/mjsx.js run app.jsx                        # into this term
 bun packages/cli/bin/mjsx.js run app.jsx --ppm app.ppm --size 320x480
 ```
 
-![](/img/ex-hello-lcd35.png)
-
-<a class="run-example" href="/play/#ex=hello&shape=lcd35">▶ Run <code>hello</code> in the simulator</a>
-
-*What that file draws, at 320x480: the outer `box` pads the screen, the
-inner one paints the panel colour with a 2px accent border and an 8px
-radius, and the two `text` lines centre inside it. Nothing is positioned
-in pixels — `em(2)` is two line-heights of whatever font the host draws
-with.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-hello-2" id="sw-ex-hello-2-0">
+  <label for="sw-ex-hello-2-0">
+    <img src="/img/ex-hello-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-hello-2" id="sw-ex-hello-2-1">
+  <label for="sw-ex-hello-2-1">
+    <img src="/img/ex-hello-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-hello-2" id="sw-ex-hello-2-2" checked>
+  <label for="sw-ex-hello-2-2">
+    <img src="/img/ex-hello-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-hello-round128.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Round, 240×240.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd147.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd35.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 Unlike `mjsx dev`, `mjsx run` takes any path, so this is the loop for
 your own files. `--ppm` writes exactly the path you give it and does not
@@ -140,15 +250,37 @@ function App() {
 UI.mount(App);
 ```
 
-![](/img/ex-counter-lcd35.png)
-
-<a class="run-example" href="/play/#ex=counter&shape=lcd35">▶ Run <code>counter</code> in the simulator</a>
-
-*`examples/counter` at rest — `COUNT: 0`, and one control. Tapping `+1`
-runs the handler, `UI.set` marks the frame dirty, and the whole screen is
-drawn again with the new number. `Button` is not special: it is a rounded
-`box` with a centred label, built from the primitives your app already
-has, and every one of its props has a default.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-counter-3" id="sw-ex-counter-3-0">
+  <label for="sw-ex-counter-3-0">
+    <img src="/img/ex-counter-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-counter-3" id="sw-ex-counter-3-1">
+  <label for="sw-ex-counter-3-1">
+    <img src="/img/ex-counter-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-counter-3" id="sw-ex-counter-3-2" checked>
+  <label for="sw-ex-counter-3-2">
+    <img src="/img/ex-counter-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-counter-round128.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Round, 240×240.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-counter-lcd147.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-counter-lcd35.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 Note the ES5: `var`, not `let`; `function () {}`, not `=>`; string
 concatenation, not template literals. The core file runs on MicroQuickJS
@@ -192,21 +324,69 @@ bun packages/cli/bin/mjsx.js dev counter 240 240 3 --circle
 (`dev` takes the sim's own arguments after the example name — width,
 height, window scale — and passes every `--flag` straight through.)
 
-![](/img/ex-counter-lcd147.png)
+<div class="shapes">
+  <input type="radio" name="sw-ex-counter-4" id="sw-ex-counter-4-0">
+  <label for="sw-ex-counter-4-0">
+    <img src="/img/ex-counter-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-counter-4" id="sw-ex-counter-4-1" checked>
+  <label for="sw-ex-counter-4-1">
+    <img src="/img/ex-counter-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-counter-4" id="sw-ex-counter-4-2">
+  <label for="sw-ex-counter-4-2">
+    <img src="/img/ex-counter-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-counter-round128.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Round, 240×240.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-counter-lcd147.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-counter-lcd35.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-<a class="run-example" href="/play/#ex=counter&shape=lcd147">▶ Run <code>counter</code> in the simulator</a>
-
-*The counter on the 1.47" panel, 172x320 — the narrowest glass in the
-fleet, where `COUNT: 0` at size 3 very nearly fills the width.*
-
-![](/img/ex-counter-round128.png)
-
-<a class="run-example" href="/play/#ex=counter&shape=round128">▶ Run <code>counter</code> in the simulator</a>
-
-*And on the round 1.28" board, 240x240. It survives, but look at the ends
-of the `+1` bar: a full-width row runs out to where the rim cuts it.
-Nothing in this file asks about the glass, and until it does, nothing
-adapts — that is what [round.md](/round) is for.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-counter-5" id="sw-ex-counter-5-0" checked>
+  <label for="sw-ex-counter-5-0">
+    <img src="/img/ex-counter-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-counter-5" id="sw-ex-counter-5-1">
+  <label for="sw-ex-counter-5-1">
+    <img src="/img/ex-counter-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-counter-5" id="sw-ex-counter-5-2">
+  <label for="sw-ex-counter-5-2">
+    <img src="/img/ex-counter-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-counter-round128.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Round, 240×240.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-counter-lcd147.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-counter-lcd35.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ## 5. Put it on a device
 
@@ -229,13 +409,37 @@ The bundler also runs the step-3 subset check on your source before it
 transforms anything, so a stray `let` fails on your machine rather than
 on a board with no console.
 
-![](/img/ex-hello-round128.png)
-
-<a class="run-example" href="/play/#ex=hello&shape=round128">▶ Run <code>hello</code> in the simulator</a>
-
-*The file from step 2, unchanged, on the round board — the same thirteen
-lines, with the panel's top corners crossing the rim because it never
-asked.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-hello-6" id="sw-ex-hello-6-0" checked>
+  <label for="sw-ex-hello-6-0">
+    <img src="/img/ex-hello-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-hello-6" id="sw-ex-hello-6-1">
+  <label for="sw-ex-hello-6-1">
+    <img src="/img/ex-hello-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-hello-6" id="sw-ex-hello-6-2">
+  <label for="sw-ex-hello-6-2">
+    <img src="/img/ex-hello-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-hello-round128.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Round, 240×240.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd147.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd35.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 A fresh board needs credentials first, and typing a passphrase into 172px
 of glass is no way to live — `mjsx device wifi <port|auto>` provisions
@@ -256,16 +460,45 @@ makes on-hardware development bearable, are in
 | Reach pins, buses and sensors | [hardware-api.md](/hardware-api), [sensors.md](/sensors) |
 | Write a backend of your own | [contract.md](/contract), [consistency.md](/consistency) |
 
-![](/img/ex-input-lcd35.png)
-
-<a class="run-example" href="/play/#ex=input&shape=lcd35">▶ Run <code>input</code> in the simulator</a>
-
-*Where most apps go next: `examples/input`, at rest with nothing focused.
-The chips across the top pick the keyboard layout, and each field below
-demonstrates one thing — a placeholder, a custom PinPad, text that
-scrolls inside the field, a field below the fold that Tab still reaches,
-one that takes the whole display. The keyboard appears when a field is
-focused, and every key it sends arrives the same way a physical one does:
-`UI.key('press', name)`.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-input-7" id="sw-ex-input-7-0">
+  <label for="sw-ex-input-7-0">
+    <img src="/img/ex-input-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-input-7" id="sw-ex-input-7-1">
+  <label for="sw-ex-input-7-1">
+    <img src="/img/ex-input-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-input-7" id="sw-ex-input-7-2">
+  <label for="sw-ex-input-7-2">
+    <img src="/img/ex-input-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-input-7" id="sw-ex-input-7-3" checked>
+  <label for="sw-ex-input-7-3">
+    <img src="/img/ex-input-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-input-round128.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Round, 240×240.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd147.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd169.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-input-lcd35.png" alt="examples/input — Text input, every way in at once.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/input — Text input, every way in at once. <a class="run-example" href="/play/#ex=input&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 The full index, with pictures of every area, is [README.md](/).

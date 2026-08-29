@@ -5,6 +5,12 @@ that same file running on real glass. Everything here runs with
 [bun](https://bun.sh); there are no required dependencies, and nothing
 below needs a device until the last step.
 
+Everything below runs on real hardware — but you can try it right now,
+without any, on the panel here. Edit the code and it re-runs.
+
+<!-- simulator: hello -->
+
+
 ## 1. Install, and run an example
 
 ```

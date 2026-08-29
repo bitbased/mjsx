@@ -61,11 +61,28 @@ number child renders as a size-1 line and measures `FONT.lineH` — the raw
 field, not `flh(1)`. With the ladder installed that is 8px where
 `<text size={1}>` measures 6. Use a `text` node when the height matters.
 
-![The fonts example on a 320x480 panel with the AUTO ladder](/img/font-auto-lcd35.png)
-
-*Look at the three SIZE panels: they are not one face scaled three times.
-Size 1, size 2 and size 3 are three different faces, each drawn at 1x. The
-`1EM = 8PX` line under the title is the example printing `em(1)` itself.*
+<div class="shapes">
+  <input type="radio" name="sw-font-auto-0" id="sw-font-auto-0-0">
+  <label for="sw-font-auto-0-0">
+    <img src="/img/font-auto-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-font-auto-0" id="sw-font-auto-0-1" checked>
+  <label for="sw-font-auto-0-1">
+    <img src="/img/font-auto-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/font-auto-round128.png" alt="The font page on round glass: em() spacing follows the picked face, so the same source lays out for the smaller panel without a size in it changing.">
+      <figcaption><strong>Round, 240×240.</strong> The font page on round glass: em() spacing follows the picked face, so the same source lays out for the smaller panel without a size in it changing.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/font-auto-lcd35.png" alt="The AUTO ladder (the default): every text size picks the sharpest native font that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.">
+      <figcaption><strong>Portrait, 320×480.</strong> The AUTO ladder (the default): every text size picks the sharpest native font that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 // examples/fonts/app.jsx
@@ -263,13 +280,28 @@ Three things to hold onto:
 - **It never returns 0.** `em(0.1)` on a quantum-1 backend rounds to 1, not
   to nothing, so a hairline gap stays a gap.
 
-![The fonts example on 240x240 round glass](/img/font-auto-round128.png)
-
-*Look at the header: still `1EM = 8PX`. The panel is smaller but the face
-is the same, so the spacing is the same and only the available width
-changed — which is why the left and right edges of the panels now run under
-the rim. `em()` sizes text-relative spacing; keeping content inside round
-glass is `UI.safe.inset`'s job, and this example does not set it.*
+<div class="shapes">
+  <input type="radio" name="sw-font-auto-1" id="sw-font-auto-1-0" checked>
+  <label for="sw-font-auto-1-0">
+    <img src="/img/font-auto-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-font-auto-1" id="sw-font-auto-1-1">
+  <label for="sw-font-auto-1-1">
+    <img src="/img/font-auto-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/font-auto-round128.png" alt="The font page on round glass: em() spacing follows the picked face, so the same source lays out for the smaller panel without a size in it changing.">
+      <figcaption><strong>Round, 240×240.</strong> The font page on round glass: em() spacing follows the picked face, so the same source lays out for the smaller panel without a size in it changing.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/font-auto-lcd35.png" alt="The AUTO ladder (the default): every text size picks the sharpest native font that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.">
+      <figcaption><strong>Portrait, 320×480.</strong> The AUTO ladder (the default): every text size picks the sharpest native font that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ## Who owns FONT: the backend
 
@@ -325,13 +357,46 @@ Choosing a face from outside the code: the sim's `FONT` toolbar button
 cycles `['auto', '4x6', '6x8', '12x16']`, and `--font=NAME` picks the
 starting one. The pure-js backend takes it as `opts.font`.
 
-![The fonts example on the 280x240 landscape panel](/img/ex-fonts-lcd169.png)
-
-<a class="run-example" href="/play/#ex=fonts">▶ Run <code>fonts</code> in the simulator</a>
-
-*The same source again, on a third shape. Nothing in the example asks what
-the display is or which font is active — it names sizes and `em()`s, and
-the host decides the rest.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-fonts-2" id="sw-ex-fonts-2-0">
+  <label for="sw-ex-fonts-2-0">
+    <img src="/img/ex-fonts-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-fonts-2" id="sw-ex-fonts-2-1">
+  <label for="sw-ex-fonts-2-1">
+    <img src="/img/ex-fonts-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-fonts-2" id="sw-ex-fonts-2-2" checked>
+  <label for="sw-ex-fonts-2-2">
+    <img src="/img/ex-fonts-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-fonts-2" id="sw-ex-fonts-2-3">
+  <label for="sw-ex-fonts-2-3">
+    <img src="/img/ex-fonts-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-fonts-round128.png" alt="examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire.">
+      <figcaption><strong>Round, 240×240.</strong> examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire. <a class="run-example" href="/play/#ex=fonts&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-fonts-lcd147.png" alt="examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire. <a class="run-example" href="/play/#ex=fonts&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-fonts-lcd169.png" alt="examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire. <a class="run-example" href="/play/#ex=fonts">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-fonts-lcd35.png" alt="examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire. <a class="run-example" href="/play/#ex=fonts&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ## Text props
 
@@ -359,14 +424,46 @@ var lines = p.wrap ? textLines(p.text, size, availW)
                    : [p.nowrap ? String(p.text) : fitText(p.text, size, availW)];
 ```
 
-![The fonts example on the 172x320 panel](/img/ex-fonts-lcd147.png)
-
-<a class="run-example" href="/play/#ex=fonts&shape=lcd147">▶ Run <code>fonts</code> in the simulator</a>
-
-*The narrowest glass in the fleet. Look at the title — `align="center"` in
-`UI.theme.accent`, centred against a much smaller width without changing —
-and at the muted `SIZE 1` labels above each block, which are `size={1}` in
-`UI.theme.muted` while the sample beside them is not.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-fonts-3" id="sw-ex-fonts-3-0">
+  <label for="sw-ex-fonts-3-0">
+    <img src="/img/ex-fonts-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-fonts-3" id="sw-ex-fonts-3-1" checked>
+  <label for="sw-ex-fonts-3-1">
+    <img src="/img/ex-fonts-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-fonts-3" id="sw-ex-fonts-3-2">
+  <label for="sw-ex-fonts-3-2">
+    <img src="/img/ex-fonts-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-fonts-3" id="sw-ex-fonts-3-3">
+  <label for="sw-ex-fonts-3-3">
+    <img src="/img/ex-fonts-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-fonts-round128.png" alt="examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire.">
+      <figcaption><strong>Round, 240×240.</strong> examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire. <a class="run-example" href="/play/#ex=fonts&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-fonts-lcd147.png" alt="examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire. <a class="run-example" href="/play/#ex=fonts&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-fonts-lcd169.png" alt="examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire. <a class="run-example" href="/play/#ex=fonts">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-fonts-lcd35.png" alt="examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/fonts — Font showcase: the active font at sizes 1-3, plus the glyph repertoire. <a class="run-example" href="/play/#ex=fonts&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ## fitText and textLines
 

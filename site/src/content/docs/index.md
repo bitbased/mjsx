@@ -17,13 +17,37 @@ backend, go to [contract.md](/contract).
 
 ## What it looks like
 
-![](/img/ex-hello-lcd35.png)
-
-<a class="run-example" href="/play/#ex=hello&shape=lcd35">▶ Run <code>hello</code> in the simulator</a>
-
-*`examples/hello` on the 3.5" panel — a padded box, a bordered panel,
-centred text. Every unit is `em()`, so the same source lays out against
-whatever font the host draws with.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-hello-0" id="sw-ex-hello-0-0">
+  <label for="sw-ex-hello-0-0">
+    <img src="/img/ex-hello-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-hello-0" id="sw-ex-hello-0-1">
+  <label for="sw-ex-hello-0-1">
+    <img src="/img/ex-hello-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-hello-0" id="sw-ex-hello-0-2" checked>
+  <label for="sw-ex-hello-0-2">
+    <img src="/img/ex-hello-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-hello-round128.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Round, 240×240.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd147.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd35.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 <box bg={UI.theme.panel} radius={8} border={UI.theme.accent} borderW={2}
@@ -32,27 +56,92 @@ whatever font the host draws with.*
 </box>
 ```
 
-![](/img/ex-counter-lcd35.png)
-
-<a class="run-example" href="/play/#ex=counter&shape=lcd35">▶ Run <code>counter</code> in the simulator</a>
-
-*`examples/counter` — the whole state model in one screen: a tap calls
-`UI.set`, the frame is marked dirty, and the next render redraws
-everything. There is no reconciler to explain.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-counter-1" id="sw-ex-counter-1-0">
+  <label for="sw-ex-counter-1-0">
+    <img src="/img/ex-counter-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-counter-1" id="sw-ex-counter-1-1">
+  <label for="sw-ex-counter-1-1">
+    <img src="/img/ex-counter-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-counter-1" id="sw-ex-counter-1-2" checked>
+  <label for="sw-ex-counter-1-2">
+    <img src="/img/ex-counter-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-counter-round128.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Round, 240×240.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-counter-lcd147.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-counter-lcd35.png" alt="examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/counter — A stateful example: tap the button, the count changes, the screen redraws to match. <a class="run-example" href="/play/#ex=counter&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 <Button label="+1" size={2}
         onTap={function () { UI.set({ count: count + 1 }); }} />
 ```
 
-![](/img/ex-layers-lcd35.png)
-
-<a class="run-example" href="/play/#ex=layers&shape=lcd35">▶ Run <code>layers</code> in the simulator</a>
-
-*`examples/layers` — the layering torture test. Look at what does not
-scroll: the header, the `badge` sitting over its right end, the floating
-`+0` button, and the footer. The list crops between them, and the footer's
-MODAL button raises a panel that takes all input while it is up.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-layers-2" id="sw-ex-layers-2-0">
+  <label for="sw-ex-layers-2-0">
+    <img src="/img/ex-layers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-layers-2" id="sw-ex-layers-2-1">
+  <label for="sw-ex-layers-2-1">
+    <img src="/img/ex-layers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-layers-2" id="sw-ex-layers-2-2">
+  <label for="sw-ex-layers-2-2">
+    <img src="/img/ex-layers-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-layers-2" id="sw-ex-layers-2-3" checked>
+  <label for="sw-ex-layers-2-3">
+    <img src="/img/ex-layers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-ex-layers-2" id="sw-ex-layers-2-4">
+  <label for="sw-ex-layers-2-4">
+    <img src="/img/ex-layers-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-layers-round128.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Round, 240×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd147.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd169.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd35.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-wide.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 480×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 <box flex={1} scroll="main" pad={em(0.75)} gap={em(0.5)}>
@@ -60,31 +149,114 @@ MODAL button raises a panel that takes all input while it is up.*
 </box>
 ```
 
-![](/img/kb-auto-round128.png)
-
-*The built-in keyboard on round glass. Every row is inset to the chord at
-its own height — the trapezoid — so the outer keys stay on the glass, and
-`auto` measures the chord where the bottom rows sit (154px across a 240px
-circle, not 240) before deciding it can only fit T9.*
+<div class="shapes">
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-0" checked>
+  <label for="sw-kb-auto-3-0">
+    <img src="/img/kb-auto-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-1">
+  <label for="sw-kb-auto-3-1">
+    <img src="/img/kb-auto-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-2">
+  <label for="sw-kb-auto-3-2">
+    <img src="/img/kb-auto-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-3">
+  <label for="sw-kb-auto-3-3">
+    <img src="/img/kb-auto-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-auto-round128.png" alt="The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.">
+      <figcaption><strong>Round, 240×240.</strong> The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd147.png" alt="The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.">
+      <figcaption><strong>Portrait, 172×320.</strong> The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd35.png" alt="The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.">
+      <figcaption><strong>Portrait, 320×480.</strong> The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-wide.png" alt="The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.">
+      <figcaption><strong>Landscape, 480×320.</strong> The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 h(Keyboard, { layout: kb, position: pos, height: Math.floor(gfx.height() / 2.6) })
 ```
 
-![](/img/ex-draw-lcd35.png)
+<div class="shapes">
+  <input type="radio" name="sw-ex-draw-4" id="sw-ex-draw-4-0">
+  <label for="sw-ex-draw-4-0">
+    <img src="/img/ex-draw-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-draw-4" id="sw-ex-draw-4-1">
+  <label for="sw-ex-draw-4-1">
+    <img src="/img/ex-draw-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-draw-4" id="sw-ex-draw-4-2" checked>
+  <label for="sw-ex-draw-4-2">
+    <img src="/img/ex-draw-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-draw-round128.png" alt="examples/draw — Freehand drawing with tools - the onDraw capture control in action.">
+      <figcaption><strong>Round, 240×240.</strong> examples/draw — Freehand drawing with tools - the onDraw capture control in action. <a class="run-example" href="/play/#ex=draw&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-draw-lcd147.png" alt="examples/draw — Freehand drawing with tools - the onDraw capture control in action.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/draw — Freehand drawing with tools - the onDraw capture control in action. <a class="run-example" href="/play/#ex=draw&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-draw-lcd35.png" alt="examples/draw — Freehand drawing with tools - the onDraw capture control in action.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/draw — Freehand drawing with tools - the onDraw capture control in action. <a class="run-example" href="/play/#ex=draw&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-<a class="run-example" href="/play/#ex=draw&shape=lcd35">▶ Run <code>draw</code> in the simulator</a>
-
-*`examples/draw` on square glass: the tool row and the palette sit in an
-ordinary footer across the bottom edge.*
-
-![](/img/ex-draw-round128.png)
-
-<a class="run-example" href="/play/#ex=draw&shape=round128">▶ Run <code>draw</code> in the simulator</a>
-
-*The same file on the round board: when `UI.isRound()` is true the toolbar
-moves onto the rim, each item pulled in from the boundary by its own size
-and left upright.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-draw-5" id="sw-ex-draw-5-0" checked>
+  <label for="sw-ex-draw-5-0">
+    <img src="/img/ex-draw-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-draw-5" id="sw-ex-draw-5-1">
+  <label for="sw-ex-draw-5-1">
+    <img src="/img/ex-draw-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-draw-5" id="sw-ex-draw-5-2">
+  <label for="sw-ex-draw-5-2">
+    <img src="/img/ex-draw-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-draw-round128.png" alt="examples/draw — Freehand drawing with tools - the onDraw capture control in action.">
+      <figcaption><strong>Round, 240×240.</strong> examples/draw — Freehand drawing with tools - the onDraw capture control in action. <a class="run-example" href="/play/#ex=draw&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-draw-lcd147.png" alt="examples/draw — Freehand drawing with tools - the onDraw capture control in action.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/draw — Freehand drawing with tools - the onDraw capture control in action. <a class="run-example" href="/play/#ex=draw&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-draw-lcd35.png" alt="examples/draw — Freehand drawing with tools - the onDraw capture control in action.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/draw — Freehand drawing with tools - the onDraw capture control in action. <a class="run-example" href="/play/#ex=draw&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 {h(ArcFooter, { items: items, spread: 150, inset: 10 })}
@@ -99,12 +271,37 @@ and left upright.*
 | [getting-started.md](/getting-started) | Install, run an example in a window and in the terminal, write a first app, push it to a board. |
 | [../examples/README.md](../examples/README.md) | The fourteen shipped examples and what each one demonstrates. Every one is a single flat `app.jsx` with no imports and no build step. |
 
-![](/img/ex-hello-lcd147.png)
-
-<a class="run-example" href="/play/#ex=hello&shape=lcd147">▶ Run <code>hello</code> in the simulator</a>
-
-*The same `examples/hello` source on the 1.47" panel (172x320). Nothing in
-the file changed; the layout is measured against the glass it is given.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-hello-6" id="sw-ex-hello-6-0">
+  <label for="sw-ex-hello-6-0">
+    <img src="/img/ex-hello-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-hello-6" id="sw-ex-hello-6-1" checked>
+  <label for="sw-ex-hello-6-1">
+    <img src="/img/ex-hello-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-hello-6" id="sw-ex-hello-6-2">
+  <label for="sw-ex-hello-6-2">
+    <img src="/img/ex-hello-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-hello-round128.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Round, 240×240.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd147.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd35.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ### Building a UI
 
@@ -126,10 +323,28 @@ text centres.*
 and the offset persists across renders because it lives under the zone's
 name in `UI._scroll`.*
 
-![](/img/font-auto-lcd35.png)
-
-*The `auto` font ladder: every text size picks the sharpest native face
-that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.*
+<div class="shapes">
+  <input type="radio" name="sw-font-auto-7" id="sw-font-auto-7-0">
+  <label for="sw-font-auto-7-0">
+    <img src="/img/font-auto-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-font-auto-7" id="sw-font-auto-7-1" checked>
+  <label for="sw-font-auto-7-1">
+    <img src="/img/font-auto-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/font-auto-round128.png" alt="The font page on round glass: em() spacing follows the picked face, so the same source lays out for the smaller panel without a size in it changing.">
+      <figcaption><strong>Round, 240×240.</strong> The font page on round glass: em() spacing follows the picked face, so the same source lays out for the smaller panel without a size in it changing.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/font-auto-lcd35.png" alt="The AUTO ladder (the default): every text size picks the sharpest native font that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.">
+      <figcaption><strong>Portrait, 320×480.</strong> The AUTO ladder (the default): every text size picks the sharpest native font that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 <text text={'1EM = ' + em(1) + 'PX'} size={1} align="center" color={UI.theme.muted} />
@@ -143,22 +358,92 @@ that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.*
 | [keyboards.md](/keyboards) | The four layouts plus `auto`: how a layout is chosen from the width the keys actually get, shift and the symbol pages, T9 multi-tap, docking versus taking the whole display. |
 | [input.md](/input) | The text field: focus and caret, `password`, `maxLen`, overflow, where the keyboard goes, and how the mirrored field in exclusive mode is the same field. |
 
-![](/img/comp-button-lcd35.png)
+<div class="shapes">
+  <input type="radio" name="sw-comp-button-8" id="sw-comp-button-8-0">
+  <label for="sw-comp-button-8-0">
+    <img src="/img/comp-button-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-comp-button-8" id="sw-comp-button-8-1" checked>
+  <label for="sw-comp-button-8-1">
+    <img src="/img/comp-button-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/comp-button-round128.png" alt="The same button page on round glass.">
+      <figcaption><strong>Round, 240×240.</strong> The same button page on round glass.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-button-lcd35.png" alt="Button: the default key colour, the theme colours passed as bg, and a small button whose hitPad grows the touch target past the paint (the outlined box).">
+      <figcaption><strong>Portrait, 320×480.</strong> Button: the default key colour, the theme colours passed as bg, and a small button whose hitPad grows the touch target past the paint (the outlined box).</figcaption>
+    </figure>
+  </div>
+</div>
 
-*`Button`: the default key colour, theme colours passed as `bg`, and a
-small button whose `hitPad` grows the touch target past the paint (the
-outlined box).*
+<div class="shapes">
+  <input type="radio" name="sw-kb-qwerty-9" id="sw-kb-qwerty-9-0">
+  <label for="sw-kb-qwerty-9-0">
+    <img src="/img/kb-qwerty-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-qwerty-9" id="sw-kb-qwerty-9-1">
+  <label for="sw-kb-qwerty-9-1">
+    <img src="/img/kb-qwerty-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-qwerty-9" id="sw-kb-qwerty-9-2" checked>
+  <label for="sw-kb-qwerty-9-2">
+    <img src="/img/kb-qwerty-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-qwerty-9" id="sw-kb-qwerty-9-3">
+  <label for="sw-kb-qwerty-9-3">
+    <img src="/img/kb-qwerty-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-qwerty-round128.png" alt="The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.">
+      <figcaption><strong>Round, 240×240.</strong> The QWERTY layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. The arc under the panel carries an OK of its own, so QWERTY shows two.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd147.png" alt="The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 172×320.</strong> The QWERTY layout docked at the bottom of lcd147 (172x320), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-lcd35.png" alt="The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.">
+      <figcaption><strong>Portrait, 320×480.</strong> The QWERTY layout docked at the bottom of lcd35 (320x480), field focused: a named layout is honoured exactly, however cramped.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-qwerty-wide.png" alt="The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.">
+      <figcaption><strong>Landscape, 480×320.</strong> The QWERTY layout on a 480x320 desktop window: the width ten columns were drawn for.</figcaption>
+    </figure>
+  </div>
+</div>
 
-![](/img/kb-qwerty-lcd35.png)
-
-*A named layout is honoured exactly, however cramped — QWERTY docked on
-320px of glass. A stated preference is a decision, not a suggestion.*
-
-![](/img/input-focused-lcd35.png)
-
-*A focused field: accent border, caret at the insertion point,
-placeholder gone. The engine owns text, caret and horizontal scroll per
-`id`, so the app's render stays a pure description.*
+<div class="shapes">
+  <input type="radio" name="sw-input-focused-10" id="sw-input-focused-10-0">
+  <label for="sw-input-focused-10-0">
+    <img src="/img/input-focused-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-input-focused-10" id="sw-input-focused-10-1" checked>
+  <label for="sw-input-focused-10-1">
+    <img src="/img/input-focused-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/input-focused-lcd147.png" alt="A focused field on the 172x320 panel — the narrowest glass in the fleet.">
+      <figcaption><strong>Portrait, 172×320.</strong> A focused field on the 172x320 panel — the narrowest glass in the fleet.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/input-focused-lcd35.png" alt="The focused field: accent border, caret at the insertion point, placeholder gone.">
+      <figcaption><strong>Portrait, 320×480.</strong> The focused field: accent border, caret at the insertion point, placeholder gone.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 <input id={p.id} size={p.size || 2} placeholder={p.placeholder}
@@ -176,16 +461,51 @@ placeholder gone. The engine owns text, caret and horizontal scroll per
 | [round.md](/round) | Round glass: safe insets, the chord a row can actually use, footers that follow the rim, and the extra scroll range at the end of every zone. |
 | [shapes.md](/shapes) | One screen on every shape in the fleet, side by side: the same focused `examples/input` on round, portrait, narrow-portrait, landscape and large-landscape glass, with what each shape changed. |
 
-![](/img/round-page-lcd35.png)
+<div class="shapes">
+  <input type="radio" name="sw-round-page-11" id="sw-round-page-11-0">
+  <label for="sw-round-page-11-0">
+    <img src="/img/round-page-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-round-page-11" id="sw-round-page-11-1" checked>
+  <label for="sw-round-page-11-1">
+    <img src="/img/round-page-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/round-page-round128.png" alt="The identical source on round glass: UI.safe.inset holds the rows inside the chord, the footer follows the rim, and the corners stay empty because they do not exist.">
+      <figcaption><strong>Round, 240×240.</strong> The identical source on round glass: UI.safe.inset holds the rows inside the chord, the footer follows the rim, and the corners stay empty because they do not exist.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/round-page-lcd35.png" alt="One page, square glass: full-bleed rows, the ArcFooter riding the bottom edge.">
+      <figcaption><strong>Portrait, 320×480.</strong> One page, square glass: full-bleed rows, the ArcFooter riding the bottom edge.</figcaption>
+    </figure>
+  </div>
+</div>
 
-*One page on square glass: full-bleed rows, the `ArcFooter` riding the
-bottom edge.*
-
-![](/img/round-page-round128.png)
-
-*The identical source on round glass. `UI.safe.inset` holds the rows
-inside the chord, the footer follows the rim, and the corners stay empty
-because they do not exist.*
+<div class="shapes">
+  <input type="radio" name="sw-round-page-12" id="sw-round-page-12-0" checked>
+  <label for="sw-round-page-12-0">
+    <img src="/img/round-page-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-round-page-12" id="sw-round-page-12-1">
+  <label for="sw-round-page-12-1">
+    <img src="/img/round-page-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/round-page-round128.png" alt="The identical source on round glass: UI.safe.inset holds the rows inside the chord, the footer follows the rim, and the corners stay empty because they do not exist.">
+      <figcaption><strong>Round, 240×240.</strong> The identical source on round glass: UI.safe.inset holds the rows inside the chord, the footer follows the rim, and the corners stay empty because they do not exist.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/round-page-lcd35.png" alt="One page, square glass: full-bleed rows, the ArcFooter riding the bottom edge.">
+      <figcaption><strong>Portrait, 320×480.</strong> One page, square glass: full-bleed rows, the ArcFooter riding the bottom edge.</figcaption>
+    </figure>
+  </div>
+</div>
 
 ```jsx
 var round = UI.isRound();
@@ -198,58 +518,219 @@ var round = UI.isRound();
 | [hardware-api.md](/hardware-api) | `sys.gpio(pin, op, value)` and `sys.i2c(addr, reg, value)` on the ESP32 bridge firmware — what each op does, which pins the firmware refuses, and why there is no `sys.uart`. |
 | [sensors.md](/sensors) | Reading motion and the rest of the board from a script: what the host offers, how an app checks before calling, and what it shows when the hardware is not there. |
 
-![](/img/ex-gpio-lcd35.png)
-
-<a class="run-example" href="/play/#ex=gpio&shape=lcd35">▶ Run <code>gpio</code> in the simulator</a>
-
-*`examples/gpio` under a backend with no pin natives. The app checks
-first and draws its own labelled fallback rather than throwing.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-gpio-13" id="sw-ex-gpio-13-0">
+  <label for="sw-ex-gpio-13-0">
+    <img src="/img/ex-gpio-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-gpio-13" id="sw-ex-gpio-13-1">
+  <label for="sw-ex-gpio-13-1">
+    <img src="/img/ex-gpio-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-gpio-13" id="sw-ex-gpio-13-2" checked>
+  <label for="sw-ex-gpio-13-2">
+    <img src="/img/ex-gpio-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-gpio-round128.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-gpio-lcd147.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-gpio-lcd35.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ```js
 var HAVE = typeof sys !== 'undefined' && typeof sys.gpio === 'function';
 ```
 
-![](/img/ex-sensors-lcd35.png)
+<div class="shapes">
+  <input type="radio" name="sw-ex-sensors-14" id="sw-ex-sensors-14-0">
+  <label for="sw-ex-sensors-14-0">
+    <img src="/img/ex-sensors-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-14" id="sw-ex-sensors-14-1">
+  <label for="sw-ex-sensors-14-1">
+    <img src="/img/ex-sensors-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-sensors-14" id="sw-ex-sensors-14-2">
+  <label for="sw-ex-sensors-14-2">
+    <img src="/img/ex-sensors-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-sensors-14" id="sw-ex-sensors-14-3" checked>
+  <label for="sw-ex-sensors-14-3">
+    <img src="/img/ex-sensors-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-sensors-round128.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd147.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd169.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-sensors-lcd35.png" alt="examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/sensors — Every motion sensor the host has, three ways to look at it. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=sensors&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-<a class="run-example" href="/play/#ex=sensors&shape=lcd35">▶ Run <code>sensors</code> in the simulator</a>
+<div class="shapes">
+  <input type="radio" name="sw-ex-screen-15" id="sw-ex-screen-15-0">
+  <label for="sw-ex-screen-15-0">
+    <img src="/img/ex-screen-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-screen-15" id="sw-ex-screen-15-1">
+  <label for="sw-ex-screen-15-1">
+    <img src="/img/ex-screen-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-screen-15" id="sw-ex-screen-15-2">
+  <label for="sw-ex-screen-15-2">
+    <img src="/img/ex-screen-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-screen-15" id="sw-ex-screen-15-3" checked>
+  <label for="sw-ex-screen-15-3">
+    <img src="/img/ex-screen-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-screen-round128.png" alt="examples/screen — Screen settings, in JSX: brightness, sleep timeout, and what sleeping means (dim to readable, or dark). No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/screen — Screen settings, in JSX: brightness, sleep timeout, and what sleeping means (dim to readable, or dark). No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=screen&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-screen-lcd147.png" alt="examples/screen — Screen settings, in JSX: brightness, sleep timeout, and what sleeping means (dim to readable, or dark). No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/screen — Screen settings, in JSX: brightness, sleep timeout, and what sleeping means (dim to readable, or dark). No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=screen&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-screen-lcd169.png" alt="examples/screen — Screen settings, in JSX: brightness, sleep timeout, and what sleeping means (dim to readable, or dark). No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/screen — Screen settings, in JSX: brightness, sleep timeout, and what sleeping means (dim to readable, or dark). No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=screen">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-screen-lcd35.png" alt="examples/screen — Screen settings, in JSX: brightness, sleep timeout, and what sleeping means (dim to readable, or dark). No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/screen — Screen settings, in JSX: brightness, sleep timeout, and what sleeping means (dim to readable, or dark). No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=screen&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-*`examples/sensors` — accelerometer, gyro and temperature three ways
-(bubble level, rolling trace, raw data). Simulated here, and the app says
-so on the screen.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-wifi-16" id="sw-ex-wifi-16-0">
+  <label for="sw-ex-wifi-16-0">
+    <img src="/img/ex-wifi-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-wifi-16" id="sw-ex-wifi-16-1">
+  <label for="sw-ex-wifi-16-1">
+    <img src="/img/ex-wifi-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-wifi-16" id="sw-ex-wifi-16-2" checked>
+  <label for="sw-ex-wifi-16-2">
+    <img src="/img/ex-wifi-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-wifi-round128.png" alt="examples/wifi — WiFi setup, in JSX — the native settings page's job, done by a script. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/wifi — WiFi setup, in JSX — the native settings page's job, done by a script. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=wifi&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-wifi-lcd147.png" alt="examples/wifi — WiFi setup, in JSX — the native settings page's job, done by a script. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/wifi — WiFi setup, in JSX — the native settings page's job, done by a script. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=wifi&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-wifi-lcd35.png" alt="examples/wifi — WiFi setup, in JSX — the native settings page's job, done by a script. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/wifi — WiFi setup, in JSX — the native settings page's job, done by a script. No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=wifi&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-![](/img/ex-screen-lcd35.png)
+<div class="shapes">
+  <input type="radio" name="sw-ex-camera-17" id="sw-ex-camera-17-0">
+  <label for="sw-ex-camera-17-0">
+    <img src="/img/ex-camera-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-camera-17" id="sw-ex-camera-17-1">
+  <label for="sw-ex-camera-17-1">
+    <img src="/img/ex-camera-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-camera-17" id="sw-ex-camera-17-2" checked>
+  <label for="sw-ex-camera-17-2">
+    <img src="/img/ex-camera-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-camera-round128.png" alt="examples/camera — The camera, as canvas sources: the module drops a live frame into the PREVIEW canvas (~8fps, small) and SNAP copies one full frame into. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/camera — The camera, as canvas sources: the module drops a live frame into the PREVIEW canvas (~8fps, small) and SNAP copies one full frame into. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=camera&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-camera-lcd147.png" alt="examples/camera — The camera, as canvas sources: the module drops a live frame into the PREVIEW canvas (~8fps, small) and SNAP copies one full frame into. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/camera — The camera, as canvas sources: the module drops a live frame into the PREVIEW canvas (~8fps, small) and SNAP copies one full frame into. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=camera&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-camera-lcd35.png" alt="examples/camera — The camera, as canvas sources: the module drops a live frame into the PREVIEW canvas (~8fps, small) and SNAP copies one full frame into. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/camera — The camera, as canvas sources: the module drops a live frame into the PREVIEW canvas (~8fps, small) and SNAP copies one full frame into. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=camera&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-<a class="run-example" href="/play/#ex=screen&shape=lcd35">▶ Run <code>screen</code> in the simulator</a>
-
-*`examples/screen` — brightness, render scale, rotation and the sleep
-timeout as ordinary state and taps; the natives do the real work, and the
-footer says `demo mode - no panel to control here` when they are absent.*
-
-![](/img/ex-wifi-lcd35.png)
-
-<a class="run-example" href="/play/#ex=wifi&shape=lcd35">▶ Run <code>wifi</code> in the simulator</a>
-
-*`examples/wifi` — the native provisioning page's job done by a script,
-polling the async `net.*` natives on its tick. Same fallback rule: `demo
-mode - no radio here`, with a canned scan list rather than an empty one.*
-
-![](/img/ex-camera-lcd35.png)
-
-<a class="run-example" href="/play/#ex=camera&shape=lcd35">▶ Run <code>camera</code> in the simulator</a>
-
-*`examples/camera` treats the camera as a canvas source, blitted by the
-UI. No backend in this tree implements `gfx.blit` ([consistency.md](/consistency)),
-so what the shot shows is the checked fallback — `no camera module here`
-and a crossed placeholder where the preview would be.*
-
-![](/img/ex-canvas-lcd35.png)
-
-<a class="run-example" href="/play/#ex=canvas&shape=lcd35">▶ Run <code>canvas</code> in the simulator</a>
-
-*`examples/canvas` — `examples/draw` restructured around `sys.canvas`, so
-a hundred committed strokes cost one blit instead of a hundred ops. The
-palette and CLEAR/DIRECT row is the whole chrome; the field above it is
-the canvas, empty until something is drawn on it.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-canvas-18" id="sw-ex-canvas-18-0">
+  <label for="sw-ex-canvas-18-0">
+    <img src="/img/ex-canvas-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-canvas-18" id="sw-ex-canvas-18-1">
+  <label for="sw-ex-canvas-18-1">
+    <img src="/img/ex-canvas-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-canvas-18" id="sw-ex-canvas-18-2" checked>
+  <label for="sw-ex-canvas-18-2">
+    <img src="/img/ex-canvas-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-canvas-round128.png" alt="examples/canvas — Freehand drawing with a CANVAS SOURCE backing - draw's little sibling, restructured around sys.canvas.">
+      <figcaption><strong>Round, 240×240.</strong> examples/canvas — Freehand drawing with a CANVAS SOURCE backing - draw's little sibling, restructured around sys.canvas. <a class="run-example" href="/play/#ex=canvas&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-canvas-lcd147.png" alt="examples/canvas — Freehand drawing with a CANVAS SOURCE backing - draw's little sibling, restructured around sys.canvas.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/canvas — Freehand drawing with a CANVAS SOURCE backing - draw's little sibling, restructured around sys.canvas. <a class="run-example" href="/play/#ex=canvas&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-canvas-lcd35.png" alt="examples/canvas — Freehand drawing with a CANVAS SOURCE backing - draw's little sibling, restructured around sys.canvas.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/canvas — Freehand drawing with a CANVAS SOURCE backing - draw's little sibling, restructured around sys.canvas. <a class="run-example" href="/play/#ex=canvas&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ### Reference
 
@@ -258,13 +739,46 @@ the canvas, empty until something is drawn on it.*
 | [contract.md](/contract) | The ten `gfx` calls and `sys.millis()` in full, the optional natives (`poly`, `blit`, `store`/`fetch`, font metrics), the host-declared `round` key, and how a backend drives the loop. |
 | [consistency.md](/consistency) | What each backend in this tree *actually* implements, measured against the contract — a call-by-call matrix and fourteen ranked divergences, each read out of the named source file. |
 
-![](/img/ex-shapes-lcd35.png)
-
-<a class="run-example" href="/play/#ex=shapes&shape=lcd35">▶ Run <code>shapes</code> in the simulator</a>
-
-*`examples/shapes` — SVG-style filled paths under the even-odd rule.
-`gfx.poly` is optional: a backend that has it rasterizes at device
-resolution, and the core scanline-fills through `frect` when it does not.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-shapes-19" id="sw-ex-shapes-19-0">
+  <label for="sw-ex-shapes-19-0">
+    <img src="/img/ex-shapes-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-shapes-19" id="sw-ex-shapes-19-1">
+  <label for="sw-ex-shapes-19-1">
+    <img src="/img/ex-shapes-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-shapes-19" id="sw-ex-shapes-19-2">
+  <label for="sw-ex-shapes-19-2">
+    <img src="/img/ex-shapes-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-shapes-19" id="sw-ex-shapes-19-3" checked>
+  <label for="sw-ex-shapes-19-3">
+    <img src="/img/ex-shapes-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-shapes-round128.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Round, 240×240.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-shapes-lcd147.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-shapes-lcd169.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-shapes-lcd35.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ![](/img/comp-swatch-lcd35.png)
 
@@ -286,14 +800,37 @@ theme: {
 |---|---|
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | The one hard rule (the core file stays in the MicroQuickJS ES5 subset), how to add an example, and how to add a backend. |
 
-![](/img/ex-hello-round128.png)
-
-<a class="run-example" href="/play/#ex=hello&shape=round128">▶ Run <code>hello</code> in the simulator</a>
-
-*Adding an example is a directory under `examples/` with an `app.jsx` in
-it — and then every backend renders it unchanged. This is `examples/hello`
-on the round board: nothing in the file knows, which is why the panel's
-top corners cross the rim.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-hello-20" id="sw-ex-hello-20-0" checked>
+  <label for="sw-ex-hello-20-0">
+    <img src="/img/ex-hello-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-hello-20" id="sw-ex-hello-20-1">
+  <label for="sw-ex-hello-20-1">
+    <img src="/img/ex-hello-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-hello-20" id="sw-ex-hello-20-2">
+  <label for="sw-ex-hello-20-2">
+    <img src="/img/ex-hello-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-hello-round128.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Round, 240×240.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd147.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd35.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 ```
 bun backends/pure-js/src/run.js examples/yours/app.jsx out/yours.ppm
@@ -313,50 +850,255 @@ no per-board branches — on each of them, plus a desktop window.
 | `--b147` | ESP32-S3-Touch-LCD-1.47 | 172x320 JD9853 | AXS5106L |
 | `--b128` | ESP32-S3-Touch-LCD-1.28 (round) | 240x240 GC9A01 | CST816S |
 
-![](/img/ex-layers-lcd169.png)
+<div class="shapes">
+  <input type="radio" name="sw-ex-layers-21" id="sw-ex-layers-21-0">
+  <label for="sw-ex-layers-21-0">
+    <img src="/img/ex-layers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-layers-21" id="sw-ex-layers-21-1">
+  <label for="sw-ex-layers-21-1">
+    <img src="/img/ex-layers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-layers-21" id="sw-ex-layers-21-2" checked>
+  <label for="sw-ex-layers-21-2">
+    <img src="/img/ex-layers-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-layers-21" id="sw-ex-layers-21-3">
+  <label for="sw-ex-layers-21-3">
+    <img src="/img/ex-layers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-ex-layers-21" id="sw-ex-layers-21-4">
+  <label for="sw-ex-layers-21-4">
+    <img src="/img/ex-layers-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-layers-round128.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Round, 240×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd147.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd169.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd35.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-wide.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 480×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-<a class="run-example" href="/play/#ex=layers">▶ Run <code>layers</code> in the simulator</a>
+<div class="shapes">
+  <input type="radio" name="sw-ex-layers-22" id="sw-ex-layers-22-0">
+  <label for="sw-ex-layers-22-0">
+    <img src="/img/ex-layers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-layers-22" id="sw-ex-layers-22-1">
+  <label for="sw-ex-layers-22-1">
+    <img src="/img/ex-layers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-layers-22" id="sw-ex-layers-22-2">
+  <label for="sw-ex-layers-22-2">
+    <img src="/img/ex-layers-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-layers-22" id="sw-ex-layers-22-3" checked>
+  <label for="sw-ex-layers-22-3">
+    <img src="/img/ex-layers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-ex-layers-22" id="sw-ex-layers-22-4">
+  <label for="sw-ex-layers-22-4">
+    <img src="/img/ex-layers-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-layers-round128.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Round, 240×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd147.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd169.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd35.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-wide.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 480×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-*The 1.69" board's panel, shown landscape at 280x240. Seven rows fit
-between the header and the footer, and the wrapped paragraph settles on
-two lines.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-layers-23" id="sw-ex-layers-23-0">
+  <label for="sw-ex-layers-23-0">
+    <img src="/img/ex-layers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-layers-23" id="sw-ex-layers-23-1" checked>
+  <label for="sw-ex-layers-23-1">
+    <img src="/img/ex-layers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-layers-23" id="sw-ex-layers-23-2">
+  <label for="sw-ex-layers-23-2">
+    <img src="/img/ex-layers-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-layers-23" id="sw-ex-layers-23-3">
+  <label for="sw-ex-layers-23-3">
+    <img src="/img/ex-layers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-ex-layers-23" id="sw-ex-layers-23-4">
+  <label for="sw-ex-layers-23-4">
+    <img src="/img/ex-layers-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-layers-round128.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Round, 240×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd147.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd169.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd35.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-wide.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 480×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-![](/img/ex-layers-lcd35.png)
+<div class="shapes">
+  <input type="radio" name="sw-ex-layers-24" id="sw-ex-layers-24-0" checked>
+  <label for="sw-ex-layers-24-0">
+    <img src="/img/ex-layers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-layers-24" id="sw-ex-layers-24-1">
+  <label for="sw-ex-layers-24-1">
+    <img src="/img/ex-layers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-layers-24" id="sw-ex-layers-24-2">
+  <label for="sw-ex-layers-24-2">
+    <img src="/img/ex-layers-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-layers-24" id="sw-ex-layers-24-3">
+  <label for="sw-ex-layers-24-3">
+    <img src="/img/ex-layers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-ex-layers-24" id="sw-ex-layers-24-4">
+  <label for="sw-ex-layers-24-4">
+    <img src="/img/ex-layers-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-layers-round128.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Round, 240×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd147.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd169.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd35.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-wide.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 480×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
-<a class="run-example" href="/play/#ex=layers&shape=lcd35">▶ Run <code>layers</code> in the simulator</a>
-
-*The 3.5" board, 320x480 — the roomy one. Fourteen rows fit and the list
-still runs out before the viewport does; the wrapped paragraph needs two
-lines. 320px is comfortably past the 220px where the keyboard's `auto`
-switches to QWERTY.*
-
-![](/img/ex-layers-lcd147.png)
-
-<a class="run-example" href="/play/#ex=layers&shape=lcd147">▶ Run <code>layers</code> in the simulator</a>
-
-*The 1.47" board, 172x320 — the narrow one. Same rows, same strings: the
-wrapped paragraph now needs three lines, and the badge crowds the header
-line into a truncation. Ten keyboard columns do not fit here at any
-height, and a docked keyboard's keys would land under 30px, so text entry
-takes the whole display instead.*
-
-![](/img/ex-layers-round128.png)
-
-<a class="run-example" href="/play/#ex=layers&shape=round128">▶ Run <code>layers</code> in the simulator</a>
-
-*The round 1.28" board, 240x240 — and the useful failure. `examples/layers`
-is a square-glass app and does not ask; the rows stay full-bleed
-rectangles, so the ends of the header and the corners of every row fall
-past the rim. Round glass is a host-declared fact the layout has to read
-(`UI.isRound()`) — the same page written to ask is the round-page pair
-under "Designing for a device" above, and [round.md](/round) is how.*
-
-![](/img/ex-layers-wide.png)
-
-<a class="run-example" href="/play/#ex=layers">▶ Run <code>layers</code> in the simulator</a>
-
-*And the same file again in a 480x320 desktop window, where development
-actually happens.*
+<div class="shapes">
+  <input type="radio" name="sw-ex-layers-25" id="sw-ex-layers-25-0">
+  <label for="sw-ex-layers-25-0">
+    <img src="/img/ex-layers-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-layers-25" id="sw-ex-layers-25-1">
+  <label for="sw-ex-layers-25-1">
+    <img src="/img/ex-layers-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-layers-25" id="sw-ex-layers-25-2">
+  <label for="sw-ex-layers-25-2">
+    <img src="/img/ex-layers-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-layers-25" id="sw-ex-layers-25-3">
+  <label for="sw-ex-layers-25-3">
+    <img src="/img/ex-layers-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-ex-layers-25" id="sw-ex-layers-25-4" checked>
+  <label for="sw-ex-layers-25-4">
+    <img src="/img/ex-layers-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-layers-round128.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Round, 240×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd147.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd169.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-lcd35.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-layers-wide.png" alt="examples/layers — Layering / scrolling / cropping torture test.">
+      <figcaption><strong>Landscape, 480×320.</strong> examples/layers — Layering / scrolling / cropping torture test. <a class="run-example" href="/play/#ex=layers">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
 
 The round board is also the constrained one — 2MB quad PSRAM, a 1MB JS
 heap cap, and a CH343 UART bridge that needs chunked serial writes. Each
