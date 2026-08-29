@@ -78,10 +78,18 @@ Props and behaviour, all from the source:
 - **Round glass**: each key row is inset to the chord at its own height,
   so a keyboard is a trapezoid and the outermost keys stay on the glass
   instead of under the bezel. In exclusive mode the mirrored input is
-  pushed a tenth of the display down, off the narrow top arc.
+  pushed a tenth of the display down, off the narrow top arc, the keys
+  stop short of the bottom arc, and OK moves into that arc — space the
+  grid could never use, so it costs the keyboard no height.
+- **The space bar** carries the `␣` mark (a rule with turned-up ends,
+  drawn from lines rather than spelled) and is given its width from
+  whatever the bottom row has left. Where a row cannot hold everything,
+  the punctuation keys drop out — labels are never abbreviated.
 - **`height`** is a hint for the whole keyboard: keys scale to fit it
-  given the layout's row count (strip has 2 rows, qwerty 4, t9 and
-  numbers 5). `keyH` sets one key's height directly instead.
+  given the layout's row count (strip has 2 rows, everything else 4 —
+  T9 and the number pad put OK on their utility row rather than spending
+  a whole row of height on it). `keyH` sets one key's height directly
+  instead.
 - **`position`**: `'inline'` (default — flows like any child),
   `'bottom'` or `'top'` (an overlay pinned to that screen edge, taking no
   flow space; it registers an inset so scroll-into-view keeps a revealed
@@ -133,8 +141,8 @@ positions follow the edge.
 Put wide items mid-list where a round boundary is generous; angles that
 cluster at a square's corner can overlap, so keep spread and count sane.
 
-From `examples/canvas/app.jsx` and `examples/draw/app.jsx`, which move their toolbars onto the rim when
-`UI.isRound()`:
+From `examples/canvas/app.jsx` and `examples/draw/app.jsx`, which move
+their toolbars onto the rim when `UI.isRound()`:
 
 ```jsx
 var items = [];
