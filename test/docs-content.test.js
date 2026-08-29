@@ -166,6 +166,71 @@ describe('documentation', function () {
     expect(wrong).toEqual([]);
   });
 
+  it('code quoted from the core still matches the core', function () {
+    /* Several pages quote a function verbatim — kbChordHW appears on two,
+       because a reader on the round-glass page should not have to jump to
+       the keyboard page to see the formula. Duplication is right for
+       reading and wrong for staying true, so the copies are checked
+       against the source rather than against each other.
+
+       Two things this must NOT flag, both of which it did at first:
+       a block may quote SEVERAL functions (layout.md quotes padL/R/T/B
+       together), so each is matched on its own; and a quote may be
+       deliberately abbreviated with an ellipsis, which is an excerpt, not
+       a stale copy. */
+    var SOURCES = fs.readFileSync(path.join(ROOT, 'packages/core/src/mjsx.js'), 'utf8');
+    /* Comments are stripped before comparing: a doc quote reasonably drops
+       the source's internal asides, and reflows the result. What must not
+       differ is the code. (A crude strip — it would mangle a // inside a
+       string literal — but these are quotes of real functions, and a
+       false match is the harmless direction here.) */
+    var norm = function (t) {
+      return t.replace(/\/\*[\s\S]*?\*\//g, ' ')
+              .replace(/\/\/[^\n]*/g, ' ')
+              .replace(/\s+/g, ' ').trim();
+    };
+
+    /* every top-level `function name(...) { … }` in a chunk of text */
+    function fns(text) {
+      var out = [], re = /function\s+([A-Za-z_$][\w$]*)\s*\(/g, m;
+      while ((m = re.exec(text))) {
+        var open = text.indexOf('{', m.index);
+        if (open < 0) continue;
+        var depth = 0, i = open;
+        for (; i < text.length; i++) {
+          if (text[i] === '{') depth++;
+          else if (text[i] === '}') { depth--; if (!depth) break; }
+        }
+        if (depth) continue;                       /* unbalanced: an excerpt */
+        out.push({ name: m[1], text: text.slice(m.index, i + 1) });
+        re.lastIndex = i + 1;
+      }
+      return out;
+    }
+
+    var source = {};
+    fns(SOURCES).forEach(function (f) { if (!source[f.name]) source[f.name] = f.text; });
+
+    var wrong = [], checked = 0;
+    docs().forEach(function (f) {
+      ['js', 'jsx'].forEach(function (lang) {
+        blocks(read(f), lang).forEach(function (b) {
+          if (/\.\.\.|…/.test(b.code)) return;      /* an abbreviated excerpt */
+          fns(b.code).forEach(function (q) {
+            if (!source[q.name]) return;           /* an illustration, not a quote */
+            checked++;
+            if (norm(source[q.name]) !== norm(q.text)) {
+              wrong.push('docs/' + f + ':' + b.line + '  ' + q.name +
+                         '() no longer matches packages/core/src/mjsx.js');
+            }
+          });
+        });
+      });
+    });
+    expect(checked).toBeGreaterThan(5);
+    expect(wrong).toEqual([]);
+  });
+
   it('every page has a written label in the sidebar', function () {
     /* A page not placed in a group still appears, but under its raw
        filename — `shapes` and `shots` sat in lowercase next to written
