@@ -82,13 +82,13 @@ var MAPS = [
   { n: '-y,x',  f: function (a) { return { x: -a.y, y:  a.x }; } },
   { n: '-y,-x', f: function (a) { return { x: -a.y, y: -a.x }; } }
 ];
-/* Default derived rather than guessed: a flat board reads z = -1g, so the
-   chip's +Z points INTO the glass. Right-handed with +X screen-right then
-   puts +Y screen-down, and an accelerometer reads +1g along whichever axis
-   points UP -- so tilting the right edge down gives NEGATIVE x, and a
-   marble that rolls to the low side needs both axes inverted. Boards whose
-   chip sits rotated differently are one tap away. */
-var MAP_DEFAULT = 3;   /* '-x,-y' */
+/* Measured on the glass, not derived: the chip's X and Y are SWAPPED
+   relative to the display. A flat board reads z = -1g so +Z points into
+   the glass, and with the axes crossed that puts the chip's +X along the
+   screen's vertical and +Y along its horizontal -- so the screen's x
+   comes from -a.y and its y from -a.x. Boards whose chip sits rotated
+   differently are one tap on the dial away. */
+var MAP_DEFAULT = 7;   /* '-y,-x' */
 function mapIdx() {
   var v = parseInt(configStorage.get('lvl.map', '' + MAP_DEFAULT), 10);
   return (isNaN(v) || v < 0 || v > 7) ? MAP_DEFAULT : v;
