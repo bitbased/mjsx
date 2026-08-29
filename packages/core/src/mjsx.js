@@ -747,6 +747,10 @@ function draw(node, x, y, availW, forcedH) {
          part. The same idea as a native scroll view's content insets. */
       var covB = (y + boxH) - (gfx.height() - UI._insetBot());
       if (covB > 0) maxOff += covB;
+      /* Round glass: a quarter-screen of extra range, so the last rows
+         can be lifted out of the narrow bottom arc into the wide middle
+         where they are readable and tappable. */
+      if (maxOff > 0 && UI.isRound()) maxOff += gfx.height() >> 2;
       var minOff = UI._insetTop() - y;
       minOff = minOff > 0 ? -minOff : 0;
       var off = UI._scroll[p.scroll] || 0;
@@ -1621,11 +1625,22 @@ var UI = {
      to its sub-pixels-per-cell so a fling can never park content on an odd
      row, where every even-aligned stroke would straddle cell boundaries. */
   scrollQuantum: 1,
+  /* Round glass? The HOST knows (a firmware seeds configStorage's
+     'round' key; web/sim leave it unset) and the answer never changes
+     while running, so it is read once. Layouts use it to stay off the
+     corners that do not exist. */
+  isRound: function () {
+    if (this._round === undefined) {
+      this._round = configStorage.get('round', '0') === '1';
+    }
+    return this._round;
+  },
+
   _scrollTo: function (key, off) {
     var sq = this.scrollQuantum || 1;
     if (sq > 1) off = Math.round(off / sq) * sq;
     var z = this._zone(key);
-    var max = z ? z.maxOff : 0;
+    var max = z ? z.maxOff : 0;   /* round overscroll is baked into maxOff */
     var min = z ? (z.minOff || 0) : 0;
     if (off > max) off = max;
     if (off < min) off = min;
@@ -1688,7 +1703,11 @@ var UI = {
         holdFn: grab ? grab.hold : null,
         every: grab ? grab.every : 0,
         at: sys.millis(), fired: 0,
-        v: 0, t: sys.millis()
+        v: 0, t: sys.millis(),
+        /* EDGE-BACK: a press at the left or right rim arms the gesture;
+           travelling inward turns the stroke into Escape. +1 = inward is
+           rightward, -1 leftward, 0 = not an edge press. */
+        eb: x < 12 ? 1 : (x > gfx.width() - 12 ? -1 : 0)
       };
       return;
     }
@@ -1705,6 +1724,20 @@ var UI = {
         this._dirty = true;
         p.y = y;
         return;
+      }
+      /* EDGE-BACK: an edge press that travels inward, mostly level, is
+         the back gesture -- Escape, exactly what the BOOT button sends.
+         Round glass has no corner for an exit control; every screen
+         benefits. Draw controls never reach here: the canvas owns its
+         strokes. */
+      if (p.eb && !p.fired) {
+        var inw = dx * p.eb;
+        if (inw > 40 && (dy < 0 ? -dy : dy) < 60) {
+          p.fired = 1;
+          p.key = null;
+          this.key('press', 'Escape');
+          return;
+        }
       }
       if (p.key && p.far > DRAG_SLOP) {
         /* Absolute, from where the drag began: tracking deltas accumulates

@@ -40,11 +40,22 @@ function _runExample(i) {
   __replayFeed();
   EXAMPLES[i][1]();
   var appRoot = UI.root;
-  /* the example's own root, with a floating exit dot painted over it */
+  /* the app gets first refusal on every key; an Escape nobody claims
+     (the edge-back swipe, the BOOT button) walks back to the menu */
+  var appKey = UI.onKey;
+  UI.onKey = function (type, key) {
+    if (appKey && appKey(type, key)) return true;
+    if (type === 'press' && key === 'Escape') { _menu(); return true; }
+  };
+  /* the example's own root, with a floating exit dot painted over it.
+     On round glass the top-right corner does not exist, so the dot sits
+     top-CENTRE instead -- and the edge-back swipe reaches the menu too. */
+  var dotX = UI.isRound() ? (gfx.width() >> 1) - 10 : gfx.width() - 24;
+  var dotY = UI.isRound() ? 6 : 26;
   UI.mount(function () {
     return h('box', {}, [
       h(appRoot, {}),
-      h('abs', { x: gfx.width() - 24, y: 26 },
+      h('abs', { x: dotX, y: dotY },
         h('box', { w: 20, h: 20, bg: 0x333a46, radius: 10, hitPad: 10,
                    vcenter: true, onTap: _menu },
           /* the star, not lowercase x: x inks rows 2-6 (baseline) and
