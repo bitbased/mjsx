@@ -52,6 +52,116 @@ describe('examples/asteroids', function () {
     expect(worst).toBeGreaterThanOrEqual(globalThis.__SAFE);
   });
 
+  maybe('a rock is only ever BORN at an edge, clear of the ship', function () {
+    /* The rule, in the words it was asked for: rocks come from the edges,
+       never out of the middle of the field. Two earlier versions broke it
+       in ways that looked identical from the seat — a wave placed at "half
+       the field from the centre" (which in CENTRED mode is half a field
+       from the ship), and a "re-enter away from the ship" rule that
+       degenerates when the ship IS the centre, where atan2(0,0) is 0 and
+       every rock came back through the left rim.
+
+       Split fragments are exempt and tagged so: a rock halving in front of
+       you is the consequence of your own shot. */
+    globalThis.window = globalThis;
+    require(BUNDLE);
+    var SHAPES = [['centred',240,240,true], ['centred',240,280,false],
+                  ['world',240,280,false], ['world',172,320,false],
+                  ['world',480,320,false]];
+    var bad = [];
+    SHAPES.forEach(function (sh) {
+      var be = createPureJsBackend(sh[1], sh[2], {});
+      be.sys.store('cam', sh[0]);
+      mjsxRun(fs.readFileSync(AST, 'utf8') +
+              '\nglobalThis.__G = function () { return G; };\n' +
+              'globalThis.__SAFE = SAFE_R; globalThis.__TD = torusD;\n',
+              be, { round: sh[3] });
+      var t = 0;
+      be.sys.millis = function () { return t; };
+      UI.render();
+      var SAFE = globalThis.__SAFE, TD = globalThis.__TD;
+      var seen = new Set(), born = 0, i, k;
+      var tag = sh[0] + ' ' + sh[1] + 'x' + sh[2];
+
+      function inspect() {
+        var G = globalThis.__G();
+        for (k = 0; k < G.rocks.length; k++) {
+          var r = G.rocks[k];
+          if (seen.has(r) || r.born !== 'edge') { seen.add(r); continue; }
+          seen.add(r); born++;
+          /* on an edge of the panel */
+          var atEdge = r.x <= 2 || r.x >= sh[1] - 2 || r.y <= 2 || r.y >= sh[2] - 2;
+          if (!atEdge) {
+            bad.push(tag + ': a wave rock was born at (' + Math.round(r.x) + ',' +
+                     Math.round(r.y) + '), not on an edge');
+          }
+          /* and far enough from the ship, measured the only way that means
+             anything once the world wraps */
+          var d = TD(r.x, r.y, G.ship.x, G.ship.y);
+          if (d < SAFE - 1) {
+            bad.push(tag + ': a wave rock was born ' + d.toFixed(1) +
+                     'px from the ship (SAFE_R ' + SAFE.toFixed(0) + ')');
+          }
+        }
+      }
+      inspect();
+      for (i = 0; i < 6000; i++) {
+        t += 16;
+        var a = i * 0.011;
+        if (i === 0) UI.pointer('f', 0, sh[1] / 2, sh[2] / 2);
+        UI.pointer('f', 1, sh[1] / 2 + Math.cos(a) * sh[1] * 0.46,
+                           sh[2] / 2 + Math.sin(a) * sh[2] * 0.46);
+        if (i % 9 === 0) {
+          UI.pointer('f', 2, sh[1] / 2, sh[2] / 2);
+          UI.pointer('f', 0, sh[1] / 2, sh[2] / 2);
+        }
+        UI.ticker();
+        inspect();
+      }
+      if (born < 4) bad.push(tag + ': only ' + born + ' rocks were born — not exercised');
+    });
+    expect(bad).toEqual([]);
+  });
+
+  maybe('a cluster on the spawn point costs one life, not the game', function () {
+    /* The collision loop had no break, so it kept testing the remaining
+       rocks against an already-dead ship: two overlapping rocks cost two
+       lives in one frame, and a cluster could end a whole game in a single
+       step. From the seat that is indistinguishable from an unbreakable
+       crash loop, which is what it was reported as. */
+    globalThis.window = globalThis;
+    require(BUNDLE);
+    var bad = [];
+    [['centred',240,240,true], ['world',240,280,false]].forEach(function (sh) {
+      var be = createPureJsBackend(sh[1], sh[2], {});
+      be.sys.store('cam', sh[0]);
+      mjsxRun(fs.readFileSync(AST, 'utf8') +
+              '\nglobalThis.__G = function () { return G; };\n', be, { round: sh[3] });
+      var t = 0;
+      be.sys.millis = function () { return t; };
+      UI.render();
+      var G = globalThis.__G(), k;
+      /* stack every rock exactly on the spawn point */
+      for (k = 0; k < G.rocks.length; k++) {
+        G.rocks[k].x = sh[1] / 2; G.rocks[k].y = sh[2] / 2;
+        G.rocks[k].vx = 0; G.rocks[k].vy = 0;
+      }
+      var worstLoss = 0, streak = 0, longest = 0;
+      for (var i = 0; i < 3000; i++) {
+        t += 16;
+        var before = globalThis.__G().lives;
+        UI.ticker();
+        var now = globalThis.__G();
+        if (now.lives < before && before - now.lives > worstLoss) worstLoss = before - now.lives;
+        if (now.dead > 0) { streak++; if (streak > longest) longest = streak; } else streak = 0;
+      }
+      var tag = sh[0] + ' ' + sh[1] + 'x' + sh[2];
+      if (worstLoss > 1) bad.push(tag + ': lost ' + worstLoss + ' lives in one step');
+      if (longest > 200) bad.push(tag + ': stuck dead for ' + longest + ' ticks');
+    });
+    expect(bad).toEqual([]);
+  });
+
   maybe('plays at the same speed whatever the host frame rate', function () {
     /* onTick is the host's frame, and hosts differ by 8x: a 120Hz browser
        against a chip managing 15. Tying the physics to the call would make

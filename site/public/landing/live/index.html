@@ -397,21 +397,30 @@
     });
     cv.addEventListener('pointerup', function (e) { self.point(2, e); });
     cv.addEventListener('pointercancel', function (e) { self.point(2, e); });
+    /* A HELD KEY MUST STAY HELD. Sending down+press+up in one burst on
+       keydown is fine for typing — a character arrives once — but it makes
+       an arrow key impossible: the app sets turn on down and clears it on
+       up, both in the same instant, so the ship never turns. down goes on
+       keydown, up goes on keyup, and press rides with the down for the
+       one-shot keys (Enter, Escape, space). */
     cv.addEventListener('keydown', function (e) {
       if (e.key === 'Tab') return;
       e.preventDefault();
       self.enter();
       var k = e.key;
-      if (k.length === 1 && k !== ' ') self.core.UI.type(k);
-      else {
-        self.core.UI.key('down', k); self.core.UI.key('press', k); self.core.UI.key('up', k);
+      if (k.length === 1 && k !== ' ') { self.core.UI.type(k); }
+      else if (!e.repeat) {
+        self.core.UI.key('down', k);
+        self.core.UI.key('press', k);
       }
       if (self.core.UI.dirty()) self.render();
     });
     cv.addEventListener('keyup', function (e) {
-      /* held keys have to be released, or the ship turns forever */
+      var k = e.key;
+      if (k.length === 1 && k !== ' ') return;
       self.enter();
-      self.core.UI.key('up', e.key);
+      self.core.UI.key('up', k);
+      if (self.core.UI.dirty()) self.render();
     });
   };
 

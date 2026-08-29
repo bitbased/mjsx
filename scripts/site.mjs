@@ -20,7 +20,7 @@
  *      unless you already know the paths.
  */
 import { spawnSync, spawn } from 'child_process';
-import { existsSync, readdirSync, statSync } from 'fs';
+import { existsSync, readdirSync, statSync, watch } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -77,6 +77,33 @@ for (const [path, what] of rows) {
   console.log('  ' + url + ' '.repeat(Math.max(1, w - url.length)) + what);
 }
 console.log('\n  ctrl-c to stop\n');
+
+/* ---- keep the generated example bundle in step -----------------------
+ * examples.json and mjsx-sim.js are BUILD ARTIFACTS: the simulator and the
+ * landing pages fetch them, not examples/*.jsx. Editing an example while
+ * the server runs therefore changes nothing on screen, and the page keeps
+ * serving whatever was built last.
+ *
+ * That is not a theoretical hazard. A whole session was spent fixing bugs
+ * in examples/asteroids that stayed fixed on disk and broken in the
+ * browser, because nothing rebuilt this. Watching the directory costs a
+ * few lines and removes the entire class.
+ */
+if (!preview) {
+  const EX = join(ROOT, 'examples');
+  let pending = null;
+  watch(EX, { recursive: true }, (_ev, file) => {
+    if (!file || !/\.jsx?$/.test(file)) return;
+    clearTimeout(pending);
+    pending = setTimeout(() => {
+      const r = spawnSync('bun', [join(ROOT, 'scripts', 'build-play.mjs')],
+                          { cwd: ROOT, stdio: 'pipe' });
+      console.log(r.status === 0
+        ? '  rebuilt examples.json (' + file + ' changed)'
+        : '  FAILED to rebuild examples.json — ' + String(r.stderr).trim());
+    }, 150);
+  });
+}
 
 /* ---- astro ---- */
 if (preview) {
