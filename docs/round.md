@@ -398,18 +398,23 @@ that has taken the stroke owns it before this code is reached.
 
 **OK goes in the bottom arc.** Below the last key row of a full-display
 keyboard there is a sliver of glass too narrow for a full-width row and
-perfectly sized for one button. The core parks OK there on every layout but
-`strip`, and caps its width to the chord it actually has:
+perfectly sized for one button. Every layout but `strip` parks OK there,
+and caps its width to the chord it actually has:
 
 ```js
-/* Round glass parks OK in the BOTTOM ARC -- the sliver below the keys */
-var okInArc = UI.isRound() && layout !== 'strip';
+var okInArc = UI.isRound() && layout !== 'strip' && !!UI._exclusive;
 ...
 var okW2 = Math.min(kbChordHW(okTop, okTop + okH2) * 2, em(10));
 ```
 
 Because the arc was unusable space, moving OK there costs the key grid no
 height at all.
+
+Note the `UI._exclusive` term: **only the full-display view draws that
+arc**, so only it may take OK out of the rows. The flag does both jobs, and
+deciding it from the shape alone — before the auto-exclusive rule has even
+run — left a *docked* round T9 with no OK key anywhere: dropped from the
+row, and no arc to put it in.
 
 ![The number pad on round glass](./img/kb-numbers-round128.png)
 

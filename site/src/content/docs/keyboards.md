@@ -1087,8 +1087,13 @@ full-width row down there would be mostly bezel. So `OK` lives there and
 costs the keyboard no height at all:
 
 ```js
-var okInArc = UI.isRound() && layout !== 'strip';
+var okInArc = UI.isRound() && layout !== 'strip' && !!UI._exclusive;
 ```
+
+The `UI._exclusive` term matters: only the full-display view draws the arc,
+so only it may take OK out of a layout's own rows. Deciding this from the
+shape alone left a docked round T9 with no OK key at all — dropped from the
+row, with no arc to put it in.
 
 It is sized to the circle where it actually sits, since a key wider than
 its own chord has its bottom corners under the bezel:
