@@ -1,0 +1,1124 @@
+<!doctype html>
+<!--
+  DIRECTION — LIVE TERMINAL SESSION.
+  mjsx explains itself the way it is actually used: as a console you watch run.
+
+  The four choices that define this page:
+
+  1. THE PAGE IS ONE TRANSCRIPT. Every "$" line is a command that really runs in
+     this repository, and everything under it is that command's real output —
+     `bun test`, `bun run examples`, `mjsx --help`, `wc -l`, `grep -n`. My own
+     words never wear output's clothes: they appear only as "#" comment lines.
+
+  2. THE HALF-BLOCK FRAMES ARE THE BACKEND'S OWN BYTES. Captured from the ANSI
+     that backends/terminal emits, decoded back into U+2584 cells carrying their
+     true foreground/background colours, and replayed here as text. Nothing in
+     those frames was drawn by hand.
+
+  3. TERMINAL CHROME ONLY. One monospace stack, a fixed column grid, ANSI-ish
+     colour, no cards, no gradients, no photography, no logos. The page follows
+     the reader's light/dark preference; the captured frames keep the device's
+     own theme, because that is what the panel actually shows.
+
+  4. THE TYPING IS A PERFORMANCE WITH AN OFF SWITCH. A Skip control finishes it
+     instantly, prefers-reduced-motion never starts it, and with JavaScript off
+     the whole transcript is simply already there.
+
+  Self-contained: no external requests, no build step, no binary assets.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mjsx — JSX for microcontrollers</title>
+<meta name="description" content="mjsx: one portable JSX core, ten native calls, several backends — microcontrollers, Raspberry Pi, desktop, terminal and browser.">
+<style>
+/* ---------------------------------------------------------------------------
+   TOKENS. The complete palette lives on bare :root (light). The media query
+   REDEFINES the same names for dark — no colour is ever defined only there.
+   --------------------------------------------------------------------------- */
+:root {
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+          "DejaVu Sans Mono", "Liberation Mono", monospace;
+
+  --bg:        #f4f2ed;
+  --bg-alt:    #eae7e0;
+  --surface:   #fbfaf7;
+  --term-bg:   #fbfaf7;
+  --term-bar:  #eae7e0;
+  --ink:       #16181d;
+  --dim:       #4d535e;
+  --faint:     #63697a;
+  --rule:      #d6d2c8;
+  --rule-soft: #e3dfd6;
+
+  --accent:    #1a56c4;
+  --prompt:    #1f6b3a;
+  --warn:      #8a4a00;
+
+  --tag:       #1a56c4;
+  --attr:      #0b6470;
+  --str:       #1f6b3a;
+  --kw:        #8a2d7a;
+  --num:       #9a4a00;
+  --cmt:       #63697a;
+
+  --sel-bg:    #1a56c4;
+  --sel-fg:    #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #0b0d10;
+    --bg-alt:    #101319;
+    --surface:   #12151a;
+    --term-bg:   #0e1116;
+    --term-bar:  #161a21;
+    --ink:       #dfe4ec;
+    --dim:       #9aa3b2;
+    --faint:     #7f8896;
+    --rule:      #242a35;
+    --rule-soft: #1b2029;
+
+    --accent:    #6ba4ff;
+    --prompt:    #57c98a;
+    --warn:      #e0a86a;
+
+    --tag:       #6ba4ff;
+    --attr:      #66c7d6;
+    --str:       #7fd39a;
+    --kw:        #d79ae0;
+    --num:       #e0a86a;
+    --cmt:       #7f8896;
+
+    --sel-bg:    #6ba4ff;
+    --sel-fg:    #0b0d10;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  font-variant-ligatures: none;
+}
+
+::selection { background: var(--sel-bg); color: var(--sel-fg); }
+
+a { color: var(--accent); text-decoration: none; border-bottom: 1px solid currentColor; }
+a:hover { background: var(--bg-alt); }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 clamp(14px, 3.5vw, 34px);
+}
+
+.skiplink {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--accent);
+  padding: 8px 12px;
+  z-index: 20;
+}
+.skiplink:focus { left: 12px; top: 12px; }
+
+/* --- masthead ------------------------------------------------------------ */
+
+.masthead {
+  border-bottom: 1px solid var(--rule);
+  background: var(--bg-alt);
+}
+.masthead .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 18px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.mark {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+}
+.mark b { color: var(--accent); font-weight: 700; }
+.mast-note { color: var(--faint); font-size: 12.5px; letter-spacing: 0.02em; }
+.mast-nav { margin-left: auto; display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; }
+.mast-nav a { border-bottom-color: var(--rule); color: var(--dim); }
+.mast-nav a:hover { color: var(--accent); border-bottom-color: currentColor; }
+
+/* --- hero ---------------------------------------------------------------- */
+
+.hero { padding: clamp(34px, 6vw, 62px) 0 8px; }
+
+h1 {
+  margin: 0 0 18px;
+  font-size: clamp(1.85rem, 6vw, 3.15rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+h1 .caret {
+  color: var(--accent);
+  font-weight: 400;
+}
+
+.lede {
+  margin: 0 0 10px;
+  max-width: 68ch;
+  color: var(--dim);
+  font-size: clamp(0.94rem, 1.6vw, 1.06rem);
+  line-height: 1.62;
+}
+.lede strong { color: var(--ink); font-weight: 700; }
+
+.facts {
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 12.5px;
+  color: var(--faint);
+}
+.facts li {
+  border: 1px solid var(--rule);
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+.facts li b { color: var(--ink); font-weight: 700; }
+
+/* --- terminal ------------------------------------------------------------ */
+
+.termshell { margin: 30px 0 0; }
+
+.termbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--rule);
+  border-bottom: 0;
+  background: var(--term-bar);
+  padding: 7px 12px;
+  font-size: 12px;
+  color: var(--faint);
+  flex-wrap: wrap;
+}
+.dots { display: flex; gap: 5px; }
+.dots i { width: 9px; height: 9px; border: 1px solid var(--rule); display: block; }
+.termbar .path { color: var(--dim); letter-spacing: 0.02em; }
+.ctl { margin-left: auto; display: flex; gap: 8px; }
+
+button.tbtn {
+  font: inherit;
+  font-size: 12px;
+  color: var(--dim);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 3px 11px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+button.tbtn:hover { color: var(--accent); border-color: var(--accent); }
+
+.termbody {
+  border: 1px solid var(--rule);
+  background: var(--term-bg);
+  padding: 14px clamp(10px, 2vw, 16px) 18px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: clamp(420px, 68vh, 700px);
+  scrollbar-width: thin;
+}
+[hidden] { display: none !important; }
+
+.tt { font-size: clamp(11.5px, 2.6vw, 13.5px); line-height: 1.5; }
+
+.line, .out {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+.line { color: var(--ink); }
+.ps1 { color: var(--prompt); font-weight: 700; }
+.ct { color: var(--ink); }
+.out { color: var(--dim); }
+.out b { color: var(--ink); font-weight: 700; }
+.out .ok { color: var(--prompt); font-weight: 700; }
+.out .hi { color: var(--accent); }
+.note { color: var(--faint); margin: 0; white-space: pre-wrap; }
+.step { margin: 0 0 18px; }
+.step:last-of-type { margin-bottom: 10px; }
+.outblock { margin-top: 3px; }
+
+.cursor {
+  display: none;
+  width: 0.62em;
+  height: 1.02em;
+  background: var(--accent);
+  vertical-align: -0.18em;
+  margin-left: 1px;
+}
+.term.anim .line.active .cursor { display: inline-block; animation: blink 1.05s steps(1) infinite; }
+.term:not(.anim) .endline .cursor { display: inline-block; animation: blink 1.05s steps(1) infinite; }
+@keyframes blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+
+.termcap {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* --- captured device frames ---------------------------------------------- */
+
+.screenwrap {
+  margin: 8px 0 2px;
+  background: #000000;
+  border: 1px solid var(--rule);
+  padding: 10px 6px;
+  overflow-x: auto;
+  text-align: center;
+}
+@supports (width: 1cqi) {
+  .screenwrap { container-type: inline-size; }
+}
+.screen {
+  display: inline-block;
+  text-align: left;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: min(13px, 1.2vw);
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: pre;
+  color: #ffffff;
+  background: #000000;
+}
+@supports (width: 1cqi) {
+  .screen { font-size: min(13px, calc(100cqi / 50)); }
+}
+.screencap {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+/* --- sections ------------------------------------------------------------ */
+
+section.blk { padding: clamp(30px, 5vw, 54px) 0; border-top: 1px solid var(--rule-soft); }
+section.blk:first-of-type { border-top: 0; }
+
+h2 {
+  margin: 0 0 6px;
+  font-size: clamp(1.15rem, 2.6vw, 1.5rem);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+h2 .num { color: var(--accent); font-weight: 400; }
+.sub { margin: 0 0 20px; color: var(--dim); max-width: 70ch; }
+
+.cmdblk {
+  border-left: 2px solid var(--rule);
+  padding: 10px 0 10px 14px;
+  margin: 0 0 20px;
+  font-size: clamp(11.5px, 2.6vw, 13.5px);
+  line-height: 1.5;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: clamp(11.5px, 2.5vw, 13px);
+  margin: 0;
+  text-align: left;
+}
+caption {
+  text-align: left;
+  color: var(--faint);
+  font-size: 12px;
+  padding-bottom: 7px;
+}
+th, td {
+  border-bottom: 1px solid var(--rule-soft);
+  padding: 7px 12px 7px 0;
+  vertical-align: top;
+}
+th {
+  color: var(--faint);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 11px;
+  border-bottom-color: var(--rule);
+}
+td.call { color: var(--accent); white-space: nowrap; padding-right: 18px; }
+td.mono2 { color: var(--ink); white-space: nowrap; padding-right: 18px; }
+td.why { color: var(--dim); }
+.tablescroll { overflow-x: auto; }
+
+/* --- code ---------------------------------------------------------------- */
+
+pre.code {
+  margin: 0;
+  padding: 16px clamp(12px, 2.2vw, 20px);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  overflow-x: auto;
+  font-size: clamp(11.5px, 2.55vw, 13.5px);
+  line-height: 1.62;
+  color: var(--ink);
+  tab-size: 2;
+}
+.k { color: var(--kw); }
+.s { color: var(--str); }
+.t { color: var(--tag); }
+.a { color: var(--attr); }
+.n { color: var(--num); }
+.c { color: var(--cmt); }
+.p { color: var(--faint); }
+
+.split {
+  display: grid;
+  gap: clamp(18px, 3vw, 34px);
+  grid-template-columns: 1fr;
+}
+/* Grid items default to min-width:auto, which lets a wide <pre> refuse to
+   shrink and starve its neighbour. */
+.split > * { min-width: 0; }
+@media (min-width: 860px) {
+  .split.two { grid-template-columns: 1fr 1fr; align-items: start; }
+  .split.wide { grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); align-items: start; }
+}
+
+.pts { margin: 0; padding: 0; list-style: none; }
+.pts li {
+  border-bottom: 1px solid var(--rule-soft);
+  padding: 9px 0 9px 18px;
+  position: relative;
+  color: var(--dim);
+  font-size: clamp(12.5px, 2.4vw, 13.8px);
+}
+.pts li::before { content: "›"; position: absolute; left: 0; color: var(--accent); }
+.pts li b { color: var(--ink); font-weight: 700; }
+.pts li:last-child { border-bottom: 0; }
+
+/* --- round-display diagram ------------------------------------------------ */
+
+.diagram { width: 100%; height: auto; display: block; margin: 4px 0 0; }
+.d-glass { fill: none; stroke: var(--rule); stroke-width: 2; }
+.d-void  { fill: var(--bg-alt); }
+.d-row   { fill: var(--accent); opacity: 0.24; }
+.d-row-b { fill: var(--accent); opacity: 0.5; }
+.d-key   { fill: none; stroke: var(--accent); stroke-width: 2; }
+.d-dot   { fill: var(--accent); }
+.d-txt   { fill: var(--faint); font-family: var(--mono); font-size: 12px; }
+.d-txt-b { fill: var(--dim); font-family: var(--mono); font-size: 12px; }
+.d-cut   { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 4 4; fill: none; }
+
+/* --- footer -------------------------------------------------------------- */
+
+footer.foot {
+  border-top: 1px solid var(--rule);
+  background: var(--bg-alt);
+  padding: clamp(26px, 4vw, 44px) 0 clamp(34px, 5vw, 56px);
+  margin-top: clamp(24px, 4vw, 44px);
+}
+.foot .status { margin: 0 0 14px; font-size: clamp(12.5px, 2.4vw, 14px); color: var(--ink); }
+.foot p { margin: 0 0 9px; color: var(--dim); max-width: 72ch; font-size: 13px; }
+.foot .last { color: var(--faint); font-size: 12px; margin-top: 18px; }
+.badge {
+  display: inline-block;
+  border: 1px solid var(--rule);
+  padding: 2px 8px;
+  margin-right: 6px;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.badge.no { color: var(--warn); border-color: var(--warn); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  .cursor { animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<a class="skiplink" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <span class="mark">mjsx<b>_</b></span>
+    <span class="mast-note">one core · ten native calls · several backends</span>
+    <nav class="mast-nav" aria-label="Sections">
+      <a href="#contract">contract</a>
+      <a href="#code">code</a>
+      <a href="#backends">backends</a>
+      <a href="#boards">boards</a>
+      <a href="#round">round</a>
+      <a href="#status">status</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============================ HERO ============================ -->
+  <section class="hero">
+    <div class="wrap">
+      <h1>JSX, drawn straight<br>onto the glass.<span class="caret">_</span></h1>
+
+      <p class="lede">
+        <strong>mjsx</strong> is a UI engine you write in JSX and run on a microcontroller,
+        a Raspberry Pi, a desktop window, a terminal, or a browser tab — from one portable
+        core, unmodified. No virtual DOM, no reconciler: a dirty frame just redraws.
+      </p>
+      <p class="lede">
+        It assumes exactly <strong>ten native drawing calls</strong> exist. A backend is
+        whatever realizes those ten. That is the entire porting contract, and it is why the
+        same file that drives a 240×280 panel over WiFi also prints itself into the terminal
+        you are about to watch.
+      </p>
+
+      <ul class="facts">
+        <li><b>2,514</b> lines of engine</li>
+        <li><b>312</b> lines of JSX transpiler</li>
+        <li><b>0</b> dependencies</li>
+        <li><b>10</b> native calls</li>
+        <li><b>6</b> backends</li>
+        <li><b>4</b> boards in the fleet</li>
+      </ul>
+
+      <div class="termshell term" id="term">
+        <div class="termbar">
+          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="path">~/mjsx — bun</span>
+          <span class="ctl">
+            <button type="button" class="tbtn" id="skipbtn">skip &#9654;&#9654;</button>
+          </span>
+        </div>
+
+        <div class="termbody tt" id="termbody" tabindex="0" role="region"
+             aria-label="Recorded mjsx terminal session">
+
+          <!-- 1 -->
+          <div class="step">
+            <p class="line"><span class="ps1">$</span> <span class="ct">bun run examples</span><span class="cursor" aria-hidden="true"></span></p>
+            <div class="outblock">
+              <div class="screenwrap" role="img"
+                   aria-label="The mjsx example picker rendered in a 78-column terminal: a blue bitmap heading reading PICK AN EXAMPLE, then a scrolling list of dark rounded rows labelled hello, counter and fonts, all drawn out of half-block characters.">
+                <pre class="screen" data-frame="picker" aria-hidden="true"></pre>
+              </div>
+              <p class="note"># the picker menu, drawn by mjsx itself. arrow keys move a cursor,
+# enter taps, Esc backs out, q quits — and real mouse clicks work too.
+# every glyph above is one U+2584, two sub-pixels of colour per cell.</p>
+            </div>
+          </div>
+
+          <!-- 2 -->
+          <div class="step">
+            <p class="line"><span class="ps1">$</span> <span class="ct">bun run example:hello</span><span class="cursor" aria-hidden="true"></span></p>
+            <div class="outblock">
+              <p class="out">$ bun backends/pure-js/src/run.js examples/hello/app.jsx out/hello.ppm
+<b>rendered 240x280 -&gt; out/hello.ppm</b></p>
+              <p class="note"># same app, same core. the pure-js backend answers the ten calls with
+# writes into an RGBA buffer instead of escape codes.</p>
+            </div>
+          </div>
+
+          <!-- 3 -->
+          <div class="step">
+            <p class="line"><span class="ps1">$</span> <span class="ct">bun packages/cli/bin/mjsx.js run examples/sensors/app.jsx --size 78x22</span><span class="cursor" aria-hidden="true"></span></p>
+            <div class="outblock">
+              <div class="screenwrap" role="img"
+                   aria-label="The sensors example in a 78-column terminal: a blue heading reading MOTION, a grey subtitle reading simulated - no motion hardware here, and three tab buttons — LEVEL filled white as the selected tab, TRACE and DATA dark — all built from half-block characters.">
+                <pre class="screen" data-frame="sensors" aria-hidden="true"></pre>
+              </div>
+              <p class="note"># the accelerometer example. the subtitle reads "simulated - no motion
+# hardware here", because a terminal has no accelerometer and the app says
+# so rather than faking numbers. on a board the same view is live.</p>
+            </div>
+          </div>
+
+          <!-- 4 -->
+          <div class="step">
+            <p class="line"><span class="ps1">$</span> <span class="ct">bun packages/cli/bin/mjsx.js --help</span><span class="cursor" aria-hidden="true"></span></p>
+            <div class="outblock">
+              <p class="out">usage: mjsx &lt;command&gt; ...
+
+  <b>dev</b> [example]                    device sim in a window + browser mirror
+  <b>run</b> &lt;app.jsx&gt; [--ppm out.ppm]    render an app once (terminal or PPM)
+  <b>push</b> &lt;ip&gt; &lt;app.jsx|--examples&gt;   bundle mjsx-core + app, push to a board
+  <b>ota</b> &lt;ip&gt; &lt;firmware.bin&gt;          firmware update over HTTP
+  <b>device</b> wifi &lt;port|auto&gt; ...      provision WiFi over USB serial
+  <b>fleet</b> ls|push|ota ...            the same, across every board on the LAN
+
+Every command runs to a deadline and exits; network steps take --timeout
+(and discovery --wait) as seconds, or with an ms/s suffix.</p>
+              <p class="note"># pushing an app to a board is a bundle over TCP, not a reflash.</p>
+            </div>
+          </div>
+
+          <!-- 5 -->
+          <div class="step">
+            <p class="line"><span class="ps1">$</span> <span class="ct">bun test</span><span class="cursor" aria-hidden="true"></span></p>
+            <div class="outblock">
+              <p class="out">test/backend-wasm.test.js:
+
+<span class="hi">ES5-subset parity through the wasm MicroQuickJS engine — 14/14 examples:</span>
+  camera    <span class="ok">PASS</span>  ops=  14
+  canvas    <span class="ok">PASS</span>  ops=  19
+  counter   <span class="ok">PASS</span>  ops=   4
+  draw      <span class="ok">PASS</span>  ops=  40
+  fonts     <span class="ok">PASS</span>  ops=  35
+  gpio      <span class="ok">PASS</span>  ops=  19
+  hello     <span class="ok">PASS</span>  ops=   6
+  i2c       <span class="ok">PASS</span>  ops=   5
+  input     <span class="ok">PASS</span>  ops=  47
+  layers    <span class="ok">PASS</span>  ops=  34
+  screen    <span class="ok">PASS</span>  ops=  53
+  sensors   <span class="ok">PASS</span>  ops=  19
+  shapes    <span class="ok">PASS</span>  ops= 736
+  wifi      <span class="ok">PASS</span>  ops=   7
+
+
+ <b>256 pass</b>
+ 1 skip
+ <b>0 fail</b>
+ 1188 expect() calls
+Ran 257 tests across 8 files. [21.91s]</p>
+              <p class="note"># that table is the point of the wasm backend: every example replayed
+# through the SAME MicroQuickJS bytecode a chip runs, op for op. engine
+# parity, checked, rather than a second implementation that agrees by luck.</p>
+            </div>
+          </div>
+
+          <p class="line endline"><span class="ps1">$</span> <span class="cursor" aria-hidden="true"></span></p>
+        </div>
+
+        <p class="termcap">
+          Real commands from the repository, with their real output. The two device frames are
+          the terminal backend's own bytes — captured ANSI, decoded back into half-block cells.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================== THE CONTRACT ========================== -->
+  <section class="blk" id="contract">
+    <div class="wrap">
+      <h2><span class="num">01 /</span> The whole porting contract is ten functions</h2>
+      <p class="sub">
+        Everything above the line — layout, hit-testing, scrolling, keyboards, modals — is one
+        portable file. Below the line is whatever your target can do with a rectangle.
+      </p>
+
+      <div class="cmdblk">
+        <p class="line"><span class="ps1">$</span> <span class="ct">wc -l packages/core/src/mjsx.js packages/core/src/jsx.js</span></p>
+        <p class="out">    2514 packages/core/src/mjsx.js
+     312 packages/core/src/jsx.js
+    2826 total</p>
+        <p class="note"># the engine, and the JSX transpiler. that is the project.</p>
+      </div>
+
+      <div class="tablescroll">
+        <table>
+          <caption>docs/contract.md — the ten calls, plus the one clock</caption>
+          <thead>
+            <tr><th scope="col">Call</th><th scope="col">Meaning</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="call">gfx.clear(color)</td><td class="why">Fill the whole surface. Start of every frame.</td></tr>
+            <tr><td class="call">gfx.rect(x,y,w,h,color,radius)</td><td class="why">1px outline, optionally rounded. <span class="p">radius</span> may be 0.</td></tr>
+            <tr><td class="call">gfx.frect(x,y,w,h,color,radius)</td><td class="why">Filled rect, optionally rounded. The workhorse call.</td></tr>
+            <tr><td class="call">gfx.circle(x,y,r,color,filled)</td><td class="why">Centre, radius, boolean <span class="p">filled</span>.</td></tr>
+            <tr><td class="call">gfx.line(x0,y0,x1,y1,color)</td><td class="why">1px line. The core draws thick lines as parallel 1px lines itself.</td></tr>
+            <tr><td class="call">gfx.text(x,y,size,color,str)</td><td class="why">Draw at an integer size multiplier, top-left origin. The core never rasterizes a glyph; font choice is entirely the backend's.</td></tr>
+            <tr><td class="call">gfx.clip(x,y,w,h)</td><td class="why">Set <em>the</em> clip rect. A single rect, not a stack — the core intersects nested clips itself and always hands you one honest rect.</td></tr>
+            <tr><td class="call">gfx.unclip()</td><td class="why">Remove the clip rect.</td></tr>
+            <tr><td class="call">gfx.width()</td><td class="why">Logical surface width in pixels.</td></tr>
+            <tr><td class="call">gfx.height()</td><td class="why">Logical surface height.</td></tr>
+            <tr><td class="call">sys.millis()</td><td class="why">Monotonic clock, milliseconds. Drives timers, cursor blink, long-press, fling velocity.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="split two" style="margin-top:26px">
+        <ul class="pts">
+          <li><b>No VDOM, no reconciler.</b> Layout is width-in, height-out. A dirty frame is simply redrawn.</li>
+          <li><b>Hit-testing registers at the exact rect a control was drawn at</b>, so what you tap can never drift from what you see.</li>
+          <li><b>The touch state machine is in the core</b> — drag slop, scroll, fling, long-press — not re-invented per backend.</li>
+        </ul>
+        <ul class="pts">
+          <li><b>Written in an ES5 / MicroQuickJS-safe subset on purpose.</b> The same file runs unmodified on a chip's embedded interpreter and in a browser's engine.</li>
+          <li><b>The JSX transpiler is 312 lines</b>, written in the same subset it compiles — so it runs in a browser, or inside the chip interpreter itself.</li>
+          <li><b>Zero dependencies.</b> <span class="p">node_modules</span> is empty; SDL2 is the one optional native library, and only for the desktop window.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= CODE ============================= -->
+  <section class="blk" id="code">
+    <div class="wrap">
+      <h2><span class="num">02 /</span> What an app actually looks like</h2>
+      <p class="sub">
+        Ambient globals, no imports, no build step. <span class="p">h</span>,
+        <span class="p">UI</span>, <span class="p">gfx</span> and <span class="p">sys</span>
+        are what a device provides; every example in the repository is one flat file like this
+        and runs unmodified under any backend.
+      </p>
+
+      <div class="split wide">
+        <div>
+          <div class="cmdblk" style="margin-bottom:10px">
+            <p class="line"><span class="ps1">$</span> <span class="ct">sed -n '13,25p' examples/counter/app.jsx</span></p>
+          </div>
+<pre class="code"><span class="k">function</span> <span class="t">App</span>() {
+  <span class="k">var</span> count = UI.state.count || <span class="n">0</span>;
+  <span class="k">return</span> (
+    <span class="p">&lt;</span><span class="t">box</span> <span class="a">pad</span>={<span class="t">em</span>(<span class="n">2</span>)} <span class="a">gap</span>={<span class="t">em</span>(<span class="n">2</span>)}<span class="p">&gt;</span>
+      <span class="p">&lt;</span><span class="t">text</span> <span class="a">text</span>={<span class="s">'COUNT: '</span> + count} <span class="a">size</span>={<span class="n">3</span>} <span class="a">color</span>={UI.theme.text} <span class="a">align</span>=<span class="s">"center"</span> <span class="p">/&gt;</span>
+      <span class="p">&lt;</span><span class="t">Button</span> <span class="a">label</span>=<span class="s">"+1"</span> <span class="a">size</span>={<span class="n">2</span>}
+              <span class="a">onTap</span>={<span class="k">function</span> () { UI.set({ count: count + <span class="n">1</span> }); }} <span class="p">/&gt;</span>
+    <span class="p">&lt;/</span><span class="t">box</span><span class="p">&gt;</span>
+  );
+}
+
+UI.<span class="t">mount</span>(App);</pre>
+          <p class="note" style="margin-top:10px; font-size:12.5px">
+# examples/counter/app.jsx, verbatim. tap the button, the count changes,
+# the screen redraws to match. that is the entire state model.</p>
+        </div>
+
+        <div>
+          <ul class="pts">
+            <li><b>State goes one way.</b> <span class="p">UI.set</span> marks the frame dirty; the next frame is drawn from scratch. There is no tree to diff and nothing to keep in sync.</li>
+            <li><b>Text entry is on-device.</b> Four keyboard layouts — QWERTY, T9, a number pad, and a scrolling STRIP for tiny screens — and the layout picks itself from how much room the keys actually get.</li>
+            <li><b>Hardware is just more JavaScript.</b> <span class="p">sys.gpio</span> reads a pin, drives it, or reads the ADC; <span class="p">sys.i2c</span> scans the bus and peeks registers; a motion module supplies acceleration, rotation and temperature.</li>
+            <li><b>Canvas sources</b> let a camera frame, or a hundred committed brush strokes, cost exactly one blit.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================== BACKENDS =========================== -->
+  <section class="blk" id="backends">
+    <div class="wrap">
+      <h2><span class="num">03 /</span> Six ways to answer the same ten calls</h2>
+      <p class="sub">
+        Nothing above the contract is special-cased per target. In pure-js,
+        <span class="p">gfx.frect</span> writes into an RGBA buffer. On the chip and in wasm it
+        is a C function. In the terminal it writes into a sub-pixel buffer that gets flushed as
+        escape codes.
+      </p>
+
+      <div class="cmdblk">
+        <p class="line"><span class="ps1">$</span> <span class="ct">ls backends/</span></p>
+        <p class="out">esp32
+http
+pure-js
+sdl
+terminal
+wasm</p>
+      </div>
+
+      <div class="tablescroll">
+        <table>
+          <caption>backends/ — all six exist and run today</caption>
+          <thead>
+            <tr><th scope="col">Backend</th><th scope="col">What it is</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono2">pure-js</td><td class="why">Headless rasterizer into an RGBA buffer; writes PPM and PNG. The reference implementation, and the renderer the browser-mirror and desktop backends draw with.</td></tr>
+            <tr><td class="mono2">terminal</td><td class="why">Near-square pixels in a terminal — two sub-pixels per character cell via the half-block glyph. Renders once, runs interactively in raw mode, or serves the example picker.</td></tr>
+            <tr><td class="mono2">sdl</td><td class="why">Device simulator in a native window: square, rounded-corner and round-display masks, size presets for the real panels, an HD sub-pixel mode.</td></tr>
+            <tr><td class="mono2">http</td><td class="why">The UI in a browser tab — pixels out, real input back, including genuine per-finger multitouch. The device mirrors its own screen the same way.</td></tr>
+            <tr><td class="mono2">wasm</td><td class="why">The same MicroQuickJS engine C source compiled with Emscripten. Engine parity for testing — the identical bytecode a chip runs, not a reimplementation.</td></tr>
+            <tr><td class="mono2">esp32</td><td class="why">The real thing. A minimal reference firmware showing where a panel driver plugs in, plus the bundler that pushes core, shim and every example to a live board over TCP — no reflash.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ BOARDS ============================ -->
+  <section class="blk" id="boards">
+    <div class="wrap">
+      <h2><span class="num">04 /</span> A four-board fleet, driven daily</h2>
+      <p class="sub">
+        All ESP32-S3 touch-LCD boards. An app arrives as a plain JS bundle the firmware
+        evaluates, so shipping a change is a push, not a flash; firmware itself updates over
+        WiFi, into the inactive slot, verified before the board switches to it.
+      </p>
+
+      <div class="tablescroll">
+        <table>
+          <caption>docs/devices.md — the boards, selected at build time by flag</caption>
+          <thead>
+            <tr>
+              <th scope="col">Flag</th><th scope="col">Board</th>
+              <th scope="col">Panel</th><th scope="col">Touch</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono2">(default)</td><td class="why">ESP32-S3-Touch-LCD-1.69</td><td class="mono2">240x280 ST7789V2</td><td class="why">CST816T</td></tr>
+            <tr><td class="mono2">--b35</td><td class="why">ESP32-S3-Touch-LCD-3.5</td><td class="mono2">320x480 ST7796</td><td class="why">FT6336</td></tr>
+            <tr><td class="mono2">--b147</td><td class="why">ESP32-S3-Touch-LCD-1.47</td><td class="mono2">172x320 JD9853</td><td class="why">AXS5106L</td></tr>
+            <tr><td class="mono2">--b128</td><td class="why">ESP32-S3-Touch-LCD-1.28 <span class="p">(round)</span></td><td class="mono2">240x240 GC9A01</td><td class="why">CST816S</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="split two" style="margin-top:26px">
+        <ul class="pts">
+          <li><b>Camera frames stream in as canvas sources</b> — a live preview and full-frame snapshots, blitted by the UI as single ops.</li>
+          <li><b>A browser mirrors the screen.</b> The device shim records each frame as compact ops and replays them on a <span class="p">/remote</span> page — the receiving end is just another backend.</li>
+        </ul>
+        <ul class="pts">
+          <li><b>The round board is the constrained one.</b> Its 2MB PSRAM means the JS heap is capped at 1MB, which still runs the full example set with room for the frame canvas.</li>
+          <li><b>Fleet commands fan out</b>: discovery over mDNS with a TCP probe as the fallback, then push or update every board on the LAN, one result line each.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ ROUND ============================= -->
+  <section class="blk" id="round">
+    <div class="wrap">
+      <h2><span class="num">05 /</span> Round glass has no corners, so the layout stops assuming them</h2>
+      <p class="sub">
+        On the 1.28" GC9A01 the host tells the core the display is round, and layout answers by
+        fitting the <em>chord</em> of the circle at each row's own height — the width the glass
+        really has between two y values, minus a hair for the bezel.
+      </p>
+
+      <div class="cmdblk">
+        <p class="line"><span class="ps1">$</span> <span class="ct">grep -n "UI.isRound()" packages/core/src/mjsx.js</span></p>
+        <p class="out">755:      if (UI.isRound()) maxOff += gfx.height() &gt;&gt; 2;
+896:  var round = UI.isRound();
+1360:  if (UI.isRound()) kbW = kbChordHW(gfx.height() * 0.72, gfx.height() * 0.86) * 2;
+1376:  var okInArc = UI.isRound() &amp;&amp; layout !== 'strip';
+1397:  var rowW = (UI.isRound() ? kbW : gfx.width()) - 8;
+1448:    var xTopPad = UI.isRound() ? Math.round(gfx.height() * 0.10) : 0;
+1454:    var xBotPad = UI.isRound() ? Math.round(gfx.height() * 0.12) : 0;
+1475:    var xRowW = UI.isRound()</p>
+      </div>
+
+      <svg class="diagram" viewBox="0 0 720 272" role="img"
+           aria-label="Three round displays. Left: horizontal content rows, each inset to the width of the circle's chord at its own height, so the stack is widest at the middle and narrow at the top and bottom. Middle: a keyboard whose four rows narrow towards the bottom into a trapezoid, keeping the last row off the rim. Right: five control dots placed along the bottom rim of the circle, with a content panel above them.">
+
+        <!-- A: chord-fitted rows -->
+        <circle class="d-glass" cx="120" cy="120" r="100"></circle>
+        <rect class="d-row"   x="74"  y="33"  width="92"  height="14"></rect>
+        <rect class="d-row"   x="47"  y="55"  width="146" height="14"></rect>
+        <rect class="d-row"   x="33"  y="77"  width="175" height="14"></rect>
+        <rect class="d-row-b" x="25"  y="99"  width="190" height="14"></rect>
+        <rect class="d-row-b" x="24"  y="121" width="192" height="14"></rect>
+        <rect class="d-row"   x="30"  y="143" width="180" height="14"></rect>
+        <rect class="d-row"   x="42"  y="165" width="156" height="14"></rect>
+        <rect class="d-row"   x="64"  y="187" width="111" height="14"></rect>
+        <text class="d-txt-b" x="120" y="246" text-anchor="middle">rows fit the chord</text>
+        <text class="d-txt"   x="120" y="264" text-anchor="middle">not the bounding box</text>
+
+        <!-- B: trapezoid keyboard -->
+        <circle class="d-glass" cx="360" cy="120" r="100"></circle>
+        <rect class="d-key" x="292" y="50"  width="136" height="22"></rect>
+        <rect class="d-key" x="264" y="120" width="191" height="16"></rect>
+        <rect class="d-key" x="270" y="140" width="181" height="16"></rect>
+        <rect class="d-key" x="280" y="160" width="160" height="16"></rect>
+        <rect class="d-key" x="298" y="180" width="124" height="16"></rect>
+        <path class="d-cut" d="M262 118 L296 198"></path>
+        <path class="d-cut" d="M458 118 L424 198"></path>
+        <text class="d-txt-b" x="360" y="246" text-anchor="middle">the keyboard is a trapezoid</text>
+        <text class="d-txt"   x="360" y="264" text-anchor="middle">no key hides under the bezel</text>
+
+        <!-- C: ArcFooter -->
+        <circle class="d-glass" cx="600" cy="120" r="100"></circle>
+        <rect class="d-row-b" x="548" y="70" width="104" height="60"></rect>
+        <circle class="d-dot" cx="652" cy="191" r="9"></circle>
+        <circle class="d-dot" cx="627" cy="204" r="9"></circle>
+        <circle class="d-dot" cx="600" cy="208" r="9"></circle>
+        <circle class="d-dot" cx="573" cy="204" r="9"></circle>
+        <circle class="d-dot" cx="548" cy="191" r="9"></circle>
+        <text class="d-txt-b" x="600" y="246" text-anchor="middle">ArcFooter rides the rim</text>
+        <text class="d-txt"   x="600" y="264" text-anchor="middle">upright items, edge-following places</text>
+      </svg>
+
+      <div class="split two" style="margin-top:30px">
+        <ul class="pts">
+          <li><b>The chord, per band.</b> A helper returns half the width the circle really has between two heights, taking whichever edge is farther from the middle — so a row is never wider than the glass under its own worst corner.</li>
+          <li><b>The keyboard becomes a trapezoid.</b> Its bottom row sits nearest the rim, which is exactly where an un-inset layout would put SPACE and OK half under the bezel.</li>
+        </ul>
+        <ul class="pts">
+          <li><b>ArcFooter places controls along the edge</b>, wherever the ray from screen-centre meets the boundary. On round glass that is the rim; on square glass the same call walks the rectangle's perimeter. Items stay upright — only their positions follow the edge.</li>
+          <li><b>The keyboard layout chooses itself</b> from the width it is given: <span class="p">kbW &gt;= 220</span> gets QWERTY, <span class="p">&gt;= 115</span> gets T9, and anything narrower gets the scrolling STRIP.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================= FOOTER ============================= -->
+<footer class="foot" id="status">
+  <div class="wrap">
+    <p class="line" style="font-size:13px"><span class="ps1">$</span> <span class="ct">head -1 LICENSE</span></p>
+    <p class="out" style="font-size:13px; margin-bottom:16px">MIT License</p>
+
+    <p class="status">
+      <span class="badge">hobby project</span>
+      <span class="badge">MIT licensed</span>
+      <span class="badge no">not published to npm</span>
+      <span class="badge no">not on a public host yet</span>
+    </p>
+
+    <p>
+      mjsx is one person's hobby project, open-sourced as-is and still pre-publication.
+      There is no package to install and no public repository link to give you: the
+      <span class="p">"private": true</span> in its package.json is deliberate. If you get a
+      copy, pin to the checkout.
+    </p>
+    <p>
+      It was ported out of a working ESP32 firmware's UI engine and generalized until nothing
+      in it assumed a particular board, a particular JavaScript engine, or a particular way of
+      turning a draw call into pixels. What is written above is what the repository does today —
+      the limitations are written down in its README too, including the examples authored at
+      fixed pixel sizes that do not fit every canvas without scaling.
+    </p>
+    <p class="last">
+      Every command and every byte of output on this page came from running mjsx.
+      No analytics, no fonts to fetch, no images to load — this page is one file.
+    </p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------------------------------------------------------------
+     Captured frames. Each is real ANSI from backends/terminal, parsed into
+     a cell grid and run-length encoded here. combos = [glyph, fg, bg]
+     where glyph 1 means U+2584 (the lower half block the backend emits) and
+     the indices point into pal. Colours are the device theme, not the page's.
+     --------------------------------------------------------------------- */
+  var ALPHA = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+  var FRAMES = {"picker":{"w":78,"h":24,"pal":["#000000","#4b8bf5","#212530","#ffffff"],"combos":[[0,0,0],[0,1,1],[1,0,1],[1,1,0],[1,2,0],[0,2,2],[1,3,2],[0,3,3],[1,2,3],[1,0,2]],"rows":["a78","a78","a78","a78","a11b1c3d1a3c1b1c1a3d1c3d1a2b1a2d1c1a9d1c3d1a2b1d1a2b1a20","a11b1d3c1a4b1a4b1a6b1d1c1a11b1d3b1a2b1a1c1d1b1a20","a11b1a8b1a4b1a3d1a2b1a1c1d1a10b1a3b1a2b1a3b1a20","a11c1a7c3a4c3a3c1a3c1a9c1a3c1a2c1a3c1a2c1a1c1a1c1a13","a78","a78","a78","a78","a78","a78","a10e2f54e2a10","a9f60a9","a8f17g2f3g2f2g1f2g1f2g2f2g1f1g1f3g2f18a8","a8f16h1f2i1f2g2h1f1h1i2h1f1h1g2h1f1h1i1f1i1f2g2h1f17a8","a8f16i1g2i1f1i1g2h1f1h1f2h1f1i1g3f1h1f4i1g2h1f17a8","a9f60a9","a10j2f54j2a10","a78","a78","a10e2f54e2a10"]},"sensors":{"w":78,"h":22,"pal":["#000000","#4b8bf5","#98a1ae","#1b1e24","#ffffff"],"combos":[[0,0,0],[0,1,1],[1,1,0],[1,0,1],[1,2,0],[1,0,2],[0,2,2],[1,3,0],[0,3,3],[0,4,4],[1,3,4],[1,4,3],[1,4,1],[1,0,3]],"rows":["a78","a78","a78","a78","a18b1c1a1c1b1a2c1d3c1a2d2b1d2a3d1b1d1a3c1d3c1a2b1c1a2b1a20","a18b1a1b1a1b1a2b1a3b1a4b1a6b1a4b1a3b1a2b1a1d1c1b1a20","a18b1a3b1a2b1a3b1a4b1a6b1a4b1a3b1a2b1a3b1a20","a18d1a3d1a3d3a5d1a5d3a4d3a3d1a3d1a20","a78","a78","a10e3a2f1a3e1a2e1a1e1a2e1a1f1g1a4e2a2e1g1e1a3e2a5g1a25","a9f1e2a2f1g1a3g1f2g1a1g1a2g1a2g1a4e2g1a2g1a3g1e2g1a1e1f2g1a6f3a16","a9e3f1a1e1g1e1a2g1a2g1a1f1e2f1a1e1g1e1a2f1e2g1a2f1e2a1f1e3a1f1e2g1a11e1a1e1a11","a78","a78","a10c2b10c2a8h2i10h2a8h2i10h2a10","a9b16a6i16a6i16a9","a8b4j1b13a4i4k1j1k2i10a4i4j1k2l1i10a8","a8b4j1b13a4i5j1i12a4i4j1i2j1i10a8","a8b4j1m3b1m1b1m1b6a4i5j1i3l1i1l1i6a4i4j1l2k1i1l1i1l1i6a8","a9b16a6i16a6i16a9","a10d2b10d2a8n2i10n2a8n2i10n2a10"]}};
+
+  function rep(ch, n) {
+    var s = "";
+    while (n-- > 0) s += ch;
+    return s;
+  }
+
+  function paint(el) {
+    var f = FRAMES[el.getAttribute("data-frame")];
+    if (!f) return;
+    var html = "", r, m, re, ci, c, n;
+    for (r = 0; r < f.rows.length; r++) {
+      re = /([A-Za-z0-9])(\d+)/g;
+      while ((m = re.exec(f.rows[r])) !== null) {
+        ci = ALPHA.indexOf(m[1]);
+        c = f.combos[ci];
+        n = parseInt(m[2], 10);
+        html += '<span style="color:' + f.pal[c[1]] + ';background:' + f.pal[c[2]] + '">' +
+                rep(c[0] ? "▄" : " ", n) + "</span>";
+      }
+      html += "\n";
+    }
+    el.innerHTML = html;
+  }
+
+  var screens = document.querySelectorAll(".screen[data-frame]");
+  for (var i = 0; i < screens.length; i++) paint(screens[i]);
+
+  /* ---------------------------------------------------------------------
+     The typed session. The transcript is already complete in the HTML —
+     this only hides it and lets it back in, so no-JS and reduced-motion
+     readers get the finished page with nothing missing.
+     --------------------------------------------------------------------- */
+  var term = document.getElementById("term");
+  var body = document.getElementById("termbody");
+  var btn = document.getElementById("skipbtn");
+  if (!term || !body || !btn) return;
+
+  var steps = [];
+  var all = body.querySelectorAll(".step");
+  for (var s = 0; s < all.length; s++) steps.push(all[s]);
+
+  /* Stash each command's text before anything blanks it. */
+  for (var q = 0; q < steps.length; q++) {
+    var c0 = steps[q].querySelector(".ct");
+    if (c0) c0.setAttribute("data-full", c0.textContent);
+  }
+
+  var timers = [];
+  var running = false;
+  var finished = false;
+  var began = false;
+
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+  function clearAll() {
+    for (var t = 0; t < timers.length; t++) clearTimeout(timers[t]);
+    timers = [];
+  }
+
+  function scrollDown() { body.scrollTop = body.scrollHeight; }
+
+  function finish(toTop) {
+    clearAll();
+    running = false;
+    finished = true;
+    for (var k = 0; k < steps.length; k++) {
+      steps[k].hidden = false;
+      var line = steps[k].querySelector(".line");
+      var ct = steps[k].querySelector(".ct");
+      var ob = steps[k].querySelector(".outblock");
+      if (line) line.classList.remove("active");
+      if (ct) ct.textContent = ct.getAttribute("data-full");
+      if (ob) ob.hidden = false;
+    }
+    term.classList.remove("anim");
+    btn.textContent = "replay ↺";
+    btn.setAttribute("aria-label", "Replay the terminal session");
+    body.removeAttribute("aria-busy");
+    if (toTop) body.scrollTop = 0;
+  }
+
+  function runStep(idx) {
+    if (idx >= steps.length) {
+      later(function () { finish(false); }, 500);
+      return;
+    }
+    var step = steps[idx];
+    var line = step.querySelector(".line");
+    var ct = step.querySelector(".ct");
+    var ob = step.querySelector(".outblock");
+    var full = ct.getAttribute("data-full");
+
+    step.hidden = false;
+    if (ob) ob.hidden = true;
+    line.classList.add("active");
+    ct.textContent = "";
+    scrollDown();
+
+    var pos = 0;
+    function tick() {
+      if (!running) return;
+      pos += 1;
+      ct.textContent = full.slice(0, pos);
+      if (pos < full.length) {
+        later(tick, 14 + Math.random() * 26);
+      } else {
+        later(function () {
+          if (!running) return;
+          line.classList.remove("active");
+          if (ob) { ob.hidden = false; }
+          scrollDown();
+          later(function () {
+            if (!running) return;
+            scrollDown();
+            runStep(idx + 1);
+          }, 900);
+        }, 260);
+      }
+    }
+    later(tick, 220);
+  }
+
+  /* Empty the console and arm it, without starting the clock. Done up front
+     so the finished transcript is never flashed and then snatched away. */
+  function arm() {
+    clearAll();
+    running = false;
+    finished = false;
+    term.classList.add("anim");
+    btn.textContent = "skip ▶▶";
+    btn.setAttribute("aria-label", "Skip the animation and show the whole session");
+    body.setAttribute("aria-busy", "true");
+    for (var k = 0; k < steps.length; k++) {
+      steps[k].hidden = true;
+      var line = steps[k].querySelector(".line");
+      var ct = steps[k].querySelector(".ct");
+      var ob = steps[k].querySelector(".outblock");
+      if (line) line.classList.remove("active");
+      if (ct) ct.textContent = "";
+      if (ob) ob.hidden = true;
+    }
+    body.scrollTop = 0;
+  }
+
+  function play() {
+    if (running) return;
+    running = true;
+    runStep(0);
+  }
+
+  btn.addEventListener("click", function () {
+    if (running) {
+      finish(true);
+    } else {
+      began = true;
+      arm();
+      play();
+    }
+  });
+
+  var reduce = false;
+  try {
+    reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (e) { reduce = false; }
+
+  if (reduce) {
+    /* No animation at all: the whole session, already run. */
+    finish(false);
+  } else {
+    arm();
+    var begin = function () {
+      if (began || finished) return;
+      began = true;
+      play();
+    };
+    if (window.IntersectionObserver) {
+      var io = new IntersectionObserver(function (entries) {
+        for (var e = 0; e < entries.length; e++) {
+          if (entries[e].isIntersecting) { io.disconnect(); begin(); }
+        }
+      }, { threshold: 0.12 });
+      io.observe(term);
+      /* Belt and braces: never leave the console empty if the observer
+         somehow never fires. */
+      later(begin, 2500);
+    } else {
+      begin();
+    }
+  }
+})();
+</script>
+
+</body>
+</html>

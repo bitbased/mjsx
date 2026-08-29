@@ -1,6 +1,8 @@
-# mjsx documentation
-
-mjsx is a JSX UI engine small enough to run on a microcontroller.
+---
+title: "mjsx"
+description: "JSX for microcontrollers, Raspberry Pi, desktop and the browser."
+---
+<!-- GENERATED from docs/README.md by scripts/docs-sync.mjs. Edit that file. -->mjsx is a JSX UI engine small enough to run on a microcontroller.
 `packages/core/src/mjsx.js` is the whole portable engine — `h()`, layout
 (width-in, height-out, no VDOM), hit testing, the pointer state machine,
 text input with virtual keyboards, and modals — written in the ES5 subset
@@ -10,12 +12,12 @@ terminal, in a browser tab and in a native window. **The contract is ten
 `line`, `text`, `clip`, `unclip`, `width`, `height` — and a backend is
 whatever realizes those ten; nothing above that line changes per target.
 
-New here, go to [getting-started.md](getting-started.md). Writing a
-backend, go to [contract.md](contract.md).
+New here, go to [getting-started.md](/getting-started). Writing a
+backend, go to [contract.md](/contract).
 
 ## What it looks like
 
-![](./img/ex-hello-lcd35.png)
+![](/img/ex-hello-lcd35.png)
 
 *`examples/hello` on the 3.5" panel — a padded box, a bordered panel,
 centred text. Every unit is `em()`, so the same source lays out against
@@ -28,7 +30,7 @@ whatever font the host draws with.*
 </box>
 ```
 
-![](./img/ex-counter-lcd35.png)
+![](/img/ex-counter-lcd35.png)
 
 *`examples/counter` — the whole state model in one screen: a tap calls
 `UI.set`, the frame is marked dirty, and the next render redraws
@@ -39,7 +41,7 @@ everything. There is no reconciler to explain.*
         onTap={function () { UI.set({ count: count + 1 }); }} />
 ```
 
-![](./img/ex-layers-lcd35.png)
+![](/img/ex-layers-lcd35.png)
 
 *`examples/layers` — the layering torture test. Look at what does not
 scroll: the header, the `badge` sitting over its right end, the floating
@@ -52,7 +54,7 @@ MODAL button raises a panel that takes all input while it is up.*
 </box>
 ```
 
-![](./img/kb-auto-round128.png)
+![](/img/kb-auto-round128.png)
 
 *The built-in keyboard on round glass. Every row is inset to the chord at
 its own height — the trapezoid — so the outer keys stay on the glass, and
@@ -63,7 +65,7 @@ circle, not 240) before deciding it can only fit T9.*
 h(Keyboard, { layout: kb, position: pos, height: Math.floor(gfx.height() / 2.6) })
 ```
 
-![](./img/ex-draw-round128.png)
+![](/img/ex-draw-round128.png)
 
 *`examples/draw` on the round board: when `UI.isRound()` is true the
 toolbar moves onto the rim, each item pulled in from the boundary by its
@@ -79,10 +81,10 @@ own size and left upright.*
 
 | Page | The question it answers |
 |---|---|
-| [getting-started.md](getting-started.md) | Install, run an example in a window and in the terminal, write a first app, push it to a board. |
+| [getting-started.md](/getting-started) | Install, run an example in a window and in the terminal, write a first app, push it to a board. |
 | [../examples/README.md](../examples/README.md) | The fourteen shipped examples and what each one demonstrates. Every one is a single flat `app.jsx` with no imports and no build step. |
 
-![](./img/ex-hello-lcd147.png)
+![](/img/ex-hello-lcd147.png)
 
 *The same `examples/hello` source on the 1.47" panel (172x320). Nothing in
 the file changed; the layout is measured against the glass it is given.*
@@ -91,23 +93,23 @@ the file changed; the layout is measured against the glass it is given.*
 
 | Page | The question it answers |
 |---|---|
-| [ui.md](ui.md) | The app-author API: `h()` and JSX, every element and its props, `UI.state`/`UI.set`/`UI.memo`, the pointer model, keys and focus, timers, `configStorage`, safe insets. |
-| [layout.md](layout.md) | How `box`, `row`, flex weights, `abs`, `clip`/`offX` and scroll zones actually place things — width-in, height-out, and where the pixels end up. |
-| [fonts.md](fonts.md) | Which face draws at which size, what `em()` snaps to, and why text measurement is a shared responsibility between core and backend. |
+| [ui.md](/ui) | The app-author API: `h()` and JSX, every element and its props, `UI.state`/`UI.set`/`UI.memo`, the pointer model, keys and focus, timers, `configStorage`, safe insets. |
+| [layout.md](/layout) | How `box`, `row`, flex weights, `abs`, `clip`/`offX` and scroll zones actually place things — width-in, height-out, and where the pixels end up. |
+| [fonts.md](/fonts) | Which face draws at which size, what `em()` snaps to, and why text measurement is a shared responsibility between core and backend. |
 
-![](./img/layout-row-lcd35.png)
+![](/img/layout-row-lcd35.png)
 
 *`row`: children side by side — an even split, a fixed `w` with the rest
 sharing the remainder, and a pinned-height row where boxes stretch and
 text centres.*
 
-![](./img/layout-scroll-mid-lcd35.png)
+![](/img/layout-scroll-mid-lcd35.png)
 
 *A scroll zone 220px down its content. Drawing and hit areas both move,
 and the offset persists across renders because it lives under the zone's
 name in `UI._scroll`.*
 
-![](./img/font-auto-lcd35.png)
+![](/img/font-auto-lcd35.png)
 
 *The `auto` font ladder: every text size picks the sharpest native face
 that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.*
@@ -120,22 +122,22 @@ that fits it — 4x6 at size 1, 6x8 at size 2, 12x16 at size 3.*
 
 | Page | The question it answers |
 |---|---|
-| [components.md](components.md) | The ready-made components — `Button`, `input`, `Keyboard`, `ArcFooter` — every prop, and the fact that all of them are built from the same `box`/`row`/`text`/`abs` any app has. |
-| [keyboards.md](keyboards.md) | The four layouts plus `auto`: how a layout is chosen from the width the keys actually get, shift and the symbol pages, T9 multi-tap, docking versus taking the whole display. |
-| [input.md](input.md) | The text field: focus and caret, `password`, `maxLen`, overflow, where the keyboard goes, and how the mirrored field in exclusive mode is the same field. |
+| [components.md](/components) | The ready-made components — `Button`, `input`, `Keyboard`, `ArcFooter` — every prop, and the fact that all of them are built from the same `box`/`row`/`text`/`abs` any app has. |
+| [keyboards.md](/keyboards) | The four layouts plus `auto`: how a layout is chosen from the width the keys actually get, shift and the symbol pages, T9 multi-tap, docking versus taking the whole display. |
+| [input.md](/input) | The text field: focus and caret, `password`, `maxLen`, overflow, where the keyboard goes, and how the mirrored field in exclusive mode is the same field. |
 
-![](./img/comp-button-lcd35.png)
+![](/img/comp-button-lcd35.png)
 
 *`Button`: the default key colour, theme colours passed as `bg`, and a
 small button whose `hitPad` grows the touch target past the paint (the
 outlined box).*
 
-![](./img/kb-qwerty-lcd35.png)
+![](/img/kb-qwerty-lcd35.png)
 
 *A named layout is honoured exactly, however cramped — QWERTY docked on
 320px of glass. A stated preference is a decision, not a suggestion.*
 
-![](./img/input-focused-lcd35.png)
+![](/img/input-focused-lcd35.png)
 
 *A focused field: accent border, caret at the insertion point,
 placeholder gone. The engine owns text, caret and horizontal scroll per
@@ -152,15 +154,15 @@ placeholder gone. The engine owns text, caret and horizontal scroll per
 
 | Page | The question it answers |
 |---|---|
-| [devices.md](devices.md) | The four-board ESP32-S3 fleet: which flag builds which board, first flash over chunked USB, every flash after that over OTA, WiFi provisioning, and the push → screenshot → tap loop. |
-| [round.md](round.md) | Round glass: safe insets, the chord a row can actually use, footers that follow the rim, and the extra scroll range at the end of every zone. |
+| [devices.md](/devices) | The four-board ESP32-S3 fleet: which flag builds which board, first flash over chunked USB, every flash after that over OTA, WiFi provisioning, and the push → screenshot → tap loop. |
+| [round.md](/round) | Round glass: safe insets, the chord a row can actually use, footers that follow the rim, and the extra scroll range at the end of every zone. |
 
-![](./img/round-page-lcd35.png)
+![](/img/round-page-lcd35.png)
 
 *One page on square glass: full-bleed rows, the `ArcFooter` riding the
 bottom edge.*
 
-![](./img/round-page-round128.png)
+![](/img/round-page-round128.png)
 
 *The identical source on round glass. `UI.safe.inset` holds the rows
 inside the chord, the footer follows the rim, and the corners stay empty
@@ -174,10 +176,10 @@ var round = UI.isRound();
 
 | Page | The question it answers |
 |---|---|
-| [hardware-api.md](hardware-api.md) | `sys.gpio(pin, op, value)` and `sys.i2c(addr, reg, value)` on the ESP32 bridge firmware — what each op does, which pins the firmware refuses, and why there is no `sys.uart`. |
-| [sensors.md](sensors.md) | Reading motion and the rest of the board from a script: what the host offers, how an app checks before calling, and what it shows when the hardware is not there. |
+| [hardware-api.md](/hardware-api) | `sys.gpio(pin, op, value)` and `sys.i2c(addr, reg, value)` on the ESP32 bridge firmware — what each op does, which pins the firmware refuses, and why there is no `sys.uart`. |
+| [sensors.md](/sensors) | Reading motion and the rest of the board from a script: what the host offers, how an app checks before calling, and what it shows when the hardware is not there. |
 
-![](./img/ex-gpio-lcd35.png)
+![](/img/ex-gpio-lcd35.png)
 
 *`examples/gpio` under a backend with no pin natives. The app checks
 first and draws its own labelled fallback rather than throwing.*
@@ -186,7 +188,7 @@ first and draws its own labelled fallback rather than throwing.*
 var HAVE = typeof sys !== 'undefined' && typeof sys.gpio === 'function';
 ```
 
-![](./img/ex-sensors-lcd35.png)
+![](/img/ex-sensors-lcd35.png)
 
 *`examples/sensors` — accelerometer, gyro and temperature three ways
 (bubble level, rolling trace, raw data). Simulated here, and the app says
@@ -196,16 +198,16 @@ so on the screen.*
 
 | Page | The question it answers |
 |---|---|
-| [contract.md](contract.md) | The ten `gfx` calls and `sys.millis()` in full, the optional natives (`poly`, `blit`, `store`/`fetch`, font metrics), the host-declared `round` key, and how a backend drives the loop. |
-| [consistency.md](consistency.md) | What each backend in this tree *actually* implements, measured against the contract — a call-by-call matrix and fourteen ranked divergences, each read out of the named source file. |
+| [contract.md](/contract) | The ten `gfx` calls and `sys.millis()` in full, the optional natives (`poly`, `blit`, `store`/`fetch`, font metrics), the host-declared `round` key, and how a backend drives the loop. |
+| [consistency.md](/consistency) | What each backend in this tree *actually* implements, measured against the contract — a call-by-call matrix and fourteen ranked divergences, each read out of the named source file. |
 
-![](./img/ex-shapes-lcd35.png)
+![](/img/ex-shapes-lcd35.png)
 
 *`examples/shapes` — SVG-style filled paths under the even-odd rule.
 `gfx.poly` is optional: a backend that has it rasterizes at device
 resolution, and the core scanline-fills through `frect` when it does not.*
 
-![](./img/comp-swatch-lcd35.png)
+![](/img/comp-swatch-lcd35.png)
 
 *`UI.theme` — the colours every built-in component reads: eight named
 swatches, and `bg`, the ninth, is the black they are drawn on. Colours
@@ -225,7 +227,7 @@ theme: {
 |---|---|
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | The one hard rule (the core file stays in the MicroQuickJS ES5 subset), how to add an example, and how to add a backend. |
 
-![](./img/ex-hello-round128.png)
+![](/img/ex-hello-round128.png)
 
 *Adding an example is a directory under `examples/` with an `app.jsx` in
 it — and then every backend renders it unchanged. This is `examples/hello`
@@ -250,19 +252,19 @@ no per-board branches — on each of them, plus a desktop window.
 | `--b147` | ESP32-S3-Touch-LCD-1.47 | 172x320 JD9853 | AXS5106L |
 | `--b128` | ESP32-S3-Touch-LCD-1.28 (round) | 240x240 GC9A01 | CST816S |
 
-![](./img/ex-layers-lcd169.png)
+![](/img/ex-layers-lcd169.png)
 
 *The 1.69" board's panel, shown landscape at 280x240. Seven rows fit
 between the header and the footer, and the wrapped paragraph settles on
 two lines.*
 
-![](./img/ex-layers-lcd35.png)
+![](/img/ex-layers-lcd35.png)
 
 *The 3.5" board, 320x480 — the roomy one. Fourteen rows fit and the list
 still runs out before the viewport does; the wrapped paragraph needs two
 lines. 320px is also the width where the keyboard's `auto` picks QWERTY.*
 
-![](./img/ex-layers-lcd147.png)
+![](/img/ex-layers-lcd147.png)
 
 *The 1.47" board, 172x320 — the narrow one. Same rows, same strings: the
 wrapped paragraph now needs three lines, and the badge crowds the header
@@ -270,20 +272,20 @@ line into a truncation. Ten keyboard columns do not fit here at any
 height, and a docked keyboard's keys would land under 30px, so text entry
 takes the whole display instead.*
 
-![](./img/ex-layers-round128.png)
+![](/img/ex-layers-round128.png)
 
 *The round 1.28" board, 240x240 — and the useful failure. `examples/layers`
 is a square-glass app and does not ask; the rows stay full-bleed
 rectangles, so the ends of the header and the corners of every row fall
 past the rim. Round glass is a host-declared fact the layout has to read
 (`UI.isRound()`) — the same page written to ask is the round-page pair
-under "Designing for a device" above, and [round.md](round.md) is how.*
+under "Designing for a device" above, and [round.md](/round) is how.*
 
-![](./img/ex-layers-wide.png)
+![](/img/ex-layers-wide.png)
 
 *And the same file again in a 480x320 desktop window, where development
 actually happens.*
 
 The round board is also the constrained one — 2MB quad PSRAM, a 1MB JS
 heap cap, and a CH343 UART bridge that needs chunked serial writes. Each
-of those cost real debugging, and [devices.md](devices.md) records why.
+of those cost real debugging, and [devices.md](/devices) records why.

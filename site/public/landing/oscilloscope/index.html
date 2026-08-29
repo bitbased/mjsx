@@ -344,14 +344,16 @@
   }
   .stamp b { color: var(--ch3); font-weight: 700; }
 
+  /* Six readouts, always filling whole rows: 3x2, then 2x3 when narrow. */
   .readouts {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1px;
     margin: 22px 0 0;
     background: var(--rule-2);
     border: 1px solid var(--rule-2);
   }
+  @media (max-width: 420px) { .readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .ro { background: var(--panel); padding: 10px 12px 11px; }
   .ro dt {
     font: 500 9px/1 var(--mono);
@@ -468,14 +470,18 @@
   }
   @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
 
+  /* Card counts on this page are 6, 3 and 3, so a fixed 3-up never leaves a
+     ragged empty cell showing the grid's rule colour. */
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1px;
     margin-top: 22px;
     background: var(--rule-2);
     border: 1px solid var(--rule-2);
   }
+  @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 600px) { .cards { grid-template-columns: minmax(0, 1fr); } }
   .card { background: var(--panel); padding: 16px 17px 18px; }
   .card .k {
     font: 700 9.5px/1 var(--mono);
@@ -603,8 +609,10 @@
     background: var(--rule-2);
     display: grid;
     gap: 1px;
-    grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));  /* six backends, 3x2 */
   }
+  @media (max-width: 900px) { .stack { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 600px) { .stack { grid-template-columns: minmax(0, 1fr); } }
   .stack li {
     background: var(--panel);
     padding: 14px 16px 15px;

@@ -26,3 +26,44 @@
 /* device figures sit inline and keep their true scale-ish size */
 .sl-markdown-content p > img { max-width: 320px; }
 .sl-markdown-content em { color: var(--sl-color-gray-3); }
+
+/* ---- device-shape switcher -------------------------------------------
+ * The same screen on every shape in the fleet, chosen by clicking a
+ * thumbnail. CSS only, no script: Starlight renders the markdown's raw
+ * HTML, and on a plain git host (which loads none of this) the radios
+ * and every figure simply stack, which is a fair fallback rather than a
+ * broken widget.
+ */
+.shapes { margin: 1.5rem 0; }
+.shapes > input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+.shapes > label {
+  display: inline-flex; flex-direction: column; align-items: center; gap: .35rem;
+  padding: .5rem .6rem; margin: 0 .4rem .6rem 0;
+  border: 1px solid var(--sl-color-gray-5); border-radius: 8px;
+  cursor: pointer; background: var(--sl-color-bg-nav);
+  font-size: .78rem; color: var(--sl-color-gray-2); line-height: 1.2;
+}
+.shapes > label img {
+  image-rendering: pixelated; display: block; background: #0d0f13;
+  border: 0; padding: 0; border-radius: 3px; max-width: 64px; max-height: 64px;
+}
+.shapes > label:hover { border-color: var(--sl-color-accent); }
+/* the focus ring has to live on the label, since the input is offscreen */
+.shapes > input[type="radio"]:focus-visible + label {
+  outline: 2px solid var(--sl-color-accent); outline-offset: 2px;
+}
+.shapes > input[type="radio"]:checked + label {
+  border-color: var(--sl-color-accent);
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-white);
+}
+.shapes .shape-panels > figure { display: none; margin: 0; }
+.shapes .shape-panels > figure > img { max-width: min(100%, 480px); }
+.shapes .shape-panels > figure > figcaption {
+  font-size: .85rem; color: var(--sl-color-gray-3); margin-top: .4rem;
+}
+.shapes > input:nth-of-type(1):checked ~ .shape-panels > figure:nth-of-type(1),
+.shapes > input:nth-of-type(2):checked ~ .shape-panels > figure:nth-of-type(2),
+.shapes > input:nth-of-type(3):checked ~ .shape-panels > figure:nth-of-type(3),
+.shapes > input:nth-of-type(4):checked ~ .shape-panels > figure:nth-of-type(4),
+.shapes > input:nth-of-type(5):checked ~ .shape-panels > figure:nth-of-type(5) { display: block; }

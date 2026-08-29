@@ -64,6 +64,9 @@
 
   --focus:      #2559c8;
   --sel:        #d8e2fb;
+
+  --on-accent:  #ffffff;
+  --on-accent-2:#dbe6ff;
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -96,6 +99,9 @@
 
     --focus:      #4b8bf5;
     --sel:        #1d3565;
+
+    --on-accent:  #0b0d11;
+    --on-accent-2:#16305f;
   }
 }
 
@@ -129,11 +135,11 @@ p{ margin:0 0 1em; max-width:62ch; }
 p:last-child{ margin-bottom:0; }
 ul{ margin:0; padding:0; list-style:none; }
 
-.wrap{ width:100%; max-width:1180px; margin:0 auto; padding:0 clamp(14px,4vw,40px); }
+.wrap{ width:100%; max-width:1240px; margin:0 auto; padding:0 clamp(14px,4vw,40px); }
 
 .skip{
   position:absolute; left:-9999px; top:0; z-index:20;
-  background:var(--blue); color:#fff; padding:10px 16px; border:3px solid var(--edge);
+  background:var(--blue); color:var(--on-accent); padding:10px 16px; border:3px solid var(--edge);
 }
 .skip:focus{ left:8px; top:8px; }
 
@@ -149,10 +155,10 @@ ul{ margin:0; padding:0; list-style:none; }
   padding:3px 8px; border:2px solid var(--edge); background:var(--paper-3); color:var(--ink);
   white-space:nowrap;
 }
-.tag.blue{ background:var(--blue); color:#fff; border-color:var(--edge); }
-.tag.green{ background:var(--green); color:#fff; }
-.tag.amber{ background:var(--amber); color:#fff; }
-.tag.red{ background:var(--red); color:#fff; }
+.tag.blue{ background:var(--blue); color:var(--on-accent); border-color:var(--edge); }
+.tag.green{ background:var(--green); color:var(--on-accent); }
+.tag.amber{ background:var(--amber); color:var(--on-accent); }
+.tag.red{ background:var(--red); color:var(--on-accent); }
 
 .mono-lbl{
   font-size:11px; letter-spacing:.16em; text-transform:uppercase;
@@ -190,6 +196,9 @@ ul{ margin:0; padding:0; list-style:none; }
 @media (min-width:940px){
   .hero-grid{ grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr); }
 }
+@media (min-width:1080px){
+  .hero-grid{ grid-template-columns:minmax(0,1fr) 520px; }
+}
 .wordmark-box{ margin:0 0 18px; }
 .wordmark-box canvas{ display:block; }
 .wm-cap{ font-size:11px; color:var(--ink-2); letter-spacing:.08em; margin-top:8px; }
@@ -212,7 +221,7 @@ h1 .sub{ display:block; color:var(--ink-2); font-size:.62em; margin-top:8px; fon
   background:var(--bezel);
   border:3px solid var(--edge);
   box-shadow:10px 10px 0 var(--drop);
-  padding:14px;
+  padding:12px;
   display:inline-block;
   max-width:100%;
 }
@@ -241,15 +250,15 @@ canvas{
 .btnrow{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 button.px{
   font:inherit; font-weight:700; font-size:13px; letter-spacing:.08em; text-transform:uppercase;
-  background:var(--blue); color:#fff; border:3px solid var(--edge);
+  background:var(--blue); color:var(--on-accent); border:3px solid var(--edge);
   box-shadow:5px 5px 0 var(--drop);
   padding:9px 14px; cursor:pointer;
 }
-button.px:hover{ background:var(--ink); }
+button.px:hover{ background:var(--ink); color:var(--paper); }
 button.px:active{ transform:translate(3px,3px); box-shadow:2px 2px 0 var(--drop); }
 button.px.ghost{ background:var(--paper-3); color:var(--ink); }
-button.px.ghost:hover{ background:var(--paper); }
-button.px[aria-pressed="true"]{ background:var(--amber); color:#fff; }
+button.px.ghost:hover{ background:var(--paper); color:var(--ink); }
+button.px[aria-pressed="true"]{ background:var(--amber); color:var(--on-accent); }
 .readout{
   font-size:12px; color:var(--ink-2); border:2px dashed var(--rule); padding:5px 9px;
 }
@@ -262,13 +271,13 @@ section{ padding:clamp(34px,6vw,72px) 0; border-top:3px solid var(--edge); }
 .sechead p{ font-size:15px; color:var(--ink-2); }
 .kicker{
   display:inline-block; font-size:11px; font-weight:700; letter-spacing:.2em;
-  text-transform:uppercase; color:#fff; background:var(--ink); padding:4px 9px;
+  text-transform:uppercase; color:var(--paper); background:var(--ink); padding:4px 9px;
 }
 
 .two{ display:grid; gap:clamp(20px,3vw,36px); grid-template-columns:1fr; align-items:start; }
 @media (min-width:900px){ .two{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }
-.two.wide-left{ }
 @media (min-width:900px){ .two.wide-left{ grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); } }
+@media (min-width:1180px){ .two.wide-left{ grid-template-columns:minmax(0,1fr) 640px; } }
 
 /* --------------------------------------------------------- call list */
 .calls{ border:3px solid var(--edge); background:var(--paper-2); box-shadow:8px 8px 0 var(--drop); }
@@ -281,8 +290,8 @@ section{ padding:clamp(34px,6vw,72px) 0; border-top:3px solid var(--edge); }
   color:var(--ink);
 }
 .calls button:hover{ background:var(--paper-3); }
-.calls button[aria-pressed="true"]{ background:var(--blue); color:#fff; }
-.calls button[aria-pressed="true"] .cdesc{ color:#fff; }
+.calls button[aria-pressed="true"]{ background:var(--blue); color:var(--on-accent); }
+.calls button[aria-pressed="true"] .cdesc{ color:var(--on-accent); }
 .calls .cname{ font-weight:700; font-size:13px; white-space:nowrap; }
 .calls .cdesc{ font-size:12px; color:var(--ink-2); grid-column:2; }
 .calls .swatchdot{ width:10px; height:10px; border:2px solid var(--edge); display:inline-block; vertical-align:middle; margin-right:6px; }
@@ -300,8 +309,8 @@ section{ padding:clamp(34px,6vw,72px) 0; border-top:3px solid var(--edge); }
   display:flex; flex-direction:column; gap:2px; min-width:0;
 }
 .pipe .step span{ font-weight:400; color:var(--ink-2); font-size:11px; }
-.pipe .step.hot{ background:var(--blue); color:#fff; }
-.pipe .step.hot span{ color:#dbe6ff; }
+.pipe .step.hot{ background:var(--blue); color:var(--on-accent); }
+.pipe .step.hot span{ color:var(--on-accent-2); }
 .pipe .arrow{ align-self:center; font-weight:700; color:var(--ink-2); }
 
 /* ------------------------------------------------------------- code */
@@ -315,7 +324,7 @@ section{ padding:clamp(34px,6vw,72px) 0; border-top:3px solid var(--edge); }
 .codebar .dots i{ width:9px; height:9px; display:block; }
 pre.code{
   margin:0; padding:14px 14px 16px; overflow-x:auto; color:#e7ebf2;
-  font-size:13px; line-height:1.65; tab-size:2;
+  font-size:12.5px; line-height:1.7; tab-size:2;
 }
 pre.code code{ font:inherit; }
 .k{ color:#4b8bf5; } .t{ color:#4ade80; } .a{ color:#fbbf24; }
@@ -350,7 +359,8 @@ pre.code code{ font:inherit; }
 
 /* ----------------------------------------------------------- boards */
 .boards{
-  display:flex; flex-wrap:wrap; gap:clamp(16px,3vw,30px); align-items:flex-end;
+  display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end;
+  overflow-x:auto; padding-bottom:10px;
 }
 .boards .device{ flex:0 0 auto; }
 .scalebar{
@@ -360,7 +370,7 @@ pre.code code{ font:inherit; }
 
 /* ------------------------------------------------------------ round */
 .roundgrid{ display:grid; gap:clamp(20px,3vw,34px); grid-template-columns:1fr; align-items:start; }
-@media (min-width:900px){ .roundgrid{ grid-template-columns:minmax(0,auto) minmax(0,1fr); } }
+@media (min-width:1000px){ .roundgrid{ grid-template-columns:520px minmax(0,1fr); } }
 
 /* ------------------------------------------------------------- hw */
 .hw{ display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); }
@@ -431,13 +441,13 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
         </div>
       </div>
 
-      <div class="devcol">
+      <div class="devcol fitbox">
         <div class="device">
           <div class="screenwell">
             <canvas id="counter" width="240" height="280" data-fit="2" role="img"
                     aria-label="A 240 by 280 pixel panel showing the counter example: the text COUNT colon zero above a plus one button"></canvas>
           </div>
-          <div class="plate"><span>1.69 in IPS</span><span>240 &times; 280</span><span>shown 2&times;</span></div>
+          <div class="plate"><span>1.69 in IPS</span><span>240 &times; 280</span><span data-scale>1&times;</span></div>
         </div>
 
         <div class="btnrow">
@@ -503,13 +513,13 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
           </ul>
         </div>
 
-        <div class="scene-side">
+        <div class="scene-side fitbox">
           <div class="device">
             <div class="screenwell">
               <canvas id="scene" width="200" height="140" data-fit="3" role="img"
                       aria-label="A small panel drawn using each of the ten calls: a filled panel, an outlined box, two circles, a zigzag line, clipped and unclipped text"></canvas>
             </div>
-            <div class="plate"><span id="sceneplate">All ten calls</span><span>200 &times; 140</span></div>
+            <div class="plate"><span id="sceneplate">All ten calls</span><span>200 &times; 140</span><span data-scale>1&times;</span></div>
           </div>
           <p class="devnote">Pick a call on the left and the picture answers. Every shape here
           — and every screen on this page — was drawn by a Canvas2D object in this file that
@@ -695,44 +705,44 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
 
       <!-- boards -->
       <div style="margin-top:clamp(32px,5vw,56px)">
-        <p class="mono-lbl">The fleet it drives daily — drawn 1:1, so the sizes are the real sizes</p>
+        <p class="mono-lbl">The fleet it drives daily — always 1:1, so the sizes are the real sizes</p>
         <div class="scalebar">
-          <span class="tag amber">1 canvas pixel = 1 panel pixel</span>
+          <span class="tag amber">1 panel pixel = 1 css pixel</span>
           <span class="bar" style="width:172px" aria-hidden="true"></span>
-          <span style="font-size:11px;color:var(--ink-2)">172 px, the narrowest glass</span>
+          <span style="font-size:11px;color:var(--ink-2)">172 px — the narrowest glass, drawn here at its true width</span>
         </div>
 
-        <div class="boards">
+        <div class="boards fitbox">
           <div class="device">
             <div class="screenwell">
-              <canvas id="b1" width="240" height="280" data-fit="1" role="img"
+              <canvas id="b1" width="240" height="280" data-fit="1" data-exact role="img"
                       aria-label="240 by 280 panel showing the hello example: a bordered panel reading Hello mjsx"></canvas>
             </div>
-            <div class="plate"><span>1.69 in</span><span>240 &times; 280</span><span class="tag blue">hello</span></div>
+            <div class="plate"><span>1.69 in</span><span>240 &times; 280</span><span data-scale>1&times;</span><span class="tag blue">hello</span></div>
           </div>
 
           <div class="device">
             <div class="screenwell">
-              <canvas id="b2" width="320" height="480" data-fit="1" role="img"
+              <canvas id="b2" width="320" height="480" data-fit="1" data-exact role="img"
                       aria-label="320 by 480 panel showing two text fields and a full QWERTY keyboard docked at the bottom"></canvas>
             </div>
-            <div class="plate"><span>3.5 in</span><span>320 &times; 480</span><span class="tag blue">qwerty</span></div>
+            <div class="plate"><span>3.5 in</span><span>320 &times; 480</span><span data-scale>1&times;</span><span class="tag blue">qwerty</span></div>
           </div>
 
           <div class="device">
             <div class="screenwell">
-              <canvas id="b3" width="172" height="320" data-fit="1" role="img"
+              <canvas id="b3" width="172" height="320" data-fit="1" data-exact role="img"
                       aria-label="172 by 320 panel showing a T9 keypad filling the whole screen with a mirrored input field above it"></canvas>
             </div>
-            <div class="plate"><span>1.47 in</span><span>172 &times; 320</span><span class="tag blue">t9</span></div>
+            <div class="plate"><span>1.47 in</span><span>172 &times; 320</span><span data-scale>1&times;</span><span class="tag blue">t9</span></div>
           </div>
 
           <div class="device round">
             <div class="screenwell">
-              <canvas id="b4" width="240" height="240" data-fit="1" role="img"
+              <canvas id="b4" width="240" height="240" data-fit="1" data-exact role="img"
                       aria-label="Round 240 by 240 display showing a drawing app with a toolbar of colour swatches curved along the rim"></canvas>
             </div>
-            <div class="plate"><span>1.28 in</span><span>240 &times; 240</span><span class="tag amber">round</span></div>
+            <div class="plate"><span>1.28 in</span><span>240 &times; 240</span><span data-scale>1&times;</span><span class="tag amber">round</span></div>
           </div>
         </div>
 
@@ -756,13 +766,13 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
       </div>
 
       <div class="roundgrid">
-        <div class="devcol">
+        <div class="devcol fitbox">
           <div class="device round">
             <div class="screenwell">
               <canvas id="rk" width="240" height="240" data-fit="2" role="img"
                       aria-label="Round 240 by 240 display: a mirrored text field near the top, four rows of T9 keys that narrow toward the bottom, and an OK key sitting in the bottom arc"></canvas>
             </div>
-            <div class="plate"><span>1.28 in round</span><span>240 &times; 240</span><span>shown 2&times;</span></div>
+            <div class="plate"><span>1.28 in round</span><span>240 &times; 240</span><span data-scale>1&times;</span></div>
           </div>
           <div class="btnrow">
             <button class="px" id="chord" type="button" aria-pressed="false">Show the chords</button>
@@ -1068,8 +1078,8 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
   function drawWordmark(g) {
     g.clear(T.bg);
     g.text(4, 6, 10, T.accent, 'mjsx');
-    g.line(4, 76, 263, 76, T.panel);
-    g.text(4, 66, 1, T.muted, 'ONE CORE. TEN CALLS. MANY SCREENS.');
+    g.line(4, 82, 263, 82, T.panel);
+    g.text(4, 89, 1, T.muted, 'ONE CORE. TEN CALLS. MANY SCREENS.');
   }
 
   /* =================================================== the counter */
@@ -1132,7 +1142,7 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
     } else if (hi === 'clear') {
       g.text(6, 126, 1, T.muted, 'clear(c) starts every frame');
     } else {
-      g.text(6, 126, 1, T.muted, 'ten calls. nothing else is assumed.');
+      g.text(6, 126, 1, T.muted, 'ten calls. nothing else.');
     }
   }
 
@@ -1142,9 +1152,8 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
     g.clear(T.bg);
     var x = pad, w = W - 2 * pad, y = pad;
     var ip = em(1.5), bh = ip * 2 + 8 * 2 + 4;
-    g.frect(x, y, w, bh, T.panel, 8);
-    g.rect(x, y, w, bh, T.accent, 8);
-    g.rect(x + 1, y + 1, w - 2, bh - 2, T.accent, 7);
+    g.frect(x, y, w, bh, T.accent, 8);          /* borderW 2, drawn as a plate */
+    g.frect(x + 2, y + 2, w - 4, bh - 4, T.panel, 6);
     g.text(x + ctr(w, 11, 2), y + ip + 2, 2, T.text, 'Hello mjsx!');
     y += bh + gap;
     g.text(x + ctr(w, 20, 1), y, 1, T.muted, 'one core. esp32, pi,');
@@ -1199,8 +1208,13 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
 
     field(g, 12, 56, W - 24, 30, 'USER', 'brant', false, false);
     field(g, 12, 112, W - 24, 30, 'PASS', '*****', true, true);
+    field(g, 12, 168, W - 24, 30, 'BOARD', 'kitchen-1', false, false);
 
-    g.text(12, 168, 1, T.muted, 'AUTO PICKED QWERTY: TEN COLUMNS FIT');
+    g.text(12, 224, 1, T.muted, 'AUTO PICKED QWERTY:');
+    g.text(12, 236, 1, T.muted, 'TEN COLUMNS OF 27PX FIT');
+    g.text(12, 256, 1, T.muted, 'THE DOCKED PANEL REGISTERS');
+    g.text(12, 268, 1, T.muted, 'AN INSET, SO A REVEALED FIELD');
+    g.text(12, 280, 1, T.muted, 'SCROLLS OUT FROM UNDER IT');
 
     var kbH = Math.floor(H / 2.6);                   /* 184 */
     var top = H - kbH;
@@ -1290,7 +1304,7 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
     }
     g.circle(112, 130, 22, T.warn, false);
     g.line(60, 118, 96, 152, T.err);
-    g.text(cx - ctr(0, 0, 0) - 39, 40, 1, T.muted, 'ARCFOOTER');
+    g.text(ctr(W, 9, 1), 40, 1, T.muted, 'ARCFOOTER');
 
     /* items along the rim: at = 90 (bottom), spread = 150, inset = 10 */
     var items = [
@@ -1334,7 +1348,9 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
     var ihw = chordHalf(iy, iy + ih, R, cy) - 6;
     field(g, cx - ihw, iy, ihw * 2, ih, '', 'hello', true, true);
 
-    /* four rows, each inset to the chord at its own height */
+    /* four rows, each inset to the chord at its own height. OK has moved
+       into the bottom arc, so the utility row's last slot is a full key. */
+    var ROUND9 = T9.slice(0, 15).concat([['.', '']]);
     var rows = [96, 124, 152, 180], kh = 24, widths = [];
     var size = 1;                       /* one size, chosen by the narrowest row */
     for (var r = 0; r < 4; r++) {
@@ -1343,28 +1359,29 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
       var kw = Math.floor((hw * 2 - 3 * 4) / 4);
       var x0 = cx - hw;
       for (var c = 0; c < 4; c++) {
-        t9cell(g, x0 + c * (kw + 4), rows[r], kw, kh, T9[r * 4 + c], size);
+        t9cell(g, x0 + c * (kw + 4), rows[r], kw, kh, ROUND9[r * 4 + c], size);
       }
     }
 
-    /* OK in the bottom arc: space the grid could never use */
-    var oy = 208, ohw = chordHalf(oy, oy + 20, R, cy);
+    /* OK in the bottom arc: space the grid could never use, so it costs
+       the keyboard no height */
+    var oy = 208;
     g.frect(cx - 30, oy, 60, 20, T.accent, 6);
-    g.text(cx - 12, oy + 7, 1, T.text, 'OK');
+    g.text(cx + ctr(0, 2, 1), oy + 7, 1, T.text, 'OK');
 
     if (showChord) {
-      g.circle(cx, cy, R - 1, T.warn, false);
-      for (var i = 0; i < 4; i++) {
-        var hwi = widths[i], yy = rows[i] + (i < 2 ? 0 : kh);
-        g.line(cx - hwi, yy, cx + hwi, yy, T.warn);
-        g.line(cx - hwi, yy - 3, cx - hwi, yy + 3, T.warn);
-        g.line(cx + hwi, yy - 3, cx + hwi, yy + 3, T.warn);
-      }
       g.line(cx, 0, cx, H - 1, DIM);
       g.line(0, cy, W - 1, cy, DIM);
-      g.text(cx - 30, 62, 1, T.warn, 'ROW 1 ' + (widths[0] * 2));
-      g.text(cx - 30, oy - 12, 1, T.warn, 'ROW 4 ' + (widths[3] * 2));
-      g.frect(cx - 30, 74, 60, 1, DIM, 0);
+      g.circle(cx, cy, R - 1, T.warn, false);
+      for (var i = 0; i < 4; i++) {
+        var hwi = widths[i];
+        /* the chord that constrains a row is the one at its far edge */
+        var yy = Math.abs(rows[i] - cy) >= Math.abs(rows[i] + kh - cy)
+          ? rows[i] : rows[i] + kh;
+        g.line(cx - hwi, yy, cx + hwi, yy, T.warn);
+        g.line(cx - hwi, yy - 4, cx - hwi, yy + 4, T.warn);
+        g.line(cx + hwi, yy - 4, cx + hwi, yy + 4, T.warn);
+      }
     }
     g._maskCircle();
     return widths;
@@ -1394,21 +1411,63 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
     }
   }
 
-  /* ===================================================== whole-number fit */
+  /* =====================================================================
+   * WHOLE-NUMBER FIT. A panel drawn at 240x280 is only honest on screen if
+   * one of its pixels becomes a whole square of screen pixels, so every
+   * canvas is sized to an integer multiple of its own width, and the plate
+   * under it is made to say which multiple it actually got.
+   *
+   * The bezel shrink-wraps its canvas, so measuring the canvas's own parent
+   * would only measure the canvas. Collapse them all first, then read the
+   * width off a block ancestor that does not shrink-wrap.
+   * =================================================================== */
+  function closestEl(node, cls) {
+    while (node && node.nodeType === 1) {
+      if (node.className && (' ' + node.className + ' ').indexOf(' ' + cls + ' ') >= 0) return node;
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  /* border + padding of one box, so the bezel's own thickness is measured
+     rather than guessed (or, worse, read off a shrink-wrapped width that
+     the label plate underneath is really setting). */
+  function sideChrome(el) {
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    if (!cs) return 0;
+    return (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0) +
+           (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  }
+
   function fit() {
-    var list = document.querySelectorAll('canvas[data-fit]');
-    for (var i = 0; i < list.length; i++) {
-      var c = list[i];
-      var host = c.parentElement;
-      var avail = host.clientWidth || c.width;
+    var list = document.querySelectorAll('canvas[data-fit]'), i, c;
+    for (i = 0; i < list.length; i++) list[i].style.width = '10px';
+    if (list.length) { void list[0].offsetWidth; }   /* one layout pass */
+
+    for (i = 0; i < list.length; i++) {
+      c = list[i];
+      var dev = closestEl(c, 'device');
+      var box = closestEl(c, 'fitbox') || (dev && dev.parentElement) || c.parentElement;
+      var chrome = dev ? sideChrome(dev) + sideChrome(c.parentElement) : 0;
+      var avail = Math.max(40, (box.clientWidth || c.width) - chrome);
+
       var s = parseInt(c.getAttribute('data-fit'), 10) || 1;
       while (s > 1 && c.width * s > avail) s--;
-      if (c.width * s > avail) {
+
+      var label;
+      if (c.width * s > avail && !c.hasAttribute('data-exact')) {
         c.style.width = '100%';
+        label = 'scaled to fit';
       } else {
         c.style.width = (c.width * s) + 'px';
+        label = s + '×';
       }
       c.style.height = 'auto';
+
+      if (dev) {
+        var plate = dev.querySelector('[data-scale]');
+        if (plate) plate.textContent = label;
+      }
     }
   }
 

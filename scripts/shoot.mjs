@@ -72,7 +72,11 @@ const PROFILES = {
   /* the 1.69" panel in its native portrait orientation — the shape the
      examples were drawn for and the golden matrix's first row */
   lcd169p:  { w: 240, h: 280,
-              note: 'ESP32-S3-Touch-LCD-1.69, 240x280 ST7789V2, portrait' }
+              note: 'ESP32-S3-Touch-LCD-1.69, 240x280 ST7789V2, portrait' },
+  /* the 1.47" turned sideways: the shortest glass in the fleet, and the
+     shape that forces the keyboard fullscreen */
+  lcd147l:  { w: 320, h: 172,
+              note: 'ESP32-S3-Touch-LCD-1.47, 320x172 JD9853, landscape' }
 };
 
 /* ---- RGB -> PNG, pure JS (same technique as render-examples.mjs) ---- */

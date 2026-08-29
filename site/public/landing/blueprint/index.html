@@ -166,6 +166,10 @@ section{padding:clamp(30px,5vw,64px) clamp(16px,3.2vw,44px); border-bottom:1px s
 
 /* ============================================================== HERO == */
 .hero{display:grid; grid-template-columns:1fr; gap:clamp(26px,4vw,52px); align-items:start}
+/* grid and flex children default to min-width:auto, which lets a wide <pre>
+   or table push the whole sheet sideways. Nothing here may do that. */
+.hero > *,.codegrid > *,.two > *,.gnotes > *,.boards > *,.notes li > *{min-width:0}
+.code pre,.plate,.tbl-wrap,.ladder{max-width:100%}
 @media (min-width:940px){ .hero{grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr)} }
 h1{
   font-size:clamp(27px,5.4vw,54px); line-height:1.06; letter-spacing:.005em;
@@ -253,11 +257,11 @@ svg text{font-family:var(--mono)}
 .gnote{border-left:2px solid var(--line-soft); padding-left:16px}
 .gnote h3{
   font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink);
-  margin-bottom:4px; display:flex; gap:10px; align-items:baseline;
+  margin:0 0 4px;
 }
-.gnote h3 em{font-style:normal; color:var(--dim); font-size:10px; letter-spacing:.1em}
+.gnote h3 em{font-style:normal; color:var(--dim); font-size:10px; letter-spacing:.1em; margin-left:8px; white-space:nowrap}
 .gnote p{font-size:14.5px; color:var(--ink-2)}
-.gnote code{font-family:var(--mono); font-size:.9em; color:var(--ink); background:var(--paper-2); padding:1px 4px}
+.gnote code,.notes code{font-family:var(--mono); font-size:.92em; color:var(--ink); background:var(--paper-2); padding:0 3px}
 
 /* ============================================================ TABLES == */
 .tbl-wrap{overflow-x:auto; border:1px solid var(--line-soft); background:var(--paper)}
@@ -354,11 +358,14 @@ footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
   text-transform:uppercase; color:var(--ink-3); display:flex; flex-wrap:wrap; gap:6px 22px;
 }
 
-/* ========================================================= PLOTTER ==== */
-html.js .reveal{clip-path:inset(0 100% 0 0)}
-html.js .reveal.drawn{clip-path:inset(0 0 0 0); transition:clip-path 900ms cubic-bezier(.22,.61,.36,1)}
+/* ========================================================= PLOTTER ====
+   Fail-safe by construction: a drawing is VISIBLE unless script has armed
+   it, script only arms what is below the fold, and a timer un-arms
+   everything regardless. Nothing can leave a drawing hidden.            */
+.reveal.armed{clip-path:inset(0 100% 0 0)}
+.reveal.armed.drawn{clip-path:inset(0 0 0 0); transition:clip-path 900ms cubic-bezier(.22,.61,.36,1)}
 @media (prefers-reduced-motion: reduce){
-  html.js .reveal{clip-path:none !important; transition:none !important}
+  .reveal.armed{clip-path:none !important; transition:none !important}
 }
 </style>
 </head>
@@ -476,9 +483,13 @@ html.js .reveal.drawn{clip-path:inset(0 0 0 0); transition:clip-path 900ms cubic
           <!-- hit rect registered at the drawn rect -->
           <rect x="71" y="86" width="146" height="26" rx="4" class="hid"/>
 
-          <!-- scroll/idle rows below, faint -->
+          <!-- the rest of the glass, indicated faintly -->
           <rect x="71" y="123" width="146" height="9" class="cl"/>
           <rect x="71" y="138" width="90" height="9" class="cl"/>
+          <rect x="71" y="153" width="146" height="9" class="cl"/>
+          <rect x="71" y="168" width="118" height="9" class="cl"/>
+          <rect x="71" y="196" width="146" height="34" rx="3" class="cl"/>
+          <g class="cl"><circle cx="98" cy="213" r="7"/><circle cx="144" cy="213" r="7"/><circle cx="190" cy="213" r="7"/></g>
 
           <!-- WIDTH dimension -->
           <line x1="60" y1="248" x2="60" y2="286" class="dl"/>
@@ -655,6 +666,7 @@ html.js .reveal.drawn{clip-path:inset(0 0 0 0); transition:clip-path 900ms cubic
           </g>
 
           <!-- SECTION BAND -->
+          <rect x="38" y="228" width="258" height="13" class="pf"/>
           <text x="40" y="238" class="td">SECTION A—A · THE ENTIRE PORTING CONTRACT</text>
           <rect x="40" y="246" width="680" height="54" fill="url(#hatch)"/>
           <rect x="40" y="246" width="680" height="54" class="olh"/>
@@ -1075,8 +1087,8 @@ html.js .reveal.drawn{clip-path:inset(0 0 0 0); transition:clip-path 900ms cubic
           <line x1="126" y1="334" x2="126" y2="382" class="dl"/>
           <line x1="254" y1="334" x2="254" y2="382" class="dl"/>
           <line x1="126" y1="374" x2="254" y2="374" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
-          <rect x="150" y="366" width="80" height="13" class="pf2"/>
-          <text x="190" y="375" text-anchor="middle" class="td">CHORD HERE</text>
+          <rect x="132" y="358" width="116" height="13" class="pf2"/>
+          <text x="190" y="367" text-anchor="middle" class="td">CHORD AT BOTTOM ROW</text>
 
           <line x1="264" y1="345" x2="300" y2="345" class="dl"/>
           <circle cx="312" cy="345" r="11" class="bal"/>
@@ -1272,7 +1284,7 @@ html.js .reveal.drawn{clip-path:inset(0 0 0 0); transition:clip-path 900ms cubic
 
   <div class="colophon">
     <span>© mjsx · MIT</span>
-    <span>Sheet 1 of 1 · rev 0.1.0-dev</span>
+    <span>7 sheets · rev 0.1.0-dev</span>
     <span>Drawn offline — this page makes no network requests</span>
     <span>Pre-publication</span>
   </div>
@@ -1300,24 +1312,36 @@ html.js .reveal.drawn{clip-path:inset(0 0 0 0); transition:clip-path 900ms cubic
     });
   }
 
-  /* plotter reveal: each drawing sweeps in left to right when it arrives */
+  /* plotter reveal: a drawing below the fold sweeps in, left to right, the
+     way a pen plotter lays it down. Everything starts visible; only what is
+     off-screen is armed, and a timer releases anything the observer misses,
+     so no failure path can leave a drawing blank. */
   var plates = d.querySelectorAll('.reveal');
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var i;
-  if (reduce || !('IntersectionObserver' in window)) {
-    for (i = 0; i < plates.length; i++) plates[i].className += ' drawn';
-    return;
+  var i, armed = [];
+  if (reduce || !('IntersectionObserver' in window)) return;
+
+  for (i = 0; i < plates.length; i++) {
+    var el = plates[i];
+    if (el.getBoundingClientRect().top > window.innerHeight * 0.9) {
+      el.className += ' armed';
+      armed.push(el);
+    }
+  }
+  function release(el) {
+    if (el.className.indexOf(' drawn') === -1) el.className += ' drawn';
   }
   var io = new IntersectionObserver(function (entries) {
     for (var n = 0; n < entries.length; n++) {
-      var e = entries[n];
-      if (e.isIntersecting) {
-        e.target.className += ' drawn';
-        io.unobserve(e.target);
-      }
+      if (entries[n].isIntersecting) { release(entries[n].target); io.unobserve(entries[n].target); }
     }
-  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-  for (i = 0; i < plates.length; i++) io.observe(plates[i]);
+  }, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 });
+  for (i = 0; i < armed.length; i++) io.observe(armed[i]);
+
+  /* last resort: nothing stays hidden, whatever happens above */
+  window.setTimeout(function () {
+    for (var n = 0; n < armed.length; n++) release(armed[n]);
+  }, 4000);
 }());
 </script>
 </body>

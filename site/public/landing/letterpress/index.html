@@ -86,6 +86,7 @@ body{
   font-size: 17px;
   line-height: 1.62;
   overflow-x: hidden;
+  overflow-wrap: break-word;
   text-rendering: optimizeLegibility;
   font-kerning: normal;
 }
@@ -294,6 +295,23 @@ td.call{ font-family: var(--mono); font-size: .84em; white-space: nowrap; color:
 td.what{ font-size: .93em; color: var(--ink-2); }
 tfoot td{ padding-top: .7em; font-size: .93em; color: var(--ink-2); }
 tfoot .call{ color: var(--spot); }
+caption.tcap{
+  display: none;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-3);
+  border-bottom: 1px solid var(--ink); padding-bottom: .55em; margin-bottom: .2em;
+}
+/* Below the measure a two-column table needs, each call becomes its own entry. */
+@media (max-width: 660px){
+  caption.tcap{ display: table-caption; }
+  table{ min-width: 0; }
+  thead{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  tbody tr, tfoot tr{ display: block; padding: .8em 0; }
+  td{ display: block; padding: 0; }
+  td.call{ white-space: normal; margin-bottom: .25em; }
+  tfoot td{ padding-top: 0; }
+  tfoot tr{ border-top: 1px solid var(--rule); }
+}
 
 /* -------------------------------------------------------------- CODE */
 .code{
@@ -376,6 +394,11 @@ tfoot .call{ color: var(--spot); }
 /* ------------------------------------------------------------- PLATES */
 .plate{ background: none; }
 .plate svg{ display:block; width: 100%; height: auto; }
+/* the fleet plate stops shrinking before its dimension labels stop being readable */
+.plate-scroll{ overflow-x: auto; }
+.plate-scroll svg{ min-width: 520px; }
+.drag-note{ display: none; float: right; text-transform: none; letter-spacing: .04em; }
+@media (max-width: 700px){ .drag-note{ display: inline; } }
 .plate-row{
   display: grid; gap: clamp(20px,3.4vw,40px);
   grid-template-columns: 1fr;
@@ -399,6 +422,7 @@ svg .lab-i{ fill: var(--ink); font-family: var(--mono); font-size: 11px; letter-
 svg .lab-s{ fill: var(--spot); font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em; }
 svg .fill-soft{ fill: var(--paper-2); }
 svg .pivot{ fill: var(--ink-3); stroke: none; }
+svg .knock{ fill: var(--paper); stroke: none; }   /* dimension-line knockout */
 
 /* -------------------------------------------------------- BACKEND LIST */
 .dl{ margin: 0; }
@@ -559,6 +583,7 @@ sup a{ text-decoration: none; color: var(--spot); font-family: var(--mono); font
 
     <div class="scroller">
       <table>
+        <caption class="tcap">The ten calls, and what a backend must do with each</caption>
         <thead>
           <tr><th scope="col">Call</th><th scope="col">What the backend must do</th></tr>
         </thead>
@@ -620,7 +645,7 @@ sup a{ text-decoration: none; color: var(--spot); font-family: var(--mono); font
         <p class="muted" style="font-size:.78rem;line-height:1.55;margin-top:1.2em;max-width:44ch">Five of the ten. The rest &mdash; <span class="mono">circle</span>, <span class="mono">line</span>, <span class="mono">clip</span>, <span class="mono">unclip</span>, and the two dimension queries &mdash; are what a keyboard, a scroll zone and a round layout spend.</p>
       </div>
     </div>
-    <figcaption><b>Fig. 2</b> The panel at left is an ordinary browser canvas with those ten functions written against it in this page, in about forty lines and with no library; the list at right is the sequence that page&rsquo;s frame issued, logged as it went. Pressing the control re&#8209;issues the whole frame, which is all the engine ever does with a change of state. The dashed overlay, when shown, is an annotation and not a call: it marks the rectangle a tap would be tested against &mdash; the same rectangle the button was drawn into.</figcaption>
+    <figcaption><b>Fig. 2</b> The panel here is an ordinary browser canvas with those ten functions written against it in this page, in about forty lines and with no library; the list beside it is the sequence that page&rsquo;s frame issued, logged as it went. Pressing the control re&#8209;issues the whole frame, which is all the engine ever does with a change of state. The dashed overlay, when shown, is an annotation and not a call: it marks the rectangle a tap would be tested against &mdash; the same rectangle the button was drawn into.</figcaption>
   </figure>
 
   <figure>
@@ -654,8 +679,8 @@ sup a{ text-decoration: none; color: var(--spot); font-family: var(--mono); font
   </div>
 
   <figure>
-    <div class="plate-title"><b>Plate&nbsp;D</b> &nbsp;&mdash;&nbsp; the fleet, at relative scale</div>
-    <div class="plate">
+    <div class="plate-title"><span class="drag-note">plate runs wide &rarr;</span><b>Plate&nbsp;D</b> &nbsp;&mdash;&nbsp; the fleet, at relative scale</div>
+    <div class="plate plate-scroll">
       <svg viewBox="0 0 620 306" role="img" aria-label="Four display panels drawn to relative scale: a 240 by 280 panel, a 320 by 480 panel, a 172 by 320 panel, and a round 240 pixel panel.">
         <line class="hair" x1="8" y1="250.5" x2="612" y2="250.5" stroke-dasharray="3 4"></line>
 
@@ -740,9 +765,6 @@ sup a{ text-decoration: none; color: var(--spot); font-family: var(--mono); font
           <rect class="hair-i" x="54" y="24" width="132" height="24"></rect>
           <line class="hair-i" x1="62" y1="30" x2="62" y2="42"></line>
           <text class="lab-s" x="120" y="62" text-anchor="middle">mirrored field</text>
-          <!-- chord at the middle -->
-          <line class="dash" x1="0" y1="120" x2="240" y2="120"></line>
-          <text class="lab-s" x="120" y="115" text-anchor="middle">240 px</text>
           <!-- keyboard rows inset to the chord at each row's own height -->
           <g class="key">
             <!-- row 1: y 96..120, chord half 120 -->
@@ -754,6 +776,10 @@ sup a{ text-decoration: none; color: var(--spot); font-family: var(--mono); font
             <!-- row 4: bottom y 198, half 91.2 -> 28.8 .. 211.2 -->
             <rect x="34" y="174" width="30" height="24"></rect><rect x="67" y="174" width="106" height="24"></rect><rect x="176" y="174" width="30" height="24"></rect>
           </g>
+          <!-- the diameter, called out over the keys it has to cross -->
+          <line class="dash" x1="0" y1="120" x2="240" y2="120"></line>
+          <rect class="knock" x="95" y="111" width="50" height="16"></rect>
+          <text class="lab-s" x="120" y="124" text-anchor="middle">240 px</text>
           <!-- OK, in the bottom arc -->
           <rect class="key-hot" x="98" y="204" width="44" height="18" rx="9"></rect>
           <text class="lab-s" x="120" y="217" text-anchor="middle">OK</text>

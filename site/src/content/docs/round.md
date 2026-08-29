@@ -1,6 +1,8 @@
-# Designing for round glass
-
-The round board is a 240x240 GC9A01 panel with the corners missing. Almost
+---
+title: "Designing for round glass"
+description: "Designing for a circle: chords, arcs and the rules that follow."
+---
+<!-- GENERATED from docs/round.md by scripts/docs-sync.mjs. Edit that file. -->The round board is a 240x240 GC9A01 panel with the corners missing. Almost
 everything else in mjsx ignores that; a handful of things must not. This
 page is the list of things that must not, each with the picture of what
 goes wrong or right.
@@ -25,12 +27,12 @@ handle the rest. The page below is the same source on both shapes.
 One list, one footer, one source file. The shot script runs it unchanged
 on the 3.5" rectangle and on the round 1.28".
 
-![The SPOOLS page on 320x480 square glass](./img/round-page-lcd35.png)
+![The SPOOLS page on 320x480 square glass](/img/round-page-lcd35.png)
 
 *Square glass: the rows run full-bleed to the panel edges and the footer's
 three buttons flatten onto the bottom edge.*
 
-![The identical source on 240x240 round glass](./img/round-page-round128.png)
+![The identical source on 240x240 round glass](/img/round-page-round128.png)
 
 *The same source on round glass: `UI.safe.inset` pulls every row inside
 the chord, the footer's buttons follow the rim instead of a straight edge,
@@ -108,7 +110,7 @@ produced by the same code path a board runs.
 `inset: true` the *layout* is held inside the safe rect while the
 background still paints full-bleed, and touches in the band snap to the
 content edge. That is the one mechanism that keeps ordinary rectangular
-rows on round glass — see [`ui.md`](./ui.md) for the general contract.
+rows on round glass — see [`ui.md`](/ui) for the general contract.
 
 The numbers are geometry, not taste. On the 240px circle, a 36px inset on
 three sides leaves a 168px-wide band; its top corners sit
@@ -116,7 +118,7 @@ three sides leaves a 168px-wide band; its top corners sit
 whole rectangle is on the glass. The bottom band is 60px instead of 36
 because the footer lives there.
 
-![Fields at rest on round glass](./img/input-empty-round128.png)
+![Fields at rest on round glass](/img/input-empty-round128.png)
 
 *A field page on round glass. The insets hold the controls in the
 rectangle the circle contains; the dark corners are the area the layout is
@@ -126,7 +128,7 @@ Text metrics need no round-specific handling at all — `em()` follows the
 picked font face, so a page written once relays out for the smaller panel
 with no size in the source changing:
 
-![The font page on round glass](./img/font-auto-round128.png)
+![The font page on round glass](/img/font-auto-round128.png)
 
 *The same font page as the square shots, on the circle: spacing scales
 from the face rather than from a hardcoded pixel count.*
@@ -134,12 +136,12 @@ from the face rather than from a hardcoded pixel count.*
 Modals get it for free, because their margins are minimums rather than
 fixed offsets:
 
-![A modal on 320x480](./img/comp-modal-lcd35.png)
+![A modal on 320x480](/img/comp-modal-lcd35.png)
 
 *Square: the panel centres in the leftover space, header and footer rows
 sticky.*
 
-![The same modal on round glass](./img/comp-modal-round128.png)
+![The same modal on round glass](/img/comp-modal-round128.png)
 
 *Round: the same call, the same component. Because the margins are
 minimums the panel simply keeps further clear of the rim.*
@@ -177,7 +179,7 @@ On the 240px circle that band is 154px across, not 240. QWERTY wants ~220,
 T9 wants ~115, so the honest measurement picks T9 and the naive one would
 have picked a QWERTY whose outer columns were under the bezel.
 
-![The AUTO keyboard on round glass](./img/kb-auto-round128.png)
+![The AUTO keyboard on round glass](/img/kb-auto-round128.png)
 
 *`auto` on round glass resolves to T9: measured against the chord where
 the keys actually land, ten columns do not fit and four do. Note also that
@@ -188,13 +190,13 @@ own height, so a round keyboard is a **trapezoid** — the bottom row is
 narrowest because it is nearest the rim, which is exactly where an un-inset
 layout puts the space bar and OK.
 
-![QWERTY on round glass](./img/kb-qwerty-round128.png)
+![QWERTY on round glass](/img/kb-qwerty-round128.png)
 
 *A named layout is honoured exactly, however cramped — but each row is
 still inset to its own chord. Look at the left and right edges stepping
 inward row by row: that is the trapezoid.*
 
-![The T9 pad on round glass](./img/kb-t9-round128.png)
+![The T9 pad on round glass](/img/kb-t9-round128.png)
 
 *T9 with the same row insets, and OK moved down into the bottom arc —
 space a full-width row could never have used.*
@@ -202,7 +204,7 @@ space a full-width row could never have used.*
 The exception proves the mechanism. A keyboard that stays **docked** is not
 chord-inset, because a docked panel is a screen-edge overlay:
 
-![STRIP on round glass](./img/kb-strip-round128.png)
+![STRIP on round glass](/img/kb-strip-round128.png)
 
 *STRIP's two rows are tall enough to stay docked, and a docked panel gets
 no chord inset — so its side keys run under the rim. The four-row layouts
@@ -229,7 +231,7 @@ var round = UI.isRound();
 var narrow = round || gfx.width() < 200;
 ```
 
-![The sensors page on round glass](./img/ex-sensors-round128.png)
+![The sensors page on round glass](/img/ex-sensors-round128.png)
 
 *Uniform inset: every panel shares one width, so the stack reads as a
 column. Compare the stepped edges of the keyboard shots above.*
@@ -240,7 +242,7 @@ and the 172px 1.47" rectangle hits it just as hard as the circle, so the
 example gates short labels on `round || gfx.width() < 200` rather than on
 shape alone:
 
-![The same page on the 172x320 panel](./img/ex-sensors-lcd147.png)
+![The same page on the 172x320 panel](/img/ex-sensors-lcd147.png)
 
 *The narrow rectangle takes the same short labels the circle does — the
 condition that chose them was width, not roundness.*
@@ -276,20 +278,20 @@ Props: `items` (`[{ w, h, node }]` — finished elements, `w`/`h` centre each
 on its boundary point without measuring), `at` (centre angle, 90 = bottom
 and the default, 270 = top), `spread` (total sweep, default 120), `inset`
 (margin from the boundary, default 10 round / 8 square). Full prop notes
-live in [`components.md`](./components.md).
+live in [`components.md`](/components).
 
-![ArcFooter on round glass](./img/comp-arcfooter-round128.png)
+![ArcFooter on round glass](/img/comp-arcfooter-round128.png)
 
 *Five items on the bottom arc, each pulled in from the rim by its own
 size. Every item is upright.*
 
-![The identical call on 320x480](./img/comp-arcfooter-lcd35.png)
+![The identical call on 320x480](/img/comp-arcfooter-lcd35.png)
 
 *The identical call on a rectangle: the boundary is the perimeter, so the
 arc flattens into the bottom edge and a wide spread walks the end items
 around the corners onto the sides.*
 
-![The same call on a 480x320 window](./img/comp-arcfooter-wide.png)
+![The same call on a 480x320 window](/img/comp-arcfooter-wide.png)
 
 *And again on a landscape window — same source, same three properties.*
 
@@ -339,18 +341,18 @@ content already fits, because its `maxOff` is zero and without this line it
 cannot be scrolled at all — leaving its last row parked in the arc
 permanently.
 
-![A scroll zone at its end on round glass](./img/layout-scroll-end-round128.png)
+![A scroll zone at its end on round glass](/img/layout-scroll-end-round128.png)
 
 *Scrolled to the end on round glass: the content has travelled past its
 natural stop, lifting the final rows out of the bottom arc into the wide
 middle.*
 
-![The same zone at its end on square glass](./img/layout-scroll-end-lcd35.png)
+![The same zone at its end on square glass](/img/layout-scroll-end-lcd35.png)
 
 *The same zone on square glass, for comparison: the last row stops flush
 at the bottom edge with no extra margin, because none is needed.*
 
-![The round SPOOLS page scrolled to its end](./img/round-page-scrolled-round128.png)
+![The round SPOOLS page scrolled to its end](/img/round-page-scrolled-round128.png)
 
 *The end margin in a real page: the bottom of the list is readable in the
 middle of the circle rather than crushed against the rim.*
@@ -411,7 +413,7 @@ var okW2 = Math.min(kbChordHW(okTop, okTop + okH2) * 2, em(10));
 Because the arc was unusable space, moving OK there costs the key grid no
 height at all.
 
-![The number pad on round glass](./img/kb-numbers-round128.png)
+![The number pad on round glass](/img/kb-numbers-round128.png)
 
 *The number pad full-display, rows inset to their chords, OK sitting alone
 in the bottom arc under them.*
@@ -420,7 +422,7 @@ The mirrored input in exclusive mode gets the same treatment from the other
 end — it is pushed a tenth of the display down, off the narrow top arc,
 where at `y = 0` the chord is nearly nothing.
 
-![The wifi password step on round glass](./img/ex-wifi-join-round128.png)
+![The wifi password step on round glass](/img/ex-wifi-join-round128.png)
 
 *A real app hitting all of it at once: `examples/wifi` asks for a keyboard
 with no layout named, and on this glass that resolves to T9, takes the full
@@ -429,7 +431,7 @@ display, and mirrors the password field above the keys.*
 **Everything else goes on an arc.** `at: 90` is the bottom arc (the
 default), `at: 270` the top. Buttons need no round variant to sit there:
 
-![Buttons on round glass](./img/comp-button-round128.png)
+![Buttons on round glass](/img/comp-button-round128.png)
 
 *The standard `Button` on round glass — the same component, the same
 `hitPad` growing the touch target past the paint.*
@@ -454,11 +456,11 @@ this page has a square counterpart generated from identical source, and
 that is the point: round is a shape the layout absorbs, not a fork of the
 app.
 
-![hello on round glass](./img/ex-hello-round128.png)
+![hello on round glass](/img/ex-hello-round128.png)
 
 *The smallest example, unmodified, on the circle — the baseline that
 everything above is protecting.*
 
-Related: [`ui.md`](./ui.md) for `UI.safe` and scroll zones,
-[`components.md`](./components.md) for `ArcFooter` and `Keyboard` props,
-[`devices.md`](./devices.md) for the round board's flashing quirks.
+Related: [`ui.md`](/ui) for `UI.safe` and scroll zones,
+[`components.md`](/components) for `ArcFooter` and `Keyboard` props,
+[`devices.md`](/devices) for the round board's flashing quirks.
