@@ -1,0 +1,1324 @@
+<!--
+  DIRECTION: ENGINEERING DRAWING — the page is a drafting sheet, not a landing page.
+
+  THE FOUR CHOICES THAT DEFINE IT:
+  1. EVERYTHING IS DRAWN, NOT LISTED. The ten-call contract, the backend
+     fan-out, the round-glass keyboard and the four panels are annotated
+     inline-SVG drawings with dimension lines, extension lines, hatched
+     section bands and balloon callouts keyed to a NOTES block.
+  2. DRAFTING TYPOGRAPHY. Monospace stencil lettering, uppercase labels,
+     leader lines and dot-leader indexes; prose in a system sans, kept short,
+     the way notes on a drawing are kept short.
+  3. TWO PRINTS, ONE SHEET. Light = whiteprint (blue ink on vellum);
+     dark = cyanotype blueprint. Dimension annotation carries its own
+     drafting-red/amber hue in both, so measurements never read as body text.
+  4. NUMBERED, NOT NARRATED. Sheets 01-07, revision, scale and a real
+     title block in the corner. Every number on the sheet is checkable in
+     the repo — nothing is estimated, nothing is benchmarked.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="mjsx — JSX for microcontrollers, Raspberry Pi, desktop and the browser. One portable core, ten native calls, several backends. An engineering drawing of the system.">
+<title>mjsx — Drawing MJSX-001</title>
+<style>
+/* ============================================================ TOKENS ==
+   Light (whiteprint) on bare :root; every token REDEFINED in the dark
+   media query. No colour is defined only inside the media block.        */
+:root{
+  color-scheme: light dark;
+  --desk:#ccd4dd;
+  --paper:#f3f6f9;
+  --paper-2:#e6ecf2;
+  --paper-3:#dce4ec;
+  --grid:rgba(24,68,112,.085);
+  --grid-2:rgba(24,68,112,.17);
+  --ink:#0d2136;
+  --ink-2:#37536e;
+  --ink-3:#55708c;
+  --line:#2a5d8f;
+  --line-soft:rgba(42,93,143,.42);
+  --accent:#0a5ea6;
+  --dim:#a24a12;
+  --dim-soft:rgba(162,74,18,.30);
+  --hatch:rgba(42,93,143,.20);
+  --focus:#0a5ea6;
+  --sel:rgba(10,94,166,.18);
+  --shadow:0 1px 0 rgba(13,33,54,.10), 0 24px 60px -34px rgba(13,33,54,.6);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono","Courier New",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --desk:#04080e;
+    --paper:#0a1826;
+    --paper-2:#0e2233;
+    --paper-3:#132b40;
+    --grid:rgba(126,196,255,.075);
+    --grid-2:rgba(126,196,255,.16);
+    --ink:#e3f0ff;
+    --ink-2:#a9c9e4;
+    --ink-3:#7d9cb8;
+    --line:#6ab0e2;
+    --line-soft:rgba(106,176,226,.42);
+    --accent:#63cdf2;
+    --dim:#f2ac5c;
+    --dim-soft:rgba(242,172,92,.32);
+    --hatch:rgba(106,176,226,.20);
+    --focus:#63cdf2;
+    --sel:rgba(99,205,242,.22);
+    --shadow:0 0 0 1px rgba(106,176,226,.10), 0 40px 80px -50px #000;
+  }
+}
+
+/* ============================================================== BASE == */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--desk); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.65;
+  overflow-x:hidden;
+}
+::selection{background:var(--sel)}
+a{color:var(--accent); text-underline-offset:3px; text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:2px solid var(--focus); outline-offset:3px; border-radius:1px}
+h1,h2,h3{font-family:var(--mono); font-weight:600; margin:0; letter-spacing:.04em}
+p{margin:0 0 .8em}
+p:last-child{margin-bottom:0}
+.skip{
+  position:absolute; left:-9999px; top:0; z-index:20;
+  background:var(--paper); color:var(--ink); border:1px solid var(--line);
+  padding:8px 14px; font-family:var(--mono); font-size:12px;
+}
+.skip:focus{left:12px; top:12px}
+
+/* ============================================================= SHEET == */
+.sheet{
+  max-width:1440px; margin:0 auto; background:var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+    linear-gradient(var(--grid-2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-2) 1px, transparent 1px);
+  background-size:8px 8px, 8px 8px, 64px 64px, 64px 64px;
+  box-shadow:var(--shadow);
+  border-left:1px solid var(--line-soft); border-right:1px solid var(--line-soft);
+  position:relative;
+}
+.frame{
+  border:1px solid var(--line-soft);
+  margin:clamp(6px,1.2vw,16px);
+  position:relative;
+}
+.frame::before,.frame::after{
+  content:""; position:absolute; left:0; right:0; height:5px; pointer-events:none;
+  background:repeating-linear-gradient(90deg,var(--line-soft) 0 1px,transparent 1px 48px);
+}
+.frame::before{top:0}
+.frame::after{bottom:0; transform:scaleY(-1)}
+.pad{padding:clamp(16px,3.2vw,44px)}
+
+/* ============================================================ HEADER == */
+.head{
+  display:flex; flex-wrap:wrap; gap:12px 22px; align-items:center;
+  border-bottom:1px solid var(--line-soft);
+  padding:14px clamp(16px,3.2vw,44px);
+  font-family:var(--mono); font-size:11px; letter-spacing:.10em;
+  text-transform:uppercase; color:var(--ink-2);
+}
+.brand{display:flex; align-items:center; gap:10px; color:var(--ink); font-size:15px; letter-spacing:.18em; font-weight:600}
+.brand svg{display:block}
+.head .dwg{color:var(--ink-3)}
+.idx{margin-left:auto; display:flex; flex-wrap:wrap; gap:2px 18px}
+.idx a{color:var(--ink-2); text-decoration:none; white-space:nowrap}
+.idx a:hover,.idx a:focus-visible{color:var(--accent); text-decoration:underline}
+.idx a b{color:var(--ink-3); font-weight:400; margin-right:6px}
+.vp{
+  font-variant-numeric:tabular-nums; color:var(--dim); white-space:nowrap;
+  display:none; align-items:center; gap:7px;
+}
+.vp.on{display:inline-flex}
+.vp i{display:block; width:34px; height:5px; border:1px solid var(--dim); border-width:0 1px; position:relative}
+.vp i::after{content:""; position:absolute; top:2px; left:0; right:0; border-top:1px solid var(--dim)}
+
+/* =========================================================== SECTION == */
+section{padding:clamp(30px,5vw,64px) clamp(16px,3.2vw,44px); border-bottom:1px solid var(--line-soft)}
+.sec-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 16px; margin-bottom:8px}
+.sec-no{
+  font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--paper);
+  background:var(--line); padding:2px 8px;
+}
+.sec-head h2,.sec-label{font-size:clamp(14px,2.1vw,17px); text-transform:uppercase; letter-spacing:.15em}
+.sec-label{font-family:var(--mono); font-weight:600; margin:0; color:var(--ink)}
+.sec-meta{
+  margin-left:auto; font-family:var(--mono); font-size:10.5px; letter-spacing:.12em;
+  color:var(--ink-3); text-transform:uppercase;
+}
+.rule{height:1px; background:var(--line-soft); margin:0 0 26px; position:relative}
+.rule::after{
+  content:""; position:absolute; right:0; top:-3.5px;
+  border:4px solid transparent; border-left-color:var(--line-soft); border-right:0;
+}
+.lede{max-width:74ch; color:var(--ink-2); font-size:clamp(15px,1.55vw,16.5px)}
+
+/* ============================================================== HERO == */
+.hero{display:grid; grid-template-columns:1fr; gap:clamp(26px,4vw,52px); align-items:start}
+@media (min-width:940px){ .hero{grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr)} }
+h1{
+  font-size:clamp(27px,5.4vw,54px); line-height:1.06; letter-spacing:.005em;
+  text-transform:uppercase; margin:0 0 4px;
+}
+h1 .thin{color:var(--ink-3); display:block; font-size:.44em; letter-spacing:.14em; margin-top:14px; line-height:1.5}
+.h1rule{
+  margin:20px 0 22px; height:0; border-top:2px solid var(--accent); position:relative;
+}
+.h1rule::before,.h1rule::after{content:""; position:absolute; top:-5px; width:1px; height:11px; background:var(--accent)}
+.h1rule::before{left:0}
+.h1rule::after{right:0}
+.facts{
+  display:flex; flex-wrap:wrap; gap:0; margin-top:24px;
+  border:1px solid var(--line-soft); border-right:0; border-bottom:0;
+  font-family:var(--mono);
+}
+.facts div{
+  flex:1 1 118px; padding:10px 12px; border-right:1px solid var(--line-soft);
+  border-bottom:1px solid var(--line-soft); background:var(--paper-2);
+}
+.facts b{display:block; font-size:19px; font-weight:600; letter-spacing:.02em; font-variant-numeric:tabular-nums}
+.facts span{display:block; font-size:9.5px; letter-spacing:.13em; color:var(--ink-3); text-transform:uppercase; margin-top:2px}
+
+/* ============================================================ PLATES == */
+figure{margin:0}
+.plate{
+  border:1px solid var(--line-soft); background:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size:8px 8px, 8px 8px;
+  background-color:var(--paper-2);
+  padding:10px;
+}
+.plate svg{display:block; width:100%; height:auto}
+.plate-cap{
+  display:flex; flex-wrap:wrap; gap:4px 14px; justify-content:space-between;
+  font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-3); margin-top:8px; padding:0 2px;
+}
+.scroller{overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch}
+.scroller > svg{min-width:780px}
+.panhint{
+  font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:var(--dim);
+  text-transform:uppercase; margin-top:8px;
+}
+@media (min-width:840px){ .panhint{display:none} }
+
+/* SVG line vocabulary */
+svg text{font-family:var(--mono)}
+.ol{fill:none; stroke:var(--line); stroke-width:1}
+.olh{fill:none; stroke:var(--accent); stroke-width:1.8}
+.cl{fill:none; stroke:var(--line-soft); stroke-width:.85; stroke-dasharray:5 3}
+.ctr{fill:none; stroke:var(--line-soft); stroke-width:.85; stroke-dasharray:10 3 2 3}
+.dl{fill:none; stroke:var(--dim); stroke-width:.9}
+.hid{fill:none; stroke:var(--dim); stroke-width:.9; stroke-dasharray:4 2.5}
+.pf{fill:var(--paper)}
+.pf2{fill:var(--paper-2)}
+.pf3{fill:var(--paper-3)}
+.acc{fill:var(--accent); opacity:.16}
+.tb{fill:var(--ink); font-size:12px; font-weight:600; letter-spacing:.10em}
+.t{fill:var(--ink); font-size:10.5px; letter-spacing:.04em}
+.tm{fill:var(--ink-2); font-size:9px; letter-spacing:.06em}
+.ts{fill:var(--ink-3); font-size:8px; letter-spacing:.07em}
+.td{fill:var(--dim); font-size:8.5px; letter-spacing:.07em}
+.bal{fill:var(--paper); stroke:var(--dim); stroke-width:1}
+.balt{fill:var(--dim); font-size:10px; font-weight:600}
+.ah{fill:var(--dim)}
+.ahl{fill:var(--line)}
+.hl{stroke:var(--hatch); stroke-width:1}
+
+/* =============================================================NOTES === */
+.notes{list-style:none; margin:0; padding:0; display:grid; gap:14px}
+.notes li{display:grid; grid-template-columns:26px 1fr; gap:12px; align-items:start}
+.bnum{
+  width:22px; height:22px; border-radius:50%; border:1px solid var(--dim); color:var(--dim);
+  font-family:var(--mono); font-size:11px; display:flex; align-items:center; justify-content:center;
+  margin-top:2px; background:var(--paper);
+}
+.notes .nh{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); margin-bottom:2px}
+.notes p{font-size:14.5px; color:var(--ink-2)}
+
+.gnotes{display:grid; gap:18px 34px; grid-template-columns:1fr}
+@media (min-width:760px){ .gnotes{grid-template-columns:1fr 1fr} }
+.gnote{border-left:2px solid var(--line-soft); padding-left:16px}
+.gnote h3{
+  font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink);
+  margin-bottom:4px; display:flex; gap:10px; align-items:baseline;
+}
+.gnote h3 em{font-style:normal; color:var(--dim); font-size:10px; letter-spacing:.1em}
+.gnote p{font-size:14.5px; color:var(--ink-2)}
+.gnote code{font-family:var(--mono); font-size:.9em; color:var(--ink); background:var(--paper-2); padding:1px 4px}
+
+/* ============================================================ TABLES == */
+.tbl-wrap{overflow-x:auto; border:1px solid var(--line-soft); background:var(--paper)}
+table{border-collapse:collapse; width:100%; min-width:560px; font-family:var(--mono); font-size:12px}
+caption{
+  text-align:left; font-family:var(--mono); font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3); padding:0 0 8px;
+}
+th,td{padding:8px 12px; text-align:left; border-bottom:1px solid var(--line-soft); vertical-align:top}
+thead th{
+  font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--paper);
+  background:var(--line); font-weight:600; border-bottom:0; position:sticky; top:0;
+}
+tbody tr:nth-child(odd) td{background:var(--paper-2)}
+tbody tr:hover td{background:var(--sel)}
+td.no{color:var(--ink-3); width:1%; white-space:nowrap; font-variant-numeric:tabular-nums}
+td.call{color:var(--ink); white-space:nowrap}
+td.call b{color:var(--accent); font-weight:600}
+td.note{color:var(--ink-2); font-family:var(--sans); font-size:13.5px; line-height:1.5}
+td.up{text-transform:uppercase; letter-spacing:.06em; font-size:10.5px; color:var(--ink-2)}
+tbody tr:last-child td{border-bottom:0}
+
+/* ============================================================== CODE == */
+.codegrid{display:grid; gap:22px; grid-template-columns:1fr}
+@media (min-width:1000px){ .codegrid{grid-template-columns:1.25fr .95fr} }
+.code{
+  border:1px solid var(--line-soft); background:var(--paper);
+  font-family:var(--mono); font-size:12.5px; line-height:1.75;
+}
+.code-head{
+  display:flex; flex-wrap:wrap; gap:4px 14px; justify-content:space-between;
+  padding:8px 12px; border-bottom:1px solid var(--line-soft); background:var(--paper-2);
+  font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-3);
+}
+.code-head b{color:var(--ink); font-weight:600}
+.code pre{margin:0; padding:14px 12px; overflow-x:auto}
+.code code{display:block; white-space:pre}
+.ln{display:inline-block; width:2.4em; color:var(--ink-3); user-select:none; text-align:right; margin-right:1.2em; opacity:.75}
+.kw{color:var(--accent)}
+.st{color:var(--dim)}
+.cm{color:var(--ink-3); font-style:italic}
+.tg{color:var(--ink); font-weight:600}
+.an{color:var(--dim); font-style:normal}
+.an .ln{color:var(--dim); opacity:.55}
+
+/* ========================================================== BOARDS ==== */
+.boards{display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(168px,1fr))}
+.board{border:1px solid var(--line-soft); background:var(--paper-2); padding:8px}
+.board svg{display:block; width:100%; height:auto}
+.board .bcap{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); text-align:center; padding-top:4px; border-top:1px solid var(--line-soft); margin-top:4px;
+}
+.board .bcap b{display:block; color:var(--ink); font-size:11px; letter-spacing:.06em}
+
+/* =========================================================== ROUND ==== */
+.two{display:grid; gap:22px; grid-template-columns:1fr}
+@media (min-width:860px){ .two{grid-template-columns:1fr 1fr} }
+.ladder{
+  border:1px solid var(--line-soft); background:var(--paper); font-family:var(--mono); font-size:12px;
+}
+.ladder h3{
+  font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3);
+  padding:8px 12px; border-bottom:1px solid var(--line-soft); background:var(--paper-2);
+}
+.ladder ol{list-style:none; margin:0; padding:6px 0}
+.ladder li{display:flex; gap:10px; padding:6px 12px; align-items:baseline; flex-wrap:wrap}
+.ladder li + li{border-top:1px dashed var(--line-soft)}
+.ladder .cond{color:var(--ink); white-space:nowrap}
+.ladder .arrow{color:var(--dim)}
+.ladder .res{color:var(--accent); font-weight:600; letter-spacing:.08em}
+.ladder .why{color:var(--ink-3); font-size:11px; flex:1 1 100%}
+
+/* ====================================================== TITLE BLOCK === */
+.title-block{border:1px solid var(--line); display:grid; grid-template-columns:1fr; font-family:var(--mono)}
+@media (min-width:720px){ .title-block{grid-template-columns:2fr 1fr 1fr} }
+.tbcell{border-top:1px solid var(--line-soft); padding:11px 14px}
+@media (min-width:720px){
+  .tbcell{border-left:1px solid var(--line-soft)}
+  .tbcell.c1{border-left:0}
+}
+.tbcell k{
+  display:block; font-size:9px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink-3); margin-bottom:3px;
+}
+.tbcell v{display:block; font-size:12.5px; color:var(--ink); letter-spacing:.04em; text-transform:uppercase}
+.tbcell.wide{grid-column:1/-1; border-left:0}
+.tbcell.big v{font-size:clamp(14px,2.2vw,19px); letter-spacing:.1em}
+.tbcell.status v{color:var(--dim)}
+.tbcell p{font-family:var(--sans); font-size:13.5px; color:var(--ink-2); text-transform:none; letter-spacing:0; margin:0}
+footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
+.colophon{
+  margin-top:20px; font-family:var(--mono); font-size:10px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-3); display:flex; flex-wrap:wrap; gap:6px 22px;
+}
+
+/* ========================================================= PLOTTER ==== */
+html.js .reveal{clip-path:inset(0 100% 0 0)}
+html.js .reveal.drawn{clip-path:inset(0 0 0 0); transition:clip-path 900ms cubic-bezier(.22,.61,.36,1)}
+@media (prefers-reduced-motion: reduce){
+  html.js .reveal{clip-path:none !important; transition:none !important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to drawing</a>
+
+<!-- shared drafting symbols: arrowheads + section hatch -->
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" class="ah"/>
+    </marker>
+    <marker id="ahl" viewBox="0 0 10 10" refX="9.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" class="ahl"/>
+    </marker>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="7" class="hl"/>
+    </pattern>
+  </defs>
+</svg>
+
+<div class="sheet">
+<div class="frame">
+
+<header class="head">
+  <span class="brand">
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" focusable="false">
+      <rect x="1.5" y="1.5" width="23" height="23" rx="4" class="ol"/>
+      <rect x="5" y="5" width="16" height="6" class="acc"/>
+      <rect x="5" y="5" width="16" height="6" class="ol"/>
+      <rect x="5" y="14" width="7" height="7" class="ol"/>
+      <rect x="14" y="14" width="7" height="7" class="ol"/>
+    </svg>
+    mjsx
+  </span>
+  <span class="dwg">Drawing&nbsp;No.&nbsp;MJSX-001 &nbsp;·&nbsp; Rev&nbsp;0.1.0-dev &nbsp;·&nbsp; Scale&nbsp;1:1</span>
+  <nav class="idx" aria-label="Sheet index">
+    <a href="#s02"><b>02</b>Notes</a>
+    <a href="#s03"><b>03</b>Contract</a>
+    <a href="#s04"><b>04</b>Source</a>
+    <a href="#s05"><b>05</b>Backends</a>
+    <a href="#s06"><b>06</b>Round glass</a>
+    <a href="#s07"><b>07</b>Status</a>
+  </nav>
+  <span class="vp" id="vpbox"><i></i><span id="vp">0</span>&nbsp;px</span>
+</header>
+
+<main id="main">
+
+<!-- ======================================================= SHEET 01 == -->
+<section id="s01" aria-labelledby="heroH">
+  <div class="sec-head">
+    <span class="sec-no">01</span>
+    <p class="sec-label">General arrangement</p>
+    <span class="sec-meta">Sheet 1 of 7 · units: pixels</span>
+  </div>
+  <div class="rule"></div>
+
+  <div class="hero">
+    <div>
+      <h1 id="heroH">JSX for<br>microcontrollers
+        <span class="thin">…Raspberry Pi, desktop, terminal and the browser. One portable core. Several backends.</span>
+      </h1>
+      <div class="h1rule"></div>
+      <p class="lede">
+        <strong>mjsx</strong> is one file of ES5-safe JavaScript — 2,514 lines — that lays out,
+        draws and handles touch for a whole interface, and it does the drawing through
+        <strong>ten native calls</strong>. Anything that can fill a rectangle and report the time
+        is a target: a 1.28-inch round panel wired to a chip, an ANSI terminal, a browser tab,
+        a native window, a PNG on disk.
+      </p>
+      <p class="lede">
+        No virtual DOM, no reconciler, no dependencies. A dirty frame simply redraws itself.
+      </p>
+      <div class="facts">
+        <div><b>10</b><span>gfx calls</span></div>
+        <div><b>0</b><span>dependencies</span></div>
+        <div><b>2,514</b><span>lines of core</span></div>
+        <div><b>6</b><span>backends</span></div>
+        <div><b>4</b><span>boards, daily</span></div>
+        <div><b>MIT</b><span>licence</span></div>
+      </div>
+    </div>
+
+    <figure>
+      <div class="plate">
+        <svg viewBox="0 0 320 360" role="img" aria-labelledby="heroTitle heroDesc" class="reveal">
+          <title id="heroTitle">Front elevation of a 240 by 280 pixel panel running the counter example</title>
+          <desc id="heroDesc">A drafting elevation of the 1.69 inch panel. The counter app is drawn on the
+          glass: a centred COUNT label above a plus-one button. Dimension lines give the glass as 240 by
+          280 pixels; balloon callouts mark the em(2) padding, the em(2) gap and the button's hit
+          rectangle, which is registered at exactly the rectangle drawn.</desc>
+
+          <!-- centre lines -->
+          <line x1="144" y1="26" x2="144" y2="262" class="ctr"/>
+          <line x1="46" y1="144" x2="250" y2="144" class="ctr"/>
+
+          <!-- bezel + glass -->
+          <rect x="54" y="40" width="180" height="208" rx="11" class="pf3"/>
+          <rect x="54" y="40" width="180" height="208" rx="11" class="ol"/>
+          <rect x="60" y="46" width="168" height="196" class="pf"/>
+          <rect x="60" y="46" width="168" height="196" class="olh"/>
+
+          <!-- flex cable, drawn as a hidden detail -->
+          <path d="M120 248 L120 262 L168 262 L168 248" class="hid"/>
+
+          <!-- app: pad em(2) = 16px -> 11.2 at 0.7 scale -->
+          <rect x="71" y="57" width="146" height="18" class="acc"/>
+          <text x="144" y="70" text-anchor="middle" class="t" style="font-size:11px">COUNT: 3</text>
+
+          <rect x="71" y="86" width="146" height="26" rx="4" class="pf2"/>
+          <rect x="71" y="86" width="146" height="26" rx="4" class="ol"/>
+          <text x="144" y="103" text-anchor="middle" class="t" style="font-size:12px">+1</text>
+
+          <!-- hit rect registered at the drawn rect -->
+          <rect x="71" y="86" width="146" height="26" rx="4" class="hid"/>
+
+          <!-- scroll/idle rows below, faint -->
+          <rect x="71" y="123" width="146" height="9" class="cl"/>
+          <rect x="71" y="138" width="90" height="9" class="cl"/>
+
+          <!-- WIDTH dimension -->
+          <line x1="60" y1="248" x2="60" y2="286" class="dl"/>
+          <line x1="228" y1="248" x2="228" y2="286" class="dl"/>
+          <line x1="60" y1="280" x2="228" y2="280" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <rect x="118" y="270" width="52" height="12" class="pf2"/>
+          <text x="144" y="279" text-anchor="middle" class="td">240 PX</text>
+
+          <!-- HEIGHT dimension -->
+          <line x1="234" y1="46" x2="284" y2="46" class="dl"/>
+          <line x1="234" y1="242" x2="284" y2="242" class="dl"/>
+          <line x1="278" y1="46" x2="278" y2="242" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <rect x="272" y="118" width="12" height="52" class="pf2"/>
+          <text x="278" y="144" text-anchor="middle" class="td" transform="rotate(-90 278 144)">280 PX</text>
+
+          <!-- balloons -->
+          <line x1="34" y1="66" x2="65" y2="66" class="dl"/>
+          <circle cx="24" cy="66" r="10" class="bal"/>
+          <text x="24" y="70" text-anchor="middle" class="balt">1</text>
+
+          <line x1="34" y1="118" x2="66" y2="118" class="dl"/>
+          <line x1="66" y1="118" x2="71" y2="80" class="dl"/>
+          <circle cx="24" cy="118" r="10" class="bal"/>
+          <text x="24" y="122" text-anchor="middle" class="balt">2</text>
+
+          <line x1="228" y1="99" x2="272" y2="320" class="dl"/>
+          <circle cx="274" cy="330" r="10" class="bal"/>
+          <text x="274" y="334" text-anchor="middle" class="balt">3</text>
+
+          <text x="16" y="24" class="ts">FRONT ELEVATION — 1.69 IN PANEL, EXAMPLES/COUNTER</text>
+          <text x="16" y="348" class="ts">SCALE 0.70 : 1</text>
+        </svg>
+      </div>
+      <div class="plate-cap"><span>Fig. 1 — Panel A, as drawn</span><span>Glass 240 × 280</span></div>
+
+      <ol class="notes" style="margin-top:20px">
+        <li><span class="bnum" aria-hidden="true">1</span>
+          <div><p class="nh">pad = em(2) = 16 px</p>
+          <p><code>em(n)</code> returns <code>n × FONT.lineH</code> snapped to the backend's alignment
+          quantum. With the default 8-pixel line height that is a hard 16 pixels — the same 16 in a
+          terminal cell grid or on the panel.</p></div></li>
+        <li><span class="bnum" aria-hidden="true">2</span>
+          <div><p class="nh">gap = em(2) between children</p>
+          <p>Layout is width-in, height-out: a box is handed an available width and returns the height
+          it used. One pass down, one number back.</p></div></li>
+        <li><span class="bnum" aria-hidden="true">3</span>
+          <div><p class="nh">hit rect = the drawn rect</p>
+          <p>The tappable rectangle is registered at the exact coordinates the control was drawn at, so
+          what you touch cannot drift from what you see.</p></div></li>
+      </ol>
+    </figure>
+  </div>
+</section>
+
+<!-- ======================================================= SHEET 02 == -->
+<section id="s02" aria-labelledby="s02h">
+  <div class="sec-head">
+    <span class="sec-no">02</span>
+    <h2 id="s02h">General notes</h2>
+    <span class="sec-meta">Sheet 2 of 7 · read before use</span>
+  </div>
+  <div class="rule"></div>
+
+  <div class="gnotes">
+    <div class="gnote">
+      <h3>No VDOM, no reconciler <em>N1</em></h3>
+      <p>State goes in through <code>UI.set</code>; the frame is marked dirty; the next frame is drawn
+      from scratch. There is no retained tree to diff and nothing to keep in sync — the screen is a
+      pure function of the state, recomputed.</p>
+    </div>
+    <div class="gnote">
+      <h3>Width-in, height-out <em>N2</em></h3>
+      <p><code>measure()</code> takes an available width and returns a height; <code>draw()</code>
+      places at a point. Deliberately not two-dimensional constraint solving — see N6.</p>
+    </div>
+    <div class="gnote">
+      <h3>The touch machine lives in the core <em>N3</em></h3>
+      <p>A 6-pixel drag slop, scrolling, flings with per-zone velocity, long-press repeat. A backend
+      feeds raw <code>UI.pointer(id, phase, x, y)</code> and inherits identical feel — a fling on the
+      panel and a fling in a browser tab are the same code.</p>
+    </div>
+    <div class="gnote">
+      <h3>ES5 / MicroQuickJS subset, on purpose <em>N4</em></h3>
+      <p><code>var</code>, no arrows, no <code>let</code>. The same file runs unmodified inside a chip's
+      embedded interpreter and in a browser's own engine. No branch on the host, no build for the
+      device.</p>
+    </div>
+    <div class="gnote">
+      <h3>The JSX transpiler is 312 lines, in-tree <em>N5</em></h3>
+      <p>It rewrites JSX elements into <code>h()</code> calls and leaves every other byte alone —
+      app code is already in the subset, so there is nothing to down-level. It is written in the
+      same subset it compiles, so it runs in a browser, or inside the chip interpreter itself.</p>
+    </div>
+    <div class="gnote">
+      <h3>Real flexbox was deliberately not built <em>N6</em></h3>
+      <p>Yoga is a genuinely different algorithm, it has no answer for scrolling here, and its C++20
+      requirement is an unverified toolchain risk on the Xtensa compiler. If it ever lands it is a
+      sibling layout phase behind the same Element → Frame contract, not a fork.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= SHEET 03 == -->
+<section id="s03" aria-labelledby="s03h">
+  <div class="sec-head">
+    <span class="sec-no">03</span>
+    <h2 id="s03h">Detail A — the ten-call contract</h2>
+    <span class="sec-meta">Sheet 3 of 7 · section A—A</span>
+  </div>
+  <div class="rule"></div>
+  <p class="lede" style="margin-bottom:26px">
+    Everything above the section line is one file and never changes. Everything below it is a backend:
+    ten functions and a loop. That line is the entire porting contract — there is no second interface,
+    no capability negotiation, no per-target branch in the core.
+  </p>
+
+  <figure>
+    <div class="plate">
+      <div class="scroller">
+        <svg viewBox="0 0 800 480" role="img" aria-labelledby="conTitle conDesc" class="reveal">
+          <title id="conTitle">Section through the mjsx stack: app, core, the ten-call contract, six backends</title>
+          <desc id="conDesc">A sectional diagram. At the top an app of JSX components feeds mjsx-core,
+          which contains layout, hit-testing, the touch state machine, text entry and modals. The core
+          drops through a hatched band labelled Section A—A holding the ten gfx calls — clear, rect,
+          frect, circle, line, text, clip, unclip, width, height — plus sys.millis. Below the band the
+          calls fan out to six backends: pure-js, terminal, SDL, HTTP, WASM and ESP32.</desc>
+
+          <!-- APP -->
+          <rect x="280" y="16" width="200" height="44" class="pf2"/>
+          <rect x="280" y="16" width="200" height="44" class="ol"/>
+          <text x="380" y="38" text-anchor="middle" class="tb">APP.JSX</text>
+          <text x="380" y="52" text-anchor="middle" class="ts">YOUR COMPONENTS, COMPILED TO h()</text>
+          <line x1="380" y1="60" x2="380" y2="86" class="ol" marker-end="url(#ahl)"/>
+
+          <!-- CORE -->
+          <rect x="40" y="88" width="680" height="112" class="pf"/>
+          <rect x="40" y="88" width="680" height="112" class="olh"/>
+          <text x="54" y="108" class="tb">MJSX-CORE</text>
+          <text x="706" y="108" text-anchor="end" class="ts">PACKAGES/CORE/SRC/MJSX.JS · 2,514 LINES · 0 DEPENDENCIES · ES5 SUBSET</text>
+
+          <g class="ol">
+            <rect x="54" y="118" width="125" height="68" class="pf2"/>
+            <rect x="187" y="118" width="125" height="68" class="pf2"/>
+            <rect x="320" y="118" width="125" height="68" class="pf2"/>
+            <rect x="453" y="118" width="125" height="68" class="pf2"/>
+            <rect x="586" y="118" width="120" height="68" class="pf2"/>
+          </g>
+          <g class="tm" text-anchor="middle">
+            <text x="116.5" y="140" class="t">LAYOUT</text>
+            <text x="116.5" y="156" class="ts">WIDTH-IN, HEIGHT-OUT</text>
+            <text x="116.5" y="170" class="ts">NO VDOM · NO DIFF</text>
+
+            <text x="249.5" y="140" class="t">HIT-TEST</text>
+            <text x="249.5" y="156" class="ts">REGISTERED AT THE</text>
+            <text x="249.5" y="170" class="ts">EXACT DRAWN RECT</text>
+
+            <text x="382.5" y="140" class="t">TOUCH FSM</text>
+            <text x="382.5" y="156" class="ts">SLOP 6PX · SCROLL</text>
+            <text x="382.5" y="170" class="ts">FLING · LONG-PRESS</text>
+
+            <text x="515.5" y="140" class="t">TEXT ENTRY</text>
+            <text x="515.5" y="156" class="ts">4 KEYBOARDS THAT</text>
+            <text x="515.5" y="170" class="ts">CHOOSE THEMSELVES</text>
+
+            <text x="646" y="140" class="t">MODALS · TIMERS</text>
+            <text x="646" y="156" class="ts">DIRTY FRAME</text>
+            <text x="646" y="170" class="ts">REDRAWS ITSELF</text>
+          </g>
+
+          <!-- drop lines into the section band -->
+          <g class="ol">
+            <path d="M66 200 V246 M119 200 V246 M172 200 V246 M225 200 V246 M278 200 V246
+                     M331 200 V246 M384 200 V246 M437 200 V246 M490 200 V246 M543 200 V246 M645 200 V246"/>
+          </g>
+
+          <!-- SECTION BAND -->
+          <text x="40" y="238" class="td">SECTION A—A · THE ENTIRE PORTING CONTRACT</text>
+          <rect x="40" y="246" width="680" height="54" fill="url(#hatch)"/>
+          <rect x="40" y="246" width="680" height="54" class="olh"/>
+          <line x1="570" y1="246" x2="570" y2="300" class="ol"/>
+          <g class="t" text-anchor="middle">
+            <text x="66" y="270">clear</text>
+            <text x="119" y="270">rect</text>
+            <text x="172" y="270">frect</text>
+            <text x="225" y="270">circle</text>
+            <text x="278" y="270">line</text>
+            <text x="331" y="270">text</text>
+            <text x="384" y="270">clip</text>
+            <text x="437" y="270">unclip</text>
+            <text x="490" y="270">width</text>
+            <text x="543" y="270">height</text>
+            <text x="645" y="270">millis</text>
+          </g>
+          <g class="ts" text-anchor="middle">
+            <text x="305" y="290">TEN gfx CALLS — COLOURS ARE 0xRRGGBB, COORDS ARE PIXELS</text>
+            <text x="645" y="290">sys · MONOTONIC MS</text>
+          </g>
+
+          <!-- FAN-OUT -->
+          <g class="ol">
+            <path d="M380 300 L93 344 M380 300 L207 344 M380 300 L321 344
+                     M380 300 L435 344 M380 300 L549 344 M380 300 L663 344" marker-end="url(#ahl)"/>
+          </g>
+
+          <g class="ol">
+            <rect x="40" y="348" width="106" height="80" class="pf2"/>
+            <rect x="154" y="348" width="106" height="80" class="pf2"/>
+            <rect x="268" y="348" width="106" height="80" class="pf2"/>
+            <rect x="382" y="348" width="106" height="80" class="pf2"/>
+            <rect x="496" y="348" width="106" height="80" class="pf2"/>
+            <rect x="610" y="348" width="106" height="80" class="pf2"/>
+          </g>
+          <g text-anchor="middle">
+            <text x="93" y="372" class="t">PURE-JS</text>
+            <text x="93" y="390" class="ts">RGBA BUFFER</text>
+            <text x="93" y="403" class="ts">PPM + PNG FILES</text>
+            <text x="93" y="419" class="td">REFERENCE</text>
+
+            <text x="207" y="372" class="t">TERMINAL</text>
+            <text x="207" y="390" class="ts">ANSI HALF-BLOCKS</text>
+            <text x="207" y="403" class="ts">2 PIXELS PER CELL</text>
+            <text x="207" y="419" class="td">TTY</text>
+
+            <text x="321" y="372" class="t">SDL</text>
+            <text x="321" y="390" class="ts">NATIVE WINDOW</text>
+            <text x="321" y="403" class="ts">PANEL MASKS</text>
+            <text x="321" y="419" class="td">DESKTOP</text>
+
+            <text x="435" y="372" class="t">HTTP</text>
+            <text x="435" y="390" class="ts">PIXELS OUT,</text>
+            <text x="435" y="403" class="ts">MULTITOUCH BACK</text>
+            <text x="435" y="419" class="td">BROWSER</text>
+
+            <text x="549" y="372" class="t">WASM</text>
+            <text x="549" y="390" class="ts">SAME MICROQUICKJS</text>
+            <text x="549" y="403" class="ts">ENGINE PARITY</text>
+            <text x="549" y="419" class="td">TEST</text>
+
+            <text x="663" y="372" class="t">ESP32</text>
+            <text x="663" y="390" class="ts">gfxNRect IN C</text>
+            <text x="663" y="403" class="ts">REAL PANEL WRITES</text>
+            <text x="663" y="419" class="td">GLASS</text>
+          </g>
+
+          <!-- balloons -->
+          <line x1="720" y1="144" x2="756" y2="144" class="dl"/>
+          <circle cx="768" cy="144" r="11" class="bal"/>
+          <text x="768" y="148" text-anchor="middle" class="balt">4</text>
+
+          <line x1="720" y1="273" x2="756" y2="273" class="dl"/>
+          <circle cx="768" cy="273" r="11" class="bal"/>
+          <text x="768" y="277" text-anchor="middle" class="balt">5</text>
+
+          <line x1="716" y1="388" x2="756" y2="388" class="dl"/>
+          <circle cx="768" cy="388" r="11" class="bal"/>
+          <text x="768" y="392" text-anchor="middle" class="balt">6</text>
+
+          <text x="40" y="456" class="ts">SECTIONAL DIAGRAM — ONE CORE, TEN CALLS, SIX REALIZATIONS. NOT TO SCALE.</text>
+          <text x="716" y="456" text-anchor="end" class="ts">DETAIL A</text>
+        </svg>
+      </div>
+      <p class="panhint">◂ Drag the drawing sideways to pan ▸</p>
+    </div>
+    <div class="plate-cap"><span>Fig. 2 — Detail A, section through the stack</span><span>Not to scale</span></div>
+  </figure>
+
+  <ol class="notes" style="margin:26px 0 34px">
+    <li><span class="bnum" aria-hidden="true">4</span>
+      <div><p class="nh">Nothing above the line changes per target</p>
+      <p>Layout, hit-testing, gestures, keyboards and modals are one file. Porting to new hardware
+      does not mean forking any of it.</p></div></li>
+    <li><span class="bnum" aria-hidden="true">5</span>
+      <div><p class="nh">Ten functions, plus a clock</p>
+      <p>The ESP32 stdlib table declares exactly these — no <code>poly</code>, no <code>blit</code>
+      required. A few extras are probed for with <code>typeof</code> and simply not used when absent.</p></div></li>
+    <li><span class="bnum" aria-hidden="true">6</span>
+      <div><p class="nh">A new backend is ten functions and a loop</p>
+      <p>Own the loop: call <code>UI.ticker()</code>, and when it or <code>UI.dirty()</code> says so,
+      call <code>UI.render()</code> and present the surface. Feed input back through
+      <code>UI.pointer</code> and <code>UI.key</code>.</p></div></li>
+  </ol>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Schedule A — required native calls</caption>
+      <thead>
+        <tr><th scope="col">No.</th><th scope="col">Call</th><th scope="col">What the backend must do</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="no">A1</td><td class="call"><b>gfx.clear</b>(color)</td><td class="note">Fill the whole surface. Start of every frame.</td></tr>
+        <tr><td class="no">A2</td><td class="call"><b>gfx.rect</b>(x, y, w, h, color, radius)</td><td class="note">One-pixel outline, optionally rounded. Radius may be 0.</td></tr>
+        <tr><td class="no">A3</td><td class="call"><b>gfx.frect</b>(x, y, w, h, color, radius)</td><td class="note">Filled rectangle, optionally rounded. The workhorse call — most of a frame is this.</td></tr>
+        <tr><td class="no">A4</td><td class="call"><b>gfx.circle</b>(x, y, r, color, filled)</td><td class="note">Centre, radius, and a boolean fill.</td></tr>
+        <tr><td class="no">A5</td><td class="call"><b>gfx.line</b>(x0, y0, x1, y1, color)</td><td class="note">One pixel wide. Thick lines are drawn by the core as parallel one-pixel lines.</td></tr>
+        <tr><td class="no">A6</td><td class="call"><b>gfx.text</b>(x, y, size, color, str)</td><td class="note">Draw a string at an integer size multiplier, top-left origin. The core never rasterizes a glyph — font choice is entirely the backend's.</td></tr>
+        <tr><td class="no">A7</td><td class="call"><b>gfx.clip</b>(x, y, w, h)</td><td class="note">Set <em>the</em> clip rectangle. A single rect, not a stack: the core intersects nested clips itself and always hands over one honest rectangle.</td></tr>
+        <tr><td class="no">A8</td><td class="call"><b>gfx.unclip</b>()</td><td class="note">Remove the clip rectangle.</td></tr>
+        <tr><td class="no">A9</td><td class="call"><b>gfx.width</b>()</td><td class="note">Logical surface width, in pixels.</td></tr>
+        <tr><td class="no">A10</td><td class="call"><b>gfx.height</b>()</td><td class="note">Logical surface height, in pixels.</td></tr>
+        <tr><td class="no">A11</td><td class="call"><b>sys.millis</b>()</td><td class="note">Monotonic clock in milliseconds. Drives timers, cursor blink, long-press and fling velocity.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="lede" style="margin-top:18px; font-size:14px">
+    Optional and probed for, never required: a persistent <code style="font-family:var(--mono)">sys.store</code> /
+    <code style="font-family:var(--mono)">sys.fetch</code> pair, <code style="font-family:var(--mono)">gfx.poly</code>
+    for device-resolution path fills, <code style="font-family:var(--mono)">gfx.blit</code> for external pixels such as a
+    camera frame, and a font-metric override for backends whose "pixels" are not pixels.
+  </p>
+</section>
+
+<!-- ======================================================= SHEET 04 == -->
+<section id="s04" aria-labelledby="s04h">
+  <div class="sec-head">
+    <span class="sec-no">04</span>
+    <h2 id="s04h">Detail B — source, as built</h2>
+    <span class="sec-meta">Sheet 4 of 7 · both sides of the line</span>
+  </div>
+  <div class="rule"></div>
+  <p class="lede" style="margin-bottom:26px">
+    Left: an app, drawn above in Fig. 1. Right: a backend's whole implementation of the workhorse call.
+    Two sides of the same section line, printed at the same scale.
+  </p>
+
+  <div class="codegrid">
+    <figure class="code">
+      <div class="code-head"><b>Detail B1 — the app</b><span>examples/counter/app.jsx</span></div>
+      <pre><code><span class="ln">01</span><span class="kw">function</span> App() {
+<span class="ln">02</span>  <span class="kw">var</span> count = UI.state.count || <span class="st">0</span>;
+<span class="ln">03</span>  <span class="kw">return</span> (
+<span class="ln">04</span>    &lt;<span class="tg">box</span> pad={em(<span class="st">2</span>)} gap={em(<span class="st">2</span>)}&gt;
+<span class="ln">05</span>      &lt;<span class="tg">text</span> text={<span class="st">'COUNT: '</span> + count} size={<span class="st">3</span>}
+<span class="ln">06</span>            color={UI.theme.text} align=<span class="st">"center"</span> /&gt;
+<span class="ln">07</span>      &lt;<span class="tg">Button</span> label=<span class="st">"+1"</span> size={<span class="st">2</span>}
+<span class="ln">08</span>              onTap={<span class="kw">function</span> () { UI.set({ count: count + <span class="st">1</span> }); }} /&gt;
+<span class="ln">09</span>    &lt;/<span class="tg">box</span>&gt;
+<span class="ln">10</span>  );
+<span class="ln">11</span>}
+<span class="ln">12</span>
+<span class="ln">13</span>UI.mount(App);
+<span class="an"><span class="ln">  </span>└─ 7 · UI.set marks the frame dirty. The next frame is
+<span class="ln">  </span>       drawn from scratch. No diff, no retained tree.
+<span class="ln">  </span>└─ 8 · var, not let: the ES5 subset is what lets this
+<span class="ln">  </span>       exact file run inside the chip's interpreter.</span></code></pre>
+    </figure>
+
+    <figure class="code">
+      <div class="code-head"><b>Detail B2 — the backend</b><span>pure-js · gfx.frect</span></div>
+      <pre><code><span class="ln">01</span>frect: <span class="kw">function</span> (x, y, ww, hh, color, radius) {
+<span class="ln">02</span>  <span class="kw">var</span> rgb = toRGB(color);
+<span class="ln">03</span>  raster.fillRoundRect(
+<span class="ln">04</span>    <span class="kw">function</span> (fx, fy, fw, fh) {
+<span class="ln">05</span>      fillRect(fx, fy, fw, fh, rgb);
+<span class="ln">06</span>    },
+<span class="ln">07</span>    x * dpr, y * dpr, ww * dpr, hh * dpr,
+<span class="ln">08</span>    (radius || <span class="st">0</span>) * dpr);
+<span class="ln">09</span>}
+<span class="ln">10</span>
+<span class="an"><span class="ln">  </span>└─ On the ESP32 this same call is a C function writing
+<span class="ln">  </span>   the panel. In the terminal it writes a sub-pixel
+<span class="ln">  </span>   buffer flushed as ANSI. Nine more of this size, plus
+<span class="ln">  </span>   sys.millis and a loop, and the port is finished.</span></code></pre>
+    </figure>
+  </div>
+</section>
+
+<!-- ======================================================= SHEET 05 == -->
+<section id="s05" aria-labelledby="s05h">
+  <div class="sec-head">
+    <span class="sec-no">05</span>
+    <h2 id="s05h">Schedule — backends &amp; plates</h2>
+    <span class="sec-meta">Sheet 5 of 7 · where it runs</span>
+  </div>
+  <div class="rule"></div>
+
+  <div class="tbl-wrap" style="margin-bottom:34px">
+    <table>
+      <caption>Schedule B — backends in the tree, and how each realizes gfx.frect</caption>
+      <thead>
+        <tr><th scope="col">No.</th><th scope="col">Backend</th><th scope="col">gfx.frect is…</th><th scope="col">Surface</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="no">B1</td><td class="call"><b>PURE-JS</b></td><td class="up">A write into an RGBA buffer</td><td class="note">Headless rasterizer; writes PPM and PNG. The reference implementation, and the renderer the browser and window backends draw with.</td></tr>
+        <tr><td class="no">B2</td><td class="call"><b>TERMINAL</b></td><td class="up">A write into a sub-pixel buffer flushed as ANSI</td><td class="note">Two near-square pixels per character cell via the half-block glyph; text is the terminal's own font. A real raw-mode CLI app, plus a picker.</td></tr>
+        <tr><td class="no">B3</td><td class="call"><b>SDL</b></td><td class="up">A host-window blit</td><td class="note">Device simulator: square, rounded and round masks, size presets for the real panels, a high-resolution sub-pixel mode, host-font text. SDL2 is the only native dependency anywhere in the repo, and it is optional.</td></tr>
+        <tr><td class="no">B4</td><td class="call"><b>HTTP</b></td><td class="up">Pure-js pixels, streamed</td><td class="note">The interface in a browser tab over HTTP and WebSocket — pixels out, real input back, including genuine per-finger multitouch.</td></tr>
+        <tr><td class="no">B5</td><td class="call"><b>WASM</b></td><td class="up">A call out of Emscripten</td><td class="note">The same MicroQuickJS engine source a chip runs, compiled to WebAssembly: engine parity for testing, not a reimplementation.</td></tr>
+        <tr><td class="no">B6</td><td class="call"><b>ESP32</b></td><td class="up">A C function — gfxNRect</td><td class="note">Real panel writes on real glass. A minimal reference firmware shows where a panel driver plugs in; the bridge firmware that runs daily takes pushed bundles over TCP with no reflash, and updates itself over WiFi.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-3); margin-bottom:12px">
+    Fig. 3 — Plate schedule, the four boards driven daily. Drawn to a common scale of 0.33 : 1.
+  </h3>
+  <div class="boards reveal">
+
+    <figure class="board">
+      <svg viewBox="0 0 200 250" role="img" aria-label="Panel A: 240 by 280 pixels, 1.69 inch">
+        <rect x="60.4" y="63.8" width="79.2" height="92.4" rx="3" class="pf"/>
+        <rect x="60.4" y="63.8" width="79.2" height="92.4" rx="3" class="ol"/>
+        <rect x="66" y="69" width="68" height="18" class="acc"/>
+        <rect x="66" y="93" width="68" height="10" class="cl"/>
+        <rect x="66" y="108" width="68" height="10" class="cl"/>
+        <rect x="66" y="126" width="30" height="24" rx="2" class="ol"/>
+        <rect x="104" y="126" width="30" height="24" rx="2" class="ol"/>
+        <line x1="60.4" y1="160" x2="60.4" y2="196" class="dl"/>
+        <line x1="139.6" y1="160" x2="139.6" y2="196" class="dl"/>
+        <line x1="60.4" y1="190" x2="139.6" y2="190" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <rect x="84" y="182" width="32" height="11" class="pf2"/>
+        <text x="100" y="190" text-anchor="middle" class="td">240</text>
+        <line x1="144" y1="63.8" x2="180" y2="63.8" class="dl"/>
+        <line x1="144" y1="156.2" x2="180" y2="156.2" class="dl"/>
+        <line x1="174" y1="63.8" x2="174" y2="156.2" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <rect x="168" y="94" width="12" height="32" class="pf2"/>
+        <text x="174" y="110" text-anchor="middle" class="td" transform="rotate(-90 174 110)">280</text>
+        <text x="12" y="24" class="ts">PLATE 1</text>
+      </svg>
+      <div class="bcap"><b>1.69 in</b>240 × 280 · portrait</div>
+    </figure>
+
+    <figure class="board">
+      <svg viewBox="0 0 200 250" role="img" aria-label="Panel B: 320 by 480 pixels, 3.5 inch">
+        <rect x="47.2" y="30.8" width="105.6" height="158.4" rx="3" class="pf"/>
+        <rect x="47.2" y="30.8" width="105.6" height="158.4" rx="3" class="ol"/>
+        <rect x="53" y="36" width="94" height="22" class="acc"/>
+        <rect x="53" y="64" width="94" height="12" class="cl"/>
+        <rect x="53" y="81" width="94" height="12" class="cl"/>
+        <rect x="53" y="98" width="94" height="12" class="cl"/>
+        <rect x="53" y="120" width="44" height="26" rx="2" class="ol"/>
+        <rect x="103" y="120" width="44" height="26" rx="2" class="ol"/>
+        <rect x="53" y="154" width="94" height="28" rx="2" class="cl"/>
+        <line x1="47.2" y1="193" x2="47.2" y2="214" class="dl"/>
+        <line x1="152.8" y1="193" x2="152.8" y2="214" class="dl"/>
+        <line x1="47.2" y1="208" x2="152.8" y2="208" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <rect x="84" y="200" width="32" height="11" class="pf2"/>
+        <text x="100" y="208" text-anchor="middle" class="td">320</text>
+        <line x1="157" y1="30.8" x2="184" y2="30.8" class="dl"/>
+        <line x1="157" y1="189.2" x2="184" y2="189.2" class="dl"/>
+        <line x1="178" y1="30.8" x2="178" y2="189.2" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <rect x="172" y="94" width="12" height="32" class="pf2"/>
+        <text x="178" y="110" text-anchor="middle" class="td" transform="rotate(-90 178 110)">480</text>
+        <text x="12" y="24" class="ts">PLATE 2</text>
+      </svg>
+      <div class="bcap"><b>3.5 in</b>320 × 480 · portrait</div>
+    </figure>
+
+    <figure class="board">
+      <svg viewBox="0 0 200 250" role="img" aria-label="Panel C: 172 by 320 pixels, 1.47 inch">
+        <rect x="71.6" y="57.2" width="56.8" height="105.6" rx="3" class="pf"/>
+        <rect x="71.6" y="57.2" width="56.8" height="105.6" rx="3" class="ol"/>
+        <rect x="76" y="62" width="48" height="14" class="acc"/>
+        <rect x="76" y="82" width="48" height="9" class="cl"/>
+        <rect x="76" y="96" width="48" height="9" class="cl"/>
+        <rect x="76" y="112" width="48" height="18" rx="2" class="ol"/>
+        <rect x="76" y="136" width="48" height="20" rx="2" class="cl"/>
+        <line x1="71.6" y1="166" x2="71.6" y2="196" class="dl"/>
+        <line x1="128.4" y1="166" x2="128.4" y2="196" class="dl"/>
+        <line x1="71.6" y1="190" x2="128.4" y2="190" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <rect x="84" y="182" width="32" height="11" class="pf2"/>
+        <text x="100" y="190" text-anchor="middle" class="td">172</text>
+        <line x1="133" y1="57.2" x2="180" y2="57.2" class="dl"/>
+        <line x1="133" y1="162.8" x2="180" y2="162.8" class="dl"/>
+        <line x1="174" y1="57.2" x2="174" y2="162.8" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <rect x="168" y="94" width="12" height="32" class="pf2"/>
+        <text x="174" y="110" text-anchor="middle" class="td" transform="rotate(-90 174 110)">320</text>
+        <text x="12" y="24" class="ts">PLATE 3</text>
+      </svg>
+      <div class="bcap"><b>1.47 in</b>172 × 320 · narrow</div>
+    </figure>
+
+    <figure class="board">
+      <svg viewBox="0 0 200 250" role="img" aria-label="Panel D: round, 240 pixel diameter, 1.28 inch, GC9A01">
+        <circle cx="100" cy="110" r="39.6" class="pf"/>
+        <circle cx="100" cy="110" r="39.6" class="ol"/>
+        <circle cx="100" cy="110" r="33" class="cl"/>
+        <line x1="54" y1="110" x2="146" y2="110" class="ctr"/>
+        <line x1="100" y1="64" x2="100" y2="156" class="ctr"/>
+        <path d="M78 96 h44 v13 h-44 Z" class="acc"/>
+        <path d="M80 118 h40 M84 128 h32" class="ol"/>
+        <line x1="60.4" y1="152" x2="60.4" y2="196" class="dl"/>
+        <line x1="139.6" y1="152" x2="139.6" y2="196" class="dl"/>
+        <line x1="60.4" y1="190" x2="139.6" y2="190" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <rect x="80" y="182" width="40" height="11" class="pf2"/>
+        <text x="100" y="190" text-anchor="middle" class="td">Ø 240</text>
+        <text x="12" y="24" class="ts">PLATE 4</text>
+        <text x="188" y="24" text-anchor="end" class="ts">GC9A01</text>
+      </svg>
+      <div class="bcap"><b>1.28 in round</b>240 × 240 · see sheet 06</div>
+    </figure>
+  </div>
+
+  <p class="lede" style="margin-top:26px">
+    On the boards, examples pull live camera frames into canvas sources (blitted as single operations),
+    the firmware updates itself over WiFi, and an operation recorder mirrors the screen into a browser
+    page. The command-line tool wraps pushing, updates, WiFi provisioning and fleet fan-out.
+  </p>
+</section>
+
+<!-- ======================================================= SHEET 06 == -->
+<section id="s06" aria-labelledby="s06h">
+  <div class="sec-head">
+    <span class="sec-no">06</span>
+    <h2 id="s06h">Detail C — round glass</h2>
+    <span class="sec-meta">Sheet 6 of 7 · Ø 240 · plate 4</span>
+  </div>
+  <div class="rule"></div>
+  <p class="lede" style="margin-bottom:26px">
+    A circle is not a rectangle with rounded corners. On round glass a row does not get the display's
+    width — it gets the <strong>chord of the circle at its own height</strong>, and the row nearest the
+    rim gets far less than the row through the middle. Layout, the keyboard and the footer controls all
+    take that as an input rather than pretending it away.
+  </p>
+
+  <div class="two">
+    <figure>
+      <div class="plate">
+        <svg viewBox="0 0 380 400" role="img" aria-labelledby="c1t c1d" class="reveal">
+          <title id="c1t">Detail C1: the on-screen keyboard becomes a trapezoid on round glass</title>
+          <desc id="c1d">A circle of 240 pixels diameter with four keyboard rows inside it. Each row is
+          inset to the chord of the circle at its own height, so the rows narrow towards the bottom of
+          the glass: the top row spans nearly the full width, the bottom row little more than half.
+          The OK key sits in the arc below the bottom row. Dimension lines give the diameter across the
+          middle and the much shorter chord at the bottom row.</desc>
+
+          <circle cx="190" cy="200" r="150" class="pf"/>
+          <circle cx="190" cy="200" r="150" class="olh"/>
+          <line x1="40" y1="200" x2="340" y2="200" class="ctr"/>
+          <line x1="190" y1="50" x2="190" y2="350" class="ctr"/>
+
+          <!-- title area of the app -->
+          <text x="190" y="140" text-anchor="middle" class="t">ENTER SSID</text>
+          <rect x="90" y="152" width="200" height="22" class="pf2"/>
+          <rect x="90" y="152" width="200" height="22" class="ol"/>
+          <text x="100" y="167" class="tm">home-net_</text>
+
+          <!-- ROW 1 : chord half-width 140 -->
+          <g class="ol">
+            <rect x="50" y="218" width="25.3" height="26" rx="2" class="pf2"/>
+            <rect x="78.3" y="218" width="25.3" height="26" rx="2" class="pf2"/>
+            <rect x="106.6" y="218" width="25.3" height="26" rx="2" class="pf2"/>
+            <rect x="134.9" y="218" width="25.3" height="26" rx="2" class="pf2"/>
+            <rect x="163.2" y="218" width="25.3" height="26" rx="2" class="pf2"/>
+            <rect x="191.5" y="218" width="25.3" height="26" rx="2" class="pf2"/>
+            <rect x="219.8" y="218" width="25.3" height="26" rx="2" class="pf2"/>
+            <rect x="248.1" y="218" width="25.3" height="26" rx="2" class="pf2"/>
+            <rect x="276.4" y="218" width="25.3" height="26" rx="2" class="pf2"/>
+            <rect x="304.7" y="218" width="25.3" height="26" rx="2" class="pf2"/>
+          </g>
+          <!-- ROW 2 : 127 -->
+          <g class="ol">
+            <rect x="63" y="248" width="25.6" height="26" rx="2" class="pf2"/>
+            <rect x="91.6" y="248" width="25.6" height="26" rx="2" class="pf2"/>
+            <rect x="120.1" y="248" width="25.6" height="26" rx="2" class="pf2"/>
+            <rect x="148.7" y="248" width="25.6" height="26" rx="2" class="pf2"/>
+            <rect x="177.2" y="248" width="25.6" height="26" rx="2" class="pf2"/>
+            <rect x="205.8" y="248" width="25.6" height="26" rx="2" class="pf2"/>
+            <rect x="234.3" y="248" width="25.6" height="26" rx="2" class="pf2"/>
+            <rect x="262.9" y="248" width="25.6" height="26" rx="2" class="pf2"/>
+            <rect x="291.4" y="248" width="25.6" height="26" rx="2" class="pf2"/>
+          </g>
+          <!-- ROW 3 : 105 -->
+          <g class="ol">
+            <rect x="85" y="278" width="23.6" height="26" rx="2" class="pf2"/>
+            <rect x="111.6" y="278" width="23.6" height="26" rx="2" class="pf2"/>
+            <rect x="138.3" y="278" width="23.6" height="26" rx="2" class="pf2"/>
+            <rect x="164.9" y="278" width="23.6" height="26" rx="2" class="pf2"/>
+            <rect x="191.5" y="278" width="23.6" height="26" rx="2" class="pf2"/>
+            <rect x="218.1" y="278" width="23.6" height="26" rx="2" class="pf2"/>
+            <rect x="244.8" y="278" width="23.6" height="26" rx="2" class="pf2"/>
+            <rect x="271.4" y="278" width="23.6" height="26" rx="2" class="pf2"/>
+          </g>
+          <!-- ROW 4 : 64 -->
+          <g class="ol">
+            <rect x="126" y="308" width="40.7" height="26" rx="2" class="pf2"/>
+            <rect x="169.7" y="308" width="40.7" height="26" rx="2" class="pf2"/>
+            <rect x="213.3" y="308" width="40.7" height="26" rx="2" class="pf2"/>
+          </g>
+          <text x="190" y="325" text-anchor="middle" class="ts">SPACE</text>
+
+          <!-- OK parked in the bottom arc -->
+          <rect x="166" y="337" width="48" height="15" rx="7" class="acc"/>
+          <rect x="166" y="337" width="48" height="15" rx="7" class="ol"/>
+          <text x="190" y="348" text-anchor="middle" class="ts">OK</text>
+
+          <!-- Ø dimension across the middle -->
+          <line x1="40" y1="200" x2="40" y2="26" class="dl"/>
+          <line x1="340" y1="200" x2="340" y2="26" class="dl"/>
+          <line x1="40" y1="34" x2="340" y2="34" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <rect x="152" y="26" width="76" height="13" class="pf2"/>
+          <text x="190" y="35" text-anchor="middle" class="td">Ø 240 PX</text>
+
+          <!-- chord dimension at the bottom row -->
+          <line x1="126" y1="334" x2="126" y2="382" class="dl"/>
+          <line x1="254" y1="334" x2="254" y2="382" class="dl"/>
+          <line x1="126" y1="374" x2="254" y2="374" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <rect x="150" y="366" width="80" height="13" class="pf2"/>
+          <text x="190" y="375" text-anchor="middle" class="td">CHORD HERE</text>
+
+          <line x1="264" y1="345" x2="300" y2="345" class="dl"/>
+          <circle cx="312" cy="345" r="11" class="bal"/>
+          <text x="312" y="349" text-anchor="middle" class="balt">7</text>
+
+          <text x="12" y="20" class="ts">DETAIL C1 — TRAPEZOID KEYBOARD</text>
+        </svg>
+      </div>
+      <div class="plate-cap"><span>Fig. 4 — Round keyboard, four rows</span><span>Rows inset per chord</span></div>
+    </figure>
+
+    <figure>
+      <div class="plate">
+        <svg viewBox="0 0 380 400" role="img" aria-labelledby="c2t c2d" class="reveal">
+          <title id="c2t">Detail C2: ArcFooter places controls along the boundary, round or square</title>
+          <desc id="c2d">The same circle with four control pills placed along the lower rim, spread 120
+          degrees about the bottom. Dashed radial construction lines run from the centre to each pill.
+          A ghosted square boundary shows the identical call on square glass, where the same four
+          angles land two pills on the bottom edge and two around the corners onto the sides.</desc>
+
+          <!-- ghost square boundary: the same call on square glass -->
+          <rect x="40" y="50" width="300" height="300" class="cl"/>
+          <g class="cl">
+            <rect x="306" y="269" width="40" height="19" rx="9"/>
+            <rect x="219" y="325" width="40" height="19" rx="9"/>
+            <rect x="121" y="325" width="40" height="19" rx="9"/>
+            <rect x="34" y="269" width="40" height="19" rx="9"/>
+          </g>
+          <text x="46" y="66" class="ts">SQUARE GLASS — SAME CALL</text>
+
+          <circle cx="190" cy="200" r="150" class="pf"/>
+          <circle cx="190" cy="200" r="150" class="olh"/>
+          <line x1="40" y1="200" x2="340" y2="200" class="ctr"/>
+          <line x1="190" y1="50" x2="190" y2="350" class="ctr"/>
+
+          <!-- radial construction to each item -->
+          <g class="cl">
+            <path d="M190 200 L300 263.5 M190 200 L233.4 319.3 M190 200 L146.6 319.3 M190 200 L80 263.5"/>
+          </g>
+          <path d="M190 200 L190 350" class="cl"/>
+
+          <!-- sweep arc: 30deg to 150deg about bottom -->
+          <path d="M319.9 275 A150 150 0 0 1 60.1 275" class="dl"/>
+
+          <!-- the four items, upright -->
+          <g class="ol">
+            <rect x="280" y="254" width="40" height="19" rx="9" class="pf2"/>
+            <rect x="213" y="310" width="40" height="19" rx="9" class="pf2"/>
+            <rect x="127" y="310" width="40" height="19" rx="9" class="pf2"/>
+            <rect x="60" y="254" width="40" height="19" rx="9" class="pf2"/>
+          </g>
+          <g class="ts" text-anchor="middle">
+            <text x="300" y="267">SET</text>
+            <text x="233" y="323">WIFI</text>
+            <text x="147" y="323">LOG</text>
+            <text x="80" y="267">OFF</text>
+          </g>
+
+          <!-- app content above the arc -->
+          <text x="190" y="170" text-anchor="middle" class="t">MJSX ON ROUND GLASS</text>
+          <text x="190" y="190" text-anchor="middle" class="ts">CONTENT KEEPS THE MIDDLE</text>
+
+          <!-- angle annotation -->
+          <text x="190" y="238" text-anchor="middle" class="td">AT = 90° (BOTTOM)</text>
+          <text x="190" y="252" text-anchor="middle" class="td">SPREAD = 120°</text>
+
+          <line x1="332" y1="290" x2="352" y2="308" class="dl"/>
+          <circle cx="358" cy="318" r="11" class="bal"/>
+          <text x="358" y="322" text-anchor="middle" class="balt">8</text>
+
+          <text x="12" y="20" class="ts">DETAIL C2 — ARCFOOTER ON THE RIM</text>
+          <text x="368" y="20" text-anchor="end" class="ts">INSET 10</text>
+        </svg>
+      </div>
+      <div class="plate-cap"><span>Fig. 5 — ArcFooter, round and square</span><span>Items stay upright</span></div>
+    </figure>
+  </div>
+
+  <ol class="notes" style="margin:26px 0 34px">
+    <li><span class="bnum" aria-hidden="true">7</span>
+      <div><p class="nh">OK is parked in the bottom arc</p>
+      <p>The sliver below the last key row is space the grid can never use — a full-width row down there
+      would be mostly bezel. Putting the confirm key in it costs the keyboard no height at all. Without
+      the insets, SPACE and OK sit half under the rim.</p></div></li>
+    <li><span class="bnum" aria-hidden="true">8</span>
+      <div><p class="nh">One call, any boundary</p>
+      <p>Each item sits where the ray from centre at its angle meets the boundary, pulled inward by the
+      item's own size. On round glass that boundary is the rim; on square glass it is the rectangle's
+      perimeter, so a bottom arc becomes the bottom edge and a wide one spills around the corners onto
+      the sides. Items stay upright — only their positions follow the edge.</p></div></li>
+  </ol>
+
+  <div class="two">
+    <div class="ladder">
+      <h3>Schedule C — keyboard layout, chosen by fit</h3>
+      <ol>
+        <li><span class="cond">kbW = gfx.width()</span><span class="arrow">◂</span><span class="res">square glass</span>
+          <span class="why">The width the keys actually get.</span></li>
+        <li><span class="cond">kbW = chord × 2</span><span class="arrow">◂</span><span class="res">round glass</span>
+          <span class="why">Measured down where the bottom rows sit, not across the middle: "a 240px circle measures 240 across the middle and only ~178 there."</span></li>
+        <li><span class="cond">kbW ≥ 220</span><span class="arrow">→</span><span class="res">QWERTY</span>
+          <span class="why">Ten columns want about 22 px each.</span></li>
+        <li><span class="cond">kbW ≥ 115</span><span class="arrow">→</span><span class="res">T9</span>
+          <span class="why">Four columns want about 28 px each.</span></li>
+        <li><span class="cond">otherwise</span><span class="arrow">→</span><span class="res">STRIP</span>
+          <span class="why">One scrolling row — below T9's width, only a single row is honestly tappable.</span></li>
+        <li><span class="cond">key height &lt; 30</span><span class="arrow">→</span><span class="res">full screen</span>
+          <span class="why">If the docked keys come out under a finger's height, docking is a fiction: the keyboard takes the whole display instead. Nobody should have to opt in to legible keys.</span></li>
+        <li><span class="cond">layout = "numbers"</span><span class="arrow">→</span><span class="res">number pad</span>
+          <span class="why">Named, not auto-chosen. A stated preference is a decision, not a suggestion — a named layout is honoured exactly, however cramped.</span></li>
+      </ol>
+    </div>
+
+    <div class="gnotes" style="grid-template-columns:1fr; align-content:start">
+      <div class="gnote">
+        <h3>Text entry, on the device itself <em>N7</em></h3>
+        <p>Four keyboard layouts ship in the core: QWERTY, T9, a number pad and a scrolling strip for
+        tiny screens. Nothing about them is per-board — they measure the room the keys actually get and
+        pick.</p>
+      </div>
+      <div class="gnote">
+        <h3>The host declares the glass <em>N8</em></h3>
+        <p>Round is a fact the host states, not one the framework guesses: firmware seeds a stored key,
+        <code>UI.isRound()</code> reads it once and caches the answer. Web and simulator leave it unset,
+        so the answer is square unless something says otherwise.</p>
+      </div>
+      <div class="gnote">
+        <h3>Hardware, from JavaScript <em>N9</em></h3>
+        <p><code>sys.gpio(pin, op, value)</code> reads, writes or samples the ADC; <code>sys.i2c(addr,
+        reg, value)</code> moves one byte on the board's shared bus. The firmware refuses, with −1, any
+        pin the active board's display or touch controller uses — the denylist is built from the same
+        defines that wire those peripherals. A motion module reports acceleration, rotation and
+        temperature into state.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ======================================================= SHEET 07 == -->
+<footer id="s07" aria-labelledby="s07h">
+  <div class="sec-head">
+    <span class="sec-no">07</span>
+    <h2 id="s07h">Title block &amp; status</h2>
+    <span class="sec-meta">Sheet 7 of 7 · issued as-is</span>
+  </div>
+  <div class="rule"></div>
+
+  <div class="title-block">
+    <div class="tbcell c1 big" style="border-top:0">
+      <k>Drawing title</k>
+      <v>mjsx — JSX for microcontrollers, Pi, desktop &amp; browser</v>
+    </div>
+    <div class="tbcell" style="border-top:0">
+      <k>Drawing no.</k><v>MJSX-001</v>
+    </div>
+    <div class="tbcell" style="border-top:0">
+      <k>Revision</k><v>0.1.0-dev</v>
+    </div>
+
+    <div class="tbcell c1"><k>Scale</k><v>1:1 · units: pixels</v></div>
+    <div class="tbcell"><k>Licence</k><v>MIT</v></div>
+    <div class="tbcell status"><k>Status</k><v>Hobby project</v></div>
+
+    <div class="tbcell c1"><k>Core</k><v>packages/core/src/mjsx.js · 2,514 lines · 0 deps</v></div>
+    <div class="tbcell"><k>Contract</k><v>10 gfx + sys.millis</v></div>
+    <div class="tbcell"><k>Backends</k><v>6 in tree</v></div>
+
+    <div class="tbcell wide">
+      <k>Distribution notice</k>
+      <p>
+        This is a hobby project, open-sourced as-is, and it is <strong>not published</strong>: there is
+        no package on npm — being private is deliberate — and the repository is not on GitHub. There is
+        nothing to install from a registry today. Pin to the repository if you use it. It is MIT
+        licensed, it drives four boards daily, and its known limitations are written down in the repo
+        rather than hidden: fixed-pixel examples do not fit every canvas size, font metrics are a
+        documented backend override point that some runners forget to wire, and real flexbox was
+        deliberately not built.
+      </p>
+    </div>
+
+    <div class="tbcell wide">
+      <k>Drawn from</k>
+      <p>
+        Every number on this sheet is checkable in the source: the line counts, the ten calls and their
+        signatures, the six-pixel drag slop, the keyboard width thresholds of 220 and 115, the
+        thirty-pixel key-height rule, the four panel sizes, and the chord arithmetic behind the round
+        layouts.
+      </p>
+    </div>
+  </div>
+
+  <div class="colophon">
+    <span>© mjsx · MIT</span>
+    <span>Sheet 1 of 1 · rev 0.1.0-dev</span>
+    <span>Drawn offline — this page makes no network requests</span>
+    <span>Pre-publication</span>
+  </div>
+</footer>
+
+</div><!-- /frame -->
+</div><!-- /sheet -->
+
+<script>
+(function () {
+  var d = document, root = d.documentElement;
+  root.className += ' js';
+
+  /* live sheet-width dimension in the header — a drawing that measures itself */
+  var vp = d.getElementById('vp'), box = d.getElementById('vpbox'), raf = 0;
+  function measure() {
+    raf = 0;
+    if (vp) vp.textContent = String(Math.round(window.innerWidth));
+  }
+  if (vp && box) {
+    box.className = 'vp on';
+    measure();
+    window.addEventListener('resize', function () {
+      if (!raf) raf = window.requestAnimationFrame(measure);
+    });
+  }
+
+  /* plotter reveal: each drawing sweeps in left to right when it arrives */
+  var plates = d.querySelectorAll('.reveal');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var i;
+  if (reduce || !('IntersectionObserver' in window)) {
+    for (i = 0; i < plates.length; i++) plates[i].className += ' drawn';
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    for (var n = 0; n < entries.length; n++) {
+      var e = entries[n];
+      if (e.isIntersecting) {
+        e.target.className += ' drawn';
+        io.unobserve(e.target);
+      }
+    }
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+  for (i = 0; i < plates.length; i++) io.observe(plates[i]);
+}());
+</script>
+</body>
+</html>

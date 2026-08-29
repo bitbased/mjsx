@@ -1,0 +1,1626 @@
+<!--
+  mjsx landing page — DIRECTION: LABORATORY INSTRUMENT
+
+  A bench oscilloscope front panel, not a marketing page. Four choices define it:
+
+  1. FRONT PANEL, NOT HERO. Every block is a bezelled readout panel with caliper
+     corner ticks, a silkscreen channel label and an index. Type is monospaced,
+     small and letterspaced; nothing on the page is set larger than ~26px. The
+     drama comes from the graticule, the thin rules and the glow of the trace.
+  2. ONE LIVE TRACE. A single canvas runs a phosphor-persistence three-axis plot
+     with a real fade trail, run/hold and per-channel toggles. Under
+     prefers-reduced-motion it boots HELD, paints one static sweep, and lets the
+     reader opt in. It is labelled synthetic, because it is.
+  3. EVERY NUMBER IS MEASURED. 2,514 / 312 / 10+1 / 6 / 4 / 0 all come from the
+     repository. Nothing is a benchmark, because no benchmark was run.
+  4. TWO LAMPS, ONE INSTRUMENT. Dark is the CRT face; light is not "dark
+     inverted" but a chart-recorder printout — warm paper, ink-green pen. Every
+     colour token is declared on bare :root and only redefined in the light
+     media query, never invented inside it.
+
+  Self-contained: no network requests of any kind, no external fonts, no binary
+  assets. All imagery is CSS, inline SVG, or drawn on the canvas.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>mjsx Bench Panel</title>
+<meta name="description" content="mjsx is JSX for microcontrollers, a Raspberry Pi, the desktop and the browser: one portable core that reaches pixels through exactly ten drawing calls plus a clock.">
+<style>
+  /* ============================================================
+     TOKENS — every colour is declared here, on bare :root.
+     The light media query below only REDEFINES these names.
+     ============================================================ */
+  :root {
+    color-scheme: dark;
+
+    --bg:          #07100c;
+    --bg-deep:     #040a07;
+    --panel:       #0b1512;
+    --panel-2:     #0e1a16;
+    --screen:      #050d09;
+    --rule:        #1a2a24;
+    --rule-2:      #294038;
+    --rule-3:      #3d5c50;
+
+    --ink:         #d2e2da;
+    --ink-dim:     #9bb0a7;
+    --ink-faint:   #7d938a;
+
+    --ch1:         #3df08c;
+    --ch1-soft:    #1d7a4a;
+    --ch2:         #56d8ea;
+    --ch3:         #f2b53a;
+    --warn:        #f4794e;
+    --focus:       #8ff0ff;
+
+    --grid:        #101f19;
+    --grid-axis:   #1d3a2f;
+    --glow:        rgba(61, 240, 140, 0.30);
+    --led:         #3df08c;
+    --led-halo:    rgba(61, 240, 140, 0.55);
+    --sel:         rgba(61, 240, 140, 0.16);
+    --shadow:      rgba(0, 0, 0, 0.55);
+    --vignette:    rgba(0, 0, 0, 0.42);
+
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+            "DejaVu Sans Mono", "Liberation Mono", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+            Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: light) {
+    /* Not an inversion: a chart-recorder printout. Warm paper, ink pen. */
+    :root {
+      color-scheme: light;
+
+      --bg:        #e7e3d8;
+      --bg-deep:   #dcd7ca;
+      --panel:     #f7f5ef;
+      --panel-2:   #f1eee5;
+      --screen:    #fcfbf6;
+      --rule:      #cec7b6;
+      --rule-2:    #a79e89;
+      --rule-3:    #857b66;
+
+      --ink:       #151a17;
+      --ink-dim:   #47524c;
+      --ink-faint: #626d66;
+
+      --ch1:       #0a6b38;
+      --ch1-soft:  #74b795;
+      --ch2:       #0c6076;
+      --ch3:       #8a5602;
+      --warn:      #a4381a;
+      --focus:     #08527f;
+
+      --grid:      #dfd9c9;
+      --grid-axis: #c3bba6;
+      --glow:      rgba(10, 107, 56, 0.16);
+      --led:       #0a6b38;
+      --led-halo:  rgba(10, 107, 56, 0.35);
+      --sel:       rgba(10, 107, 56, 0.10);
+      --shadow:    rgba(90, 80, 55, 0.18);
+      --vignette:  rgba(120, 110, 85, 0.10);
+    }
+  }
+
+  /* ============================================================
+     BASE
+     ============================================================ */
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.62;
+    overflow-x: hidden;
+    /* drafting-paper graticule on the instrument case */
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 48px 48px, 48px 48px;
+    background-position: center top;
+  }
+
+  ::selection { background: var(--sel); color: var(--ink); }
+
+  a { color: inherit; }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .skip {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 60;
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--rule-3);
+    padding: 10px 16px;
+    font: 600 12px/1 var(--mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+  .skip:focus { left: 12px; top: 12px; }
+
+  .wrap {
+    width: 100%;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 clamp(14px, 3.2vw, 34px);
+  }
+
+  /* ============================================================
+     FRONT-PANEL PRIMITIVES
+     ============================================================ */
+  .lbl {
+    font: 500 10.5px/1 var(--mono);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+  }
+  .lbl .idx { color: var(--ch1); font-weight: 700; }
+  .lbl .hr {
+    flex: 1 1 auto;
+    height: 1px;
+    background: var(--rule-2);
+    min-width: 12px;
+  }
+
+  .panel {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--rule-2);
+    box-shadow: 0 1px 0 var(--shadow);
+  }
+  .panel::before,
+  .panel::after {
+    content: "";
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border: 1px solid var(--rule-3);
+    pointer-events: none;
+  }
+  .panel::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .panel::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+  h1, h2, h3 { font-weight: 600; margin: 0; }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(19px, 2.5vw, 26px);
+    line-height: 1.34;
+    margin: 14px 0 0;
+    max-width: 22ch;
+  }
+  h1 em { font-style: normal; color: var(--ch1); }
+
+  h2 {
+    font-family: var(--mono);
+    font-size: clamp(15px, 1.7vw, 18px);
+    line-height: 1.42;
+    margin: 12px 0 0;
+  }
+
+  h3 {
+    font: 600 11px/1.35 var(--mono);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  p { margin: 10px 0 0; }
+  p.lede { color: var(--ink-dim); max-width: 62ch; }
+  .note { font-size: 12.5px; color: var(--ink-faint); line-height: 1.55; }
+
+  .mono { font-family: var(--mono); }
+  .num  { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    color: var(--ch2);
+    background: var(--panel-2);
+    border: 1px solid var(--rule);
+    padding: 0.05em 0.36em;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  /* ============================================================
+     TOP RAIL
+     ============================================================ */
+  .rail {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--bg-deep);
+    border-bottom: 1px solid var(--rule-2);
+  }
+  .rail-in {
+    display: flex;
+    align-items: center;
+    gap: 8px 22px;
+    flex-wrap: wrap;
+    padding: 9px 0;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font: 700 14px/1 var(--mono);
+    letter-spacing: 0.06em;
+    color: var(--ink);
+  }
+  .brand svg { display: block; }
+  .brand .sub {
+    font-weight: 500;
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    color: var(--ink-faint);
+    border-left: 1px solid var(--rule-2);
+    padding-left: 9px;
+    margin-left: 2px;
+  }
+  .rail nav {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+    margin-right: auto;
+  }
+  .rail nav a {
+    font: 500 10.5px/1 var(--mono);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-decoration: none;
+    padding: 7px 9px;
+    border: 1px solid transparent;
+  }
+  .rail nav a:hover { color: var(--ch1); border-color: var(--rule-2); }
+  .rail-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font: 500 10px/1 var(--mono);
+    letter-spacing: 0.16em;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .led {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--led);
+    box-shadow: 0 0 0 1px var(--rule-2), 0 0 9px 1px var(--led-halo);
+    animation: pulse 3.4s ease-in-out infinite;
+    flex: none;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  /* ============================================================
+     HERO
+     ============================================================ */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+    gap: clamp(18px, 2.6vw, 34px);
+    align-items: start;
+    padding: clamp(26px, 4.4vw, 54px) 0 clamp(20px, 3vw, 34px);
+    background: radial-gradient(88% 68% at 66% 0%, var(--panel-2) 0%, transparent 62%);
+  }
+  @media (max-width: 940px) { .hero { grid-template-columns: 1fr; } }
+
+  .stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--rule-2);
+    padding: 4px 9px;
+    font: 500 9.5px/1.4 var(--mono);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .stamp b { color: var(--ch3); font-weight: 700; }
+
+  .readouts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    gap: 1px;
+    margin: 22px 0 0;
+    background: var(--rule-2);
+    border: 1px solid var(--rule-2);
+  }
+  .ro { background: var(--panel); padding: 10px 12px 11px; }
+  .ro dt {
+    font: 500 9px/1 var(--mono);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .ro dd {
+    margin: 7px 0 0;
+    font: 600 19px/1 var(--mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .ro dd .u {
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .ro dd .hi { color: var(--ch1); }
+
+  /* ============================================================
+     SCOPE
+     ============================================================ */
+  .scope { padding: 12px; }
+  .scope-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 14px;
+    flex-wrap: wrap;
+    padding: 0 2px 10px;
+  }
+  .scope-head .lbl { flex: 1 1 150px; }
+
+  .screen {
+    position: relative;
+    background: var(--screen);
+    border: 1px solid var(--rule-2);
+    overflow: hidden;
+  }
+  .screen::after {
+    /* CRT vignette + scanline, pure CSS, over the canvas */
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(108% 122% at 50% 50%, transparent 52%, var(--vignette) 100%),
+      repeating-linear-gradient(0deg, transparent 0 2px, var(--vignette) 2px 3px);
+  }
+  #scope { display: block; width: 100%; height: clamp(212px, 27vw, 320px); }
+
+  .scope-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    flex-wrap: wrap;
+    padding: 11px 2px 4px;
+  }
+  .meters {
+    display: flex;
+    gap: 6px 14px;
+    flex-wrap: wrap;
+    margin: 0;
+    font: 500 10.5px/1.6 var(--mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+  }
+  .meters b { font-weight: 700; letter-spacing: 0.16em; }
+  .meters .v { color: var(--ink); }
+  .m1 b { color: var(--ch1); }
+  .m2 b { color: var(--ch2); }
+  .m3 b { color: var(--ch3); }
+
+  .ctrls { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn {
+    font: 700 10px/1 var(--mono);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    background: var(--panel-2);
+    border: 1px solid var(--rule-2);
+    padding: 8px 11px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .btn:hover { color: var(--ink); border-color: var(--rule-3); }
+  .btn[aria-pressed="true"] { color: var(--bg-deep); background: var(--ch1); border-color: var(--ch1); }
+  .btn.c2[aria-pressed="true"] { background: var(--ch2); border-color: var(--ch2); }
+  .btn.c3[aria-pressed="true"] { background: var(--ch3); border-color: var(--ch3); }
+
+  /* ============================================================
+     SECTIONS
+     ============================================================ */
+  section {
+    padding: clamp(30px, 4.6vw, 58px) 0;
+    border-top: 1px solid var(--rule-2);
+    scroll-margin-top: 64px;
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(18px, 2.6vw, 34px);
+    align-items: start;
+  }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+    gap: 1px;
+    margin-top: 22px;
+    background: var(--rule-2);
+    border: 1px solid var(--rule-2);
+  }
+  .card { background: var(--panel); padding: 16px 17px 18px; }
+  .card .k {
+    font: 700 9.5px/1 var(--mono);
+    letter-spacing: 0.2em;
+    color: var(--ch1);
+    display: block;
+    margin-bottom: 9px;
+  }
+  .card p { margin-top: 6px; font-size: 13.5px; color: var(--ink-dim); }
+
+  .tablewrap {
+    overflow-x: auto;
+    border: 1px solid var(--rule-2);
+    background: var(--panel);
+    margin-top: 20px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 540px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+  }
+  caption {
+    text-align: left;
+    padding: 12px 16px;
+    font: 500 10px/1.5 var(--mono);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule-2);
+    background: var(--panel-2);
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: baseline;
+  }
+  thead th {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.ch {
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    width: 3.4em;
+    white-space: nowrap;
+  }
+  td.sig { color: var(--ch1); white-space: nowrap; }
+  td.mean { color: var(--ink-dim); font-family: var(--sans); font-size: 13.5px; }
+  tr.clock { background: var(--panel-2); }
+  tr.clock td.ch, tr.clock td.sig { color: var(--ch3); }
+
+  /* code */
+  .codewrap { margin-top: 20px; }
+  .codebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 14px;
+    flex-wrap: wrap;
+    background: var(--panel-2);
+    border: 1px solid var(--rule-2);
+    border-bottom: 0;
+    padding: 9px 14px;
+    font: 700 10px/1.5 var(--mono);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .codebar .f { font-weight: 500; color: var(--ink-dim); text-transform: none; letter-spacing: 0.04em; }
+  pre.code {
+    margin: 0;
+    background: var(--panel);
+    border: 1px solid var(--rule-2);
+    overflow-x: auto;
+    padding: 14px 0 15px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.75;
+  }
+  pre.code code {
+    display: block;
+    counter-reset: ln;
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--ink);
+    white-space: pre;
+    font-size: 1em;
+  }
+  pre.code .ln { display: block; padding-right: 16px; }
+  pre.code .ln::before {
+    counter-increment: ln;
+    content: counter(ln);
+    display: inline-block;
+    width: 2.4ch;
+    margin-right: 14px;
+    padding-right: 10px;
+    border-right: 1px solid var(--rule);
+    text-align: right;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .t-k { color: var(--ch2); }
+  .t-t { color: var(--ch1); }
+  .t-a { color: var(--ink-dim); }
+  .t-s, .t-n { color: var(--ch3); }
+  .t-c { color: var(--ink-faint); font-style: italic; }
+  .t-p { color: var(--ink-faint); }
+
+  /* backend stack */
+  .stack {
+    margin: 20px 0 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--rule-2);
+    background: var(--rule-2);
+    display: grid;
+    gap: 1px;
+    grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+  }
+  .stack li {
+    background: var(--panel);
+    padding: 14px 16px 15px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6px 12px;
+    align-items: baseline;
+  }
+  .stack .tag {
+    font: 700 10px/1.7 var(--mono);
+    letter-spacing: 0.14em;
+    color: var(--bg-deep);
+    background: var(--ch1);
+    padding: 1px 7px;
+    white-space: nowrap;
+    align-self: start;
+  }
+  .stack .tag.q { background: var(--ch2); }
+  .stack .tag.w { background: var(--ch3); }
+  .stack p { grid-column: 2; margin: 0; font-size: 13.5px; color: var(--ink-dim); }
+
+  /* figures */
+  figure { margin: 20px 0 0; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    margin-top: 10px;
+    font: 500 11.5px/1.62 var(--mono);
+    letter-spacing: 0.03em;
+    color: var(--ink-faint);
+  }
+  .fig-body { background: var(--panel-2); border: 1px solid var(--rule-2); padding: 16px; }
+
+  svg .s-rule   { stroke: var(--rule-3); }
+  svg .s-faint  { stroke: var(--rule-2); }
+  svg .s-ch1    { stroke: var(--ch1); }
+  svg .s-dash   { stroke: var(--ch3); stroke-dasharray: 3 3; }
+  svg .f-screen { fill: var(--screen); }
+  svg .f-key    { fill: var(--ch1-soft); }
+  svg .f-ch1    { fill: var(--ch1); }
+  svg .f-ch3    { fill: var(--ch3); }
+  svg .f-out    { fill: var(--screen); font-weight: 700; }
+  svg text {
+    font-family: var(--mono);
+    font-size: 8.5px;
+    letter-spacing: 0.08em;
+    fill: var(--ink-faint);
+  }
+  svg text.hd { fill: var(--ink); font-size: 9px; font-weight: 700; }
+  svg text.ac { fill: var(--ch3); }
+
+  /* ladder */
+  .ladder {
+    margin: 18px 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--rule-2);
+  }
+  .ladder li {
+    display: grid;
+    grid-template-columns: 8.4em minmax(0, 1fr);
+    gap: 4px 14px;
+    align-items: baseline;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 13.5px;
+    color: var(--ink-dim);
+  }
+  .ladder .cond {
+    font: 700 11.5px/1.55 var(--mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    color: var(--ch1);
+  }
+  .ladder b {
+    color: var(--ink);
+    font: 700 12px/1.5 var(--mono);
+    letter-spacing: 0.1em;
+  }
+
+  blockquote {
+    margin: 22px 0 0;
+    padding: 10px 0 10px 16px;
+    border-left: 2px solid var(--ch3);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.62;
+    color: var(--ink-dim);
+  }
+  blockquote cite {
+    display: block;
+    margin-top: 8px;
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  /* footer */
+  footer {
+    border-top: 1px solid var(--rule-3);
+    background: var(--bg-deep);
+    padding: clamp(28px, 4vw, 48px) 0 clamp(34px, 5vw, 60px);
+  }
+  .foot-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: clamp(18px, 3vw, 40px);
+    align-items: start;
+    margin-top: 18px;
+  }
+  @media (max-width: 760px) { .foot-grid { grid-template-columns: 1fr; } }
+  .plate { border: 1px solid var(--rule-2); padding: 14px 16px; display: grid; gap: 9px; }
+  .plate div {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    font: 500 10.5px/1.5 var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px dotted var(--rule-2);
+    padding-bottom: 8px;
+  }
+  .plate div:last-child { border-bottom: 0; padding-bottom: 0; }
+  .plate span { text-align: right; color: var(--ink); }
+  .plate span.ok { color: var(--ch1); }
+  .plate span.no { color: var(--warn); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="rail">
+  <div class="wrap rail-in">
+    <div class="brand">
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <rect x="0.75" y="2.75" width="18.5" height="14.5" rx="2" fill="none" class="s-rule" stroke-width="1.5"></rect>
+        <path d="M3 12 C5 12 5 7 7.5 7 C10 7 10 13.5 12.5 13.5 C15 13.5 15 9 17 9"
+              fill="none" class="s-ch1" stroke-width="1.5" stroke-linecap="round"></path>
+      </svg>
+      mjsx <span class="sub">UI ENGINE</span>
+    </div>
+    <nav aria-label="Panel sections">
+      <a href="#operation">Operation</a>
+      <a href="#interface">Interface</a>
+      <a href="#specimen">Specimen</a>
+      <a href="#targets">Targets</a>
+      <a href="#round">Round glass</a>
+      <a href="#hardware">Hardware</a>
+    </nav>
+    <p class="rail-stat"><span class="led" aria-hidden="true"></span>MIT &middot; PRE&#8209;RELEASE</p>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ===================== 01 SUBJECT ===================== -->
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <p class="lbl"><span class="idx">01</span> Subject <span class="hr"></span></p>
+        <h1>Ten drawing calls wide. <em>That is the entire porting contract.</em></h1>
+
+        <p class="lede">
+          mjsx is JSX for microcontrollers, a Raspberry&nbsp;Pi, the desktop and the
+          browser. One portable core file holds <code>h()</code>, layout,
+          hit&#8209;testing and the touch state machine. It reaches pixels through
+          exactly ten <code>gfx</code> calls plus a clock &mdash; and anything that
+          realizes those ten is a backend.
+        </p>
+        <p class="lede">
+          No virtual DOM. No reconciler. No dependencies. The same file runs
+          unmodified inside a chip&rsquo;s embedded interpreter and in a browser tab,
+          because it is written in the ES5 subset both of them agree on.
+        </p>
+
+        <dl class="readouts">
+          <div class="ro">
+            <dt>Core</dt>
+            <dd><span class="num">2,514</span><span class="u">lines</span></dd>
+          </div>
+          <div class="ro">
+            <dt>Native calls</dt>
+            <dd><span class="num hi">10</span><span class="u">+ 1 clock</span></dd>
+          </div>
+          <div class="ro">
+            <dt>Transpiler</dt>
+            <dd><span class="num">312</span><span class="u">lines</span></dd>
+          </div>
+          <div class="ro">
+            <dt>Dependencies</dt>
+            <dd><span class="num">0</span><span class="u">none</span></dd>
+          </div>
+          <div class="ro">
+            <dt>Backends</dt>
+            <dd><span class="num">6</span><span class="u">in tree</span></dd>
+          </div>
+          <div class="ro">
+            <dt>Panels</dt>
+            <dd><span class="num">4</span><span class="u">driven daily</span></dd>
+          </div>
+        </dl>
+
+        <p class="note" style="margin-top:14px">
+          Counts read straight off the repository &mdash;
+          <span class="mono">packages/core/src/mjsx.js</span>,
+          <span class="mono">packages/core/src/jsx.js</span>, and the backend and
+          board tables in the docs. Not benchmarks: there are none to quote.
+        </p>
+      </div>
+
+      <div class="panel scope">
+        <div class="scope-head">
+          <p class="lbl"><span class="idx">CH&nbsp;1&ndash;3</span> Motion trace <span class="hr"></span></p>
+          <span class="stamp"><b>&bull;</b> Synthetic source</span>
+        </div>
+
+        <div class="screen">
+          <canvas id="scope" role="img"
+                  aria-label="An oscilloscope screen: three scrolling waveform traces over a dotted graticule, drawn with a phosphor persistence trail."></canvas>
+        </div>
+
+        <div class="scope-foot">
+          <p class="meters">
+            <span class="m1"><b>CH1</b> <span class="v" id="v1">+0.000</span></span>
+            <span class="m2"><b>CH2</b> <span class="v" id="v2">+0.000</span></span>
+            <span class="m3"><b>CH3</b> <span class="v" id="v3">+0.000</span></span>
+            <span><b>SWEEP</b> <span class="v">90 S/s</span></span>
+            <span><b>STATE</b> <span class="v" id="state">RUN</span></span>
+          </p>
+          <div class="ctrls">
+            <button type="button" class="btn" id="run" aria-pressed="true">Sweep</button>
+            <button type="button" class="btn" id="t1" aria-pressed="true">CH1</button>
+            <button type="button" class="btn c2" id="t2" aria-pressed="true">CH2</button>
+            <button type="button" class="btn c3" id="t3" aria-pressed="true">CH3</button>
+          </div>
+        </div>
+
+        <p class="note" style="padding:0 2px">
+          A generated three&#8209;axis signal, shaped like the rolling TRACE view in
+          <span class="mono">examples/sensors</span> &mdash; where the same plot is
+          fed by a real accelerometer, gyroscope and thermometer. Illustration,
+          not measurement.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 02 OPERATION ===================== -->
+  <section id="operation" aria-labelledby="h-operation">
+    <div class="wrap">
+      <p class="lbl"><span class="idx">02</span> Principle of operation <span class="hr"></span></p>
+      <h2 id="h-operation">State changes, the frame is dirty, the frame redraws.</h2>
+      <p class="lede">
+        There is no retained tree to diff and nothing to reconcile. Layout is one
+        pass, width in and height out; drawing is the second. Everything a
+        component needs in order to behave &mdash; where it was drawn, what a finger
+        is doing &mdash; lives in that same file, so no backend has to reimplement
+        any of it.
+      </p>
+
+      <div class="cards">
+        <article class="card">
+          <h3><span class="k">A</span>No reconciler</h3>
+          <p>
+            <span class="mono">measure</span>, then <span class="mono">draw</span>.
+            A dirty frame is simply drawn again. The engine keeps no shadow tree,
+            so there is no class of bug where the tree and the glass disagree.
+          </p>
+        </article>
+        <article class="card">
+          <h3><span class="k">B</span>Hit&#8209;tested at the drawn rect</h3>
+          <p>
+            A control registers its hit region at the exact rectangle it was
+            painted at. What you touch cannot drift from what you see, because the
+            two come from the same number.
+          </p>
+        </article>
+        <article class="card">
+          <h3><span class="k">C</span>One touch state machine</h3>
+          <p>
+            Drag slop of <span class="num">6&nbsp;px</span>, scroll, fling with
+            per&#8209;zone velocity, long&#8209;press and hold&#8209;repeat. Written once in the
+            core; a backend only feeds it
+            <span class="mono">UI.pointer(id, phase, x, y)</span>.
+          </p>
+        </article>
+        <article class="card">
+          <h3><span class="k">D</span>ES5 on purpose</h3>
+          <p>
+            The subset MicroQuickJS accepts. The identical file loads as a module
+            under a desktop runtime and is eval&rsquo;d flat inside a chip, with no
+            branch on the host anywhere in it.
+          </p>
+        </article>
+        <article class="card">
+          <h3><span class="k">E</span>The transpiler is in the box</h3>
+          <p>
+            <span class="num">312</span> lines of JSX&rarr;JS, written in the same ES5
+            subset it emits. It runs in a build script, in a browser, or inside the
+            chip interpreter itself &mdash; which is what a device needs in order to
+            accept source rather than a prebuilt bundle.
+          </p>
+        </article>
+        <article class="card">
+          <h3><span class="k">F</span>Colours are plain integers</h3>
+          <p>
+            24&#8209;bit <span class="mono">0xRRGGBB</span> everywhere above the line.
+            The backend converts down to whatever it actually has &mdash; 5&#8209;6&#8209;5 on
+            the panels, RGB bytes in the software rasterizer.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 03 INTERFACE ===================== -->
+  <section id="interface" aria-labelledby="h-interface">
+    <div class="wrap">
+      <p class="lbl"><span class="idx">03</span> Native interface <span class="hr"></span></p>
+      <h2 id="h-interface">The whole of what a backend must supply.</h2>
+      <p class="lede">
+        The core probes for nothing else. Implement this channel map and every
+        example, every component, every keyboard and the entire input model come
+        along unchanged.
+      </p>
+
+      <div class="tablewrap">
+        <table>
+          <caption>Channel map &mdash; the required surface</caption>
+          <thead>
+            <tr>
+              <th scope="col">CH</th>
+              <th scope="col">Call</th>
+              <th scope="col">Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="ch num">01</td><td class="sig">gfx.clear(color)</td><td class="mean">Fill the whole surface. The start of every frame.</td></tr>
+            <tr><td class="ch num">02</td><td class="sig">gfx.rect(x, y, w, h, color, radius)</td><td class="mean">One&#8209;pixel outline, optionally rounded.</td></tr>
+            <tr><td class="ch num">03</td><td class="sig">gfx.frect(x, y, w, h, color, radius)</td><td class="mean">Filled rect, optionally rounded. The workhorse call.</td></tr>
+            <tr><td class="ch num">04</td><td class="sig">gfx.circle(x, y, r, color, filled)</td><td class="mean">Centre, radius, and a boolean fill flag.</td></tr>
+            <tr><td class="ch num">05</td><td class="sig">gfx.line(x0, y0, x1, y1, color)</td><td class="mean">One&#8209;pixel line. Thick lines are parallel thin ones the core draws itself.</td></tr>
+            <tr><td class="ch num">06</td><td class="sig">gfx.text(x, y, size, color, str)</td><td class="mean">Integer size multiplier, top&#8209;left origin. The core never rasterizes a glyph &mdash; the font is entirely yours.</td></tr>
+            <tr><td class="ch num">07</td><td class="sig">gfx.clip(x, y, w, h)</td><td class="mean">Set <em>the</em> clip rect: one rect, not a stack. The core intersects nested clips itself and always hands you a single honest rectangle.</td></tr>
+            <tr><td class="ch num">08</td><td class="sig">gfx.unclip()</td><td class="mean">Remove the clip rect.</td></tr>
+            <tr><td class="ch num">09</td><td class="sig">gfx.width()</td><td class="mean">Logical surface width, in pixels.</td></tr>
+            <tr><td class="ch num">10</td><td class="sig">gfx.height()</td><td class="mean">Logical surface height.</td></tr>
+            <tr class="clock"><td class="ch num">CLK</td><td class="sig">sys.millis()</td><td class="mean">Monotonic milliseconds. Drives timers, cursor blink, long&#8209;press and fling velocity.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="cols" style="margin-top:26px">
+        <div>
+          <div class="codewrap" style="margin-top:0">
+            <div class="codebar">
+              <span>Minimal wiring</span>
+              <span class="f">backends/pure-js/src/run.js</span>
+            </div>
+            <pre class="code"><code><span class="ln"><span class="t-k">var</span> backend <span class="t-p">=</span> <span class="t-k">require</span><span class="t-p">(</span><span class="t-s">'./backend.js'</span><span class="t-p">).</span>createPureJsBackend<span class="t-p">(</span>W<span class="t-p">,</span> H<span class="t-p">);</span></span><span class="ln">globalThis<span class="t-p">.</span><span class="t-t">gfx</span> <span class="t-p">=</span> backend<span class="t-p">.</span>gfx<span class="t-p">;</span></span><span class="ln">globalThis<span class="t-p">.</span><span class="t-t">sys</span> <span class="t-p">=</span> backend<span class="t-p">.</span>sys<span class="t-p">;</span></span><span class="ln"><span class="t-k">var</span> core <span class="t-p">=</span> <span class="t-k">require</span><span class="t-p">(</span><span class="t-s">'../core/src/mjsx.js'</span><span class="t-p">);</span></span><span class="ln">globalThis<span class="t-p">.</span><span class="t-t">h</span> <span class="t-p">=</span> core<span class="t-p">.</span>h<span class="t-p">;</span></span><span class="ln">globalThis<span class="t-p">.</span><span class="t-t">UI</span> <span class="t-p">=</span> core<span class="t-p">.</span>UI<span class="t-p">;</span></span><span class="ln"><span class="t-c">/* load the app, which calls UI.mount(...) */</span></span><span class="ln">UI<span class="t-p">.</span><span class="t-t">render</span><span class="t-p">();</span></span></code></pre>
+          </div>
+          <p class="note" style="margin-top:12px">
+            On a live target you own the loop instead: tick
+            <span class="mono">UI.ticker()</span>, which advances flings, timers and
+            long&#8209;press repeats and reports dirtiness, then
+            <span class="mono">UI.render()</span> and present the surface. A new
+            backend is ten functions of a few lines each, a clock, and that loop.
+          </p>
+        </div>
+
+        <div>
+          <h3>Optional &mdash; probed for, never assumed</h3>
+          <p class="lede" style="font-size:14px">
+            Three extras are detected with a presence check, and the core has an
+            answer for every one of them being missing.
+          </p>
+          <ul class="ladder">
+            <li><span class="cond">gfx.poly</span><span>Fill polygon rings under a nonzero or even&#8209;odd rule, so a backend can rasterize paths at device resolution. Without it the core scanline&#8209;fills through <span class="mono">frect</span> on its own.</span></li>
+            <li><span class="cond">gfx.blit</span><span>Composite external pixels for the <span class="mono">canvas</span> element &mdash; a camera frame, a bitmap. A backend without it draws a crossed placeholder instead.</span></li>
+            <li><span class="cond">sys.store<br>sys.fetch</span><span>A persistent string store. On a board that is NVS, so an app&rsquo;s settings survive a power cycle; elsewhere the core falls back on its own.</span></li>
+          </ul>
+          <p class="note" style="margin-top:16px">
+            Font metrics are the documented override point rather than a hidden
+            special case: the core defaults to a fixed bitmap metric, and a backend
+            whose pixels are not really pixels &mdash; a terminal, where one unit is
+            one character cell &mdash; replaces <span class="mono">FONT</span> after
+            loading the core.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 04 SPECIMEN ===================== -->
+  <section id="specimen" aria-labelledby="h-specimen">
+    <div class="wrap">
+      <p class="lbl"><span class="idx">04</span> Specimen <span class="hr"></span></p>
+      <h2 id="h-specimen">A whole stateful application.</h2>
+      <p class="lede">
+        Tap the button; the count changes; the screen is redrawn to match. That is
+        the entire mechanism &mdash; state, <span class="mono">UI.set</span>, full
+        redraw. Every example in the repository is one flat
+        <span class="mono">app.jsx</span> written against the ambient globals a host
+        provides, with no imports and no build step, and each of them runs
+        unmodified under every backend.
+      </p>
+
+      <div class="codewrap">
+        <div class="codebar">
+          <span>Verbatim</span>
+          <span class="f">examples/counter/app.jsx</span>
+        </div>
+        <pre class="code"><code><span class="ln"><span class="t-k">function</span> <span class="t-t">App</span><span class="t-p">() {</span></span><span class="ln">  <span class="t-k">var</span> count <span class="t-p">=</span> UI<span class="t-p">.</span>state<span class="t-p">.</span>count <span class="t-p">||</span> <span class="t-n">0</span><span class="t-p">;</span></span><span class="ln">  <span class="t-k">return</span> <span class="t-p">(</span></span><span class="ln">    <span class="t-p">&lt;</span><span class="t-t">box</span> <span class="t-a">pad</span><span class="t-p">={</span><span class="t-t">em</span><span class="t-p">(</span><span class="t-n">2</span><span class="t-p">)}</span> <span class="t-a">gap</span><span class="t-p">={</span><span class="t-t">em</span><span class="t-p">(</span><span class="t-n">2</span><span class="t-p">)}&gt;</span></span><span class="ln">      <span class="t-p">&lt;</span><span class="t-t">text</span> <span class="t-a">text</span><span class="t-p">={</span><span class="t-s">'COUNT: '</span> <span class="t-p">+</span> count<span class="t-p">}</span> <span class="t-a">size</span><span class="t-p">={</span><span class="t-n">3</span><span class="t-p">}</span> <span class="t-a">color</span><span class="t-p">={</span>UI<span class="t-p">.</span>theme<span class="t-p">.</span>text<span class="t-p">}</span> <span class="t-a">align</span><span class="t-p">=</span><span class="t-s">"center"</span> <span class="t-p">/&gt;</span></span><span class="ln">      <span class="t-p">&lt;</span><span class="t-t">Button</span> <span class="t-a">label</span><span class="t-p">=</span><span class="t-s">"+1"</span> <span class="t-a">size</span><span class="t-p">={</span><span class="t-n">2</span><span class="t-p">}</span></span><span class="ln">              <span class="t-a">onTap</span><span class="t-p">={</span><span class="t-k">function</span> <span class="t-p">() {</span> UI<span class="t-p">.</span><span class="t-t">set</span><span class="t-p">({</span> count<span class="t-p">:</span> count <span class="t-p">+</span> <span class="t-n">1</span> <span class="t-p">});</span> <span class="t-p">}}</span> <span class="t-p">/&gt;</span></span><span class="ln">    <span class="t-p">&lt;/</span><span class="t-t">box</span><span class="t-p">&gt;</span></span><span class="ln">  <span class="t-p">);</span></span><span class="ln"><span class="t-p">}</span></span><span class="ln"> </span><span class="ln">UI<span class="t-p">.</span><span class="t-t">mount</span><span class="t-p">(</span>App<span class="t-p">);</span></span></code></pre>
+      </div>
+
+      <div class="cards">
+        <article class="card">
+          <h3><span class="k">&rsaquo;</span>em(), not pixels</h3>
+          <p>
+            Spacing is expressed in the host font&rsquo;s own metric, so one source keeps
+            its proportions on a 172&#8209;pixel strip and on a 320&times;480 panel.
+          </p>
+        </article>
+        <article class="card">
+          <h3><span class="k">&rsaquo;</span>Ambient globals</h3>
+          <p>
+            <span class="mono">h</span>, <span class="mono">UI</span>,
+            <span class="mono">gfx</span> and <span class="mono">sys</span> come from
+            the host. An example imports nothing, which is exactly what lets it be
+            pushed to a chip as plain text.
+          </p>
+        </article>
+        <article class="card">
+          <h3><span class="k">&rsaquo;</span>Self&#8209;checking</h3>
+          <p>
+            The same file exports a demo hook that drives a genuine simulated touch
+            through <span class="mono">UI.pointer</span> &mdash; press and release at
+            the control&rsquo;s registered rect &mdash; instead of calling the handler
+            directly, so the hit test is under test too.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 05 TARGETS ===================== -->
+  <section id="targets" aria-labelledby="h-targets">
+    <div class="wrap">
+      <p class="lbl"><span class="idx">05</span> Targets <span class="hr"></span></p>
+      <h2 id="h-targets">Six backends. Nothing above the line changes.</h2>
+      <p class="lede">
+        Each one implements the same ten functions, and nothing is special&#8209;cased
+        per target. <span class="mono">gfx.frect</span> writes into an RGBA buffer,
+        or into a sub&#8209;pixel buffer flushed as terminal escapes, or is a C function
+        writing a real panel.
+      </p>
+
+      <ul class="stack">
+        <li>
+          <span class="tag">PURE&#8209;JS</span>
+          <p>Headless software rasterizer into an RGBA buffer, writing a real PNG. The reference implementation, and the renderer two of the other backends draw with.</p>
+        </li>
+        <li>
+          <span class="tag">TERMINAL</span>
+          <p>Near&#8209;square pixels in a terminal &mdash; two sub&#8209;pixels per character cell via the half&#8209;block glyph, colour as ANSI. One runner renders a single frame; another is a real raw&#8209;mode interactive app.</p>
+        </li>
+        <li>
+          <span class="tag">SDL</span>
+          <p>A device simulator in a native window: square, rounded&#8209;corner and round masks, size presets for the actual panels, an HD sub&#8209;pixel mode and host&#8209;font text.</p>
+        </li>
+        <li>
+          <span class="tag q">HTTP</span>
+          <p>The device screen mirrored into a browser tab over a WebSocket &mdash; pixels out, real input back, including genuine per&#8209;finger multitouch.</p>
+        </li>
+        <li>
+          <span class="tag q">WASM</span>
+          <p>The same MicroQuickJS engine source compiled with Emscripten, running the same bytecode a chip runs. Engine parity for testing, not a reimplementation of it.</p>
+        </li>
+        <li>
+          <span class="tag w">ESP32</span>
+          <p>The real thing. A minimal reference firmware shows exactly where a panel driver plugs in; the bridge firmware takes core, shim and examples bundled as plain JS over TCP &mdash; no reflash.</p>
+        </li>
+      </ul>
+
+      <figure>
+        <div class="fig-body">
+          <svg viewBox="0 0 440 196" role="img" aria-labelledby="boards-t">
+            <title id="boards-t">The four panels drawn to relative pixel scale: 240 by 280, 320 by 480, 172 by 320, and a round 240 by 240.</title>
+
+            <line x1="8" y1="152.5" x2="432" y2="152.5" class="s-faint" stroke-width="1"></line>
+
+            <!-- 1.69in / 240x280 -->
+            <rect x="24" y="82" width="60" height="70" rx="4" class="f-screen s-rule" stroke-width="1.5"></rect>
+            <rect x="30" y="88" width="48" height="14" rx="2" class="f-key"></rect>
+            <rect x="30" y="106" width="48" height="6" rx="2" class="f-key" opacity="0.55"></rect>
+            <rect x="30" y="116" width="30" height="6" rx="2" class="f-key" opacity="0.55"></rect>
+            <rect x="30" y="132" width="48" height="14" rx="3" class="f-ch1" opacity="0.8"></rect>
+            <text class="hd" x="24" y="168">1.69&#8243;</text>
+            <text x="24" y="180">240&times;280</text>
+
+            <!-- 3.5in / 320x480 -->
+            <rect x="126" y="32" width="80" height="120" rx="4" class="f-screen s-rule" stroke-width="1.5"></rect>
+            <rect x="133" y="39" width="66" height="18" rx="2" class="f-key"></rect>
+            <rect x="133" y="63" width="66" height="7" rx="2" class="f-key" opacity="0.55"></rect>
+            <rect x="133" y="74" width="66" height="7" rx="2" class="f-key" opacity="0.55"></rect>
+            <rect x="133" y="85" width="44" height="7" rx="2" class="f-key" opacity="0.55"></rect>
+            <rect x="133" y="128" width="66" height="18" rx="3" class="f-ch1" opacity="0.8"></rect>
+            <text class="hd" x="126" y="168">3.5&#8243;</text>
+            <text x="126" y="180">320&times;480</text>
+
+            <!-- 1.47in / 172x320 -->
+            <rect x="252" y="72" width="43" height="80" rx="4" class="f-screen s-rule" stroke-width="1.5"></rect>
+            <rect x="257" y="77" width="33" height="12" rx="2" class="f-key"></rect>
+            <rect x="257" y="94" width="33" height="5" rx="2" class="f-key" opacity="0.55"></rect>
+            <rect x="257" y="103" width="22" height="5" rx="2" class="f-key" opacity="0.55"></rect>
+            <rect x="257" y="133" width="33" height="13" rx="3" class="f-ch1" opacity="0.8"></rect>
+            <text class="hd" x="252" y="168">1.47&#8243;</text>
+            <text x="252" y="180">172&times;320</text>
+
+            <!-- 1.28in round / 240x240 -->
+            <circle cx="374" cy="122" r="30" class="f-screen s-rule" stroke-width="1.5"></circle>
+            <circle cx="374" cy="122" r="24" fill="none" class="s-faint" stroke-width="1"></circle>
+            <rect x="358" y="110" width="32" height="10" rx="2" class="f-key"></rect>
+            <rect x="362" y="126" width="24" height="9" rx="4" class="f-ch1" opacity="0.8"></rect>
+            <text class="hd" x="340" y="168">1.28&#8243; ROUND</text>
+            <text x="340" y="180">240&times;240</text>
+          </svg>
+        </div>
+        <figcaption>
+          Drawn to relative pixel scale. Four boards, driven daily: camera frames
+          arrive as canvas sources and blit as single ops, an op recorder mirrors
+          the live screen into a browser page, and firmware updates travel over
+          WiFi instead of the cable.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ===================== 06 ROUND GLASS ===================== -->
+  <section id="round" aria-labelledby="h-round">
+    <div class="wrap">
+      <p class="lbl"><span class="idx">06</span> Round glass <span class="hr"></span></p>
+      <h2 id="h-round">A circle has no rows.</h2>
+
+      <div class="cols" style="margin-top:18px">
+        <div>
+          <p class="lede">
+            At every height, the width a layout actually has is the chord of the
+            circle, not the bounding box &mdash; and it narrows fastest exactly where
+            a keyboard&rsquo;s bottom row wants to sit. mjsx measures the chord across
+            each band and insets that row to fit it, so the keyboard comes out as a
+            trapezoid instead of pushing <span class="mono">SPACE</span> and
+            <span class="mono">OK</span> under the bezel.
+          </p>
+          <p class="lede">
+            The <span class="mono">OK</span> key parks in the bottom arc &mdash; the
+            sliver below the grid that a full&#8209;width row could never have used
+            anyway &mdash; so it costs the keyboard no height at all. And
+            <span class="mono">ArcFooter</span> puts controls along the rim: each
+            item lands where the ray from screen centre meets the boundary, pulled
+            inward by its own size, staying upright, because rotated text is
+            neither drawable nor readable. On square glass the same call walks the
+            rectangle&rsquo;s perimeter instead, so a bottom arc simply becomes the
+            bottom edge.
+          </p>
+
+          <h3 style="margin-top:28px">Text entry chooses itself</h3>
+          <p class="lede" style="font-size:14px">
+            <span class="mono">auto</span> measures the width the keys really get
+            &mdash; on round glass the chord down where the bottom rows land, not the
+            240 across the middle &mdash; and picks from there.
+          </p>
+          <ul class="ladder">
+            <li><span class="cond">&ge; 220 px</span><span><b>QWERTY</b> &mdash; ten columns want about 22&nbsp;px each, with a shift key and a symbols page.</span></li>
+            <li><span class="cond">&ge; 115 px</span><span><b>T9</b> &mdash; four columns at roughly 28&nbsp;px, cycling keys, and a themed symbol table so the whole repertoire stays reachable.</span></li>
+            <li><span class="cond">&lt; 115 px</span><span><b>STRIP</b> &mdash; one scrolling row of characters you drag through. Under T9&rsquo;s width it is the only honestly tappable option left.</span></li>
+            <li><span class="cond">BY NAME</span><span><b>NUMBERS</b> &mdash; the fourth layout, asked for outright when a field wants digits.</span></li>
+          </ul>
+          <p class="note" style="margin-top:14px">
+            One more guard: if the docked keys come out shorter than a finger, the
+            keyboard takes the whole display rather than pretending to dock. A short
+            landscape panel hits that on every layout, and nobody should have to opt
+            in to legible keys.
+          </p>
+
+          <blockquote>
+            &ldquo;A named layout is honoured exactly, however cramped &mdash; a stated
+            preference is a decision, not a suggestion.&rdquo;
+            <cite>packages/core/src/mjsx.js</cite>
+          </blockquote>
+        </div>
+
+        <figure style="margin-top:0">
+          <div class="fig-body">
+            <svg viewBox="0 0 318 268" role="img" aria-labelledby="round-t">
+              <title id="round-t">A round display with a four-row keyboard inset to the circle's chord at each row height, forming a trapezoid, and an OK key parked in the bottom arc below the grid.</title>
+              <defs>
+                <pattern id="keygrid" width="12" height="24" patternUnits="userSpaceOnUse">
+                  <rect x="0" y="0" width="9.5" height="24" class="f-key"></rect>
+                </pattern>
+              </defs>
+
+              <circle cx="130" cy="130" r="126" fill="none" class="s-faint" stroke-width="1"></circle>
+              <circle cx="130" cy="130" r="118" class="f-screen s-rule" stroke-width="1.5"></circle>
+
+              <line x1="12" y1="130" x2="248" y2="130" class="s-dash" stroke-width="1" opacity="0.65"></line>
+              <text class="ac" x="254" y="127">240 px</text>
+              <text x="254" y="139">full diameter</text>
+
+              <rect x="13.1" y="126" width="233.8" height="20" rx="3" fill="url(#keygrid)" opacity="0.92"></rect>
+              <rect x="18.6" y="149" width="222.8" height="20" rx="3" fill="url(#keygrid)" opacity="0.92"></rect>
+              <rect x="29.6" y="172" width="200.8" height="20" rx="3" fill="url(#keygrid)" opacity="0.92"></rect>
+              <rect x="48.2" y="195" width="163.6" height="20" rx="3" fill="url(#keygrid)" opacity="0.92"></rect>
+
+              <line x1="48.2" y1="216.5" x2="211.8" y2="216.5" class="s-dash" stroke-width="1"></line>
+              <text class="ac" x="254" y="213">the chord</text>
+              <text x="254" y="225">here, not 240</text>
+
+              <rect x="107" y="221" width="46" height="16" rx="8" class="f-ch1"></rect>
+              <text class="f-out" x="122" y="232">OK</text>
+
+              <circle cx="82" cy="42" r="7" class="f-ch3" opacity="0.8"></circle>
+              <circle cx="130" cy="26" r="7" class="f-ch3" opacity="0.8"></circle>
+              <circle cx="178" cy="42" r="7" class="f-ch3" opacity="0.8"></circle>
+              <text class="ac" x="254" y="40">ArcFooter</text>
+              <text x="254" y="52">rim&#8209;placed</text>
+
+              <text x="12" y="260">bottom row: nearest the rim, narrowest chord</text>
+            </svg>
+          </div>
+          <figcaption>
+            Rows drawn against a 240&#8209;pixel circle, each inset by the chord of the
+            band it occupies.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 07 HARDWARE ===================== -->
+  <section id="hardware" aria-labelledby="h-hardware">
+    <div class="wrap">
+      <p class="lbl"><span class="idx">07</span> Hardware access <span class="hr"></span></p>
+      <h2 id="h-hardware">Pins and buses, from JavaScript.</h2>
+      <p class="lede">
+        The bridge firmware exposes the board itself to an app, so a panel of
+        controls and the thing it controls end up being the same program.
+      </p>
+
+      <div class="cards">
+        <article class="card">
+          <h3><span class="k">GPIO</span>sys.gpio(pin, op, value)</h3>
+          <p>
+            Read with the pull&#8209;up applied, drive a level, or take an ADC count.
+            Pins the active board&rsquo;s display or touch controller own are refused and
+            answer <span class="mono">-1</span> &mdash; and the example shows that
+            refusal rather than hiding it.
+          </p>
+        </article>
+        <article class="card">
+          <h3><span class="k">I2C</span>sys.i2c</h3>
+          <p>
+            Scan the bus across the usual address range and peek at a device&rsquo;s
+            registers: the firmware&rsquo;s own diagnostic command, given a face.
+          </p>
+        </article>
+        <article class="card">
+          <h3><span class="k">IMU</span>Motion module</h3>
+          <p>
+            Accelerometer, gyroscope and temperature, plus a magnetometer when one
+            is wired. It pushes state patches on its own schedule and only when a
+            reading has actually moved, so a view never polls &mdash; it renders
+            state, and is redrawn when that state changes.
+          </p>
+        </article>
+      </div>
+
+      <p class="note" style="margin-top:18px">
+        Every one of these examples ships a no&#8209;hardware stand&#8209;in, so the whole flow
+        stays clickable on a desktop and says plainly which of the two you are
+        looking at. It is also why the example gallery renders deterministically:
+        the fallbacks read no clock, so the images do not move between runs.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p class="lbl"><span class="idx">08</span> Status <span class="hr"></span></p>
+    <div class="foot-grid">
+      <div>
+        <h2 style="max-width:28ch">A hobby project, open&#8209;sourced as&#8209;is.</h2>
+        <p class="lede">
+          mjsx was lifted out of a working ESP32 firmware&rsquo;s UI engine and
+          generalized until nothing in it assumed a particular board, a particular
+          interpreter, or a particular way of turning a draw call into pixels. It is
+          not a product, and it has no roadmap you could hold it to.
+        </p>
+        <p class="lede">
+          It is <strong>not published to npm</strong> &mdash; the package is marked
+          private on purpose &mdash; and it is <strong>not on GitHub</strong>. Pin to
+          the repository if you want to use it. MIT licensed. The known limitations
+          are written down in the docs beside the features, including the ones that
+          are still concessions.
+        </p>
+      </div>
+      <div class="plate">
+        <div>License <span class="ok">MIT</span></div>
+        <div>Registry <span class="no">Not published</span></div>
+        <div>Public repo <span class="no">Not on GitHub</span></div>
+        <div>Dependencies <span class="ok">None</span></div>
+        <div>Build step <span class="ok">None</span></div>
+        <div>This page <span class="ok">0 requests</span></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:26px">
+      Panel drawn with no external assets: the trace is a canvas, the diagrams are
+      inline vectors, and the type is whatever your system already has.
+    </p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var cv = document.getElementById('scope');
+  if (!cv || !cv.getContext) return;
+  var ctx = cv.getContext('2d');
+  if (!ctx) return;
+
+  var mm = window.matchMedia ? window.matchMedia.bind(window) : null;
+  var reduceQ = mm ? mm('(prefers-reduced-motion: reduce)') : null;
+  var themeQ  = mm ? mm('(prefers-color-scheme: light)') : null;
+  var now = function () {
+    return (window.performance && window.performance.now)
+      ? window.performance.now() : Date.now();
+  };
+
+  var W = 0, H = 0, dpr = 1;
+  var head = 1400;              /* absolute sample index at the right edge */
+  var last = 0;
+  var running = !(reduceQ && reduceQ.matches);
+  var on = [true, true, true];
+  var raf = 0;
+  var meterAt = -1e9;
+
+  var C = {};
+  function readColors() {
+    var s = getComputedStyle(document.documentElement);
+    function g(n, f) { var v = s.getPropertyValue(n); return (v && v.trim()) || f; }
+    C.screen = g('--screen', '#050d09');
+    C.grid   = g('--grid', '#101f19');
+    C.axis   = g('--grid-axis', '#1d3a2f');
+    C.c1     = g('--ch1', '#3df08c');
+    C.c2     = g('--ch2', '#56d8ea');
+    C.c3     = g('--ch3', '#f2b53a');
+    C.glow   = g('--glow', 'rgba(61,240,140,0.3)');
+  }
+
+  /* deterministic value noise, so the trace is reproducible frame to frame */
+  function hash(n) {
+    var s = Math.sin(n * 127.1) * 43758.5453;
+    return s - Math.floor(s);
+  }
+  function vnoise(x) {
+    var i = Math.floor(x), f = x - i;
+    var a = hash(i), b = hash(i + 1);
+    var t = f * f * (3 - 2 * f);
+    return a + (b - a) * t;
+  }
+  function mod(a, n) { return ((a % n) + n) % n; }
+
+  /* Three axes shaped like the rolling TRACE view in examples/sensors: a slow
+     drift, a faster tremor, a little noise, and a periodic decaying spike
+     standing in for a tap. Entirely synthetic. */
+  function sample(ch, i) {
+    var v, p;
+    if (ch === 0) {
+      v = 0.52 * Math.sin(i * 0.0205) +
+          0.20 * Math.sin(i * 0.0721 + 1.1) +
+          0.11 * (vnoise(i * 0.055) - 0.5) * 2;
+      p = mod(i, 760);
+      if (p < 110) v += 0.72 * Math.exp(-p / 17) * Math.sin(p * 0.55);
+    } else if (ch === 1) {
+      v = 0.40 * Math.sin(i * 0.0131 + 2.2) +
+          0.26 * Math.sin(i * 0.0472 + 0.4) +
+          0.09 * (vnoise(i * 0.041 + 31) - 0.5) * 2;
+    } else {
+      v = 0.30 * Math.sin(i * 0.0091 + 4.0) +
+          0.16 * Math.sin(i * 0.1013 + 2.6) +
+          0.07 * (vnoise(i * 0.029 + 77) - 0.5) * 2;
+    }
+    return v;
+  }
+
+  var OFF = [0, -0.36, 0.38];   /* vertical offset per channel, in units */
+
+  function resize() {
+    var r = cv.getBoundingClientRect();
+    var w = Math.max(120, Math.round(r.width));
+    var h = Math.max(100, Math.round(r.height));
+    var d = Math.min(window.devicePixelRatio || 1, 2);
+    if (w === W && h === H && d === dpr) return false;
+    W = w; H = h; dpr = d;
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
+  }
+
+  function graticule() {
+    var i, x, y;
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = C.grid;
+    ctx.beginPath();
+    for (i = 1; i < 10; i++) {
+      x = Math.round(W * i / 10) + 0.5;
+      ctx.moveTo(x, 0); ctx.lineTo(x, H);
+    }
+    for (i = 1; i < 8; i++) {
+      y = Math.round(H * i / 8) + 0.5;
+      ctx.moveTo(0, y); ctx.lineTo(W, y);
+    }
+    ctx.stroke();
+
+    ctx.strokeStyle = C.axis;
+    ctx.beginPath();
+    y = Math.round(H / 2) + 0.5;
+    ctx.moveTo(0, y); ctx.lineTo(W, y);
+    x = Math.round(W / 2) + 0.5;
+    ctx.moveTo(x, 0); ctx.lineTo(x, H);
+    ctx.stroke();
+
+    /* trigger-level tick on the left rail */
+    ctx.strokeStyle = C.c3;
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    y = Math.round(H * 0.34) + 0.5;
+    ctx.moveTo(0, y); ctx.lineTo(10, y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function traceFor(ch, color, width, alpha) {
+    var amp = H * 0.19, mid = H / 2;
+    var step = W > 640 ? 2 : 1;
+    var first = true, x, idx, v, y;
+    ctx.save();
+    ctx.lineWidth = width;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    for (x = 0; x <= W; x += step) {
+      idx = head - (W - x);
+      v = sample(ch, idx) + OFF[ch];
+      y = mid - v * amp;
+      if (first) { ctx.moveTo(x, y); first = false; }
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function paint() {
+    var i, cols, v, y;
+
+    /* phosphor persistence: fade what is already there instead of clearing */
+    ctx.save();
+    ctx.globalAlpha = 0.26;
+    ctx.fillStyle = C.screen;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+
+    graticule();
+
+    cols = [C.c1, C.c2, C.c3];
+    for (i = 2; i >= 0; i--) {
+      if (!on[i]) continue;
+      if (i === 0) traceFor(0, C.glow, 6, 1);
+      traceFor(i, cols[i], i === 0 ? 1.6 : 1.1, i === 0 ? 1 : 0.74);
+    }
+
+    if (on[0]) {
+      v = sample(0, head) + OFF[0];
+      y = H / 2 - v * (H * 0.19);
+      ctx.save();
+      ctx.fillStyle = C.c1;
+      ctx.beginPath();
+      ctx.arc(W - 1.5, y, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function hardPaint() {
+    ctx.save();
+    ctx.fillStyle = C.screen;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+    paint();
+  }
+
+  var els = [
+    document.getElementById('v1'),
+    document.getElementById('v2'),
+    document.getElementById('v3')
+  ];
+  var stateEl = document.getElementById('state');
+
+  function meters(t) {
+    if (t - meterAt < 110) return;
+    meterAt = t;
+    for (var i = 0; i < 3; i++) {
+      if (!els[i]) continue;
+      if (!on[i]) { els[i].textContent = ' --.---'; continue; }
+      var v = sample(i, head) + OFF[i];
+      els[i].textContent = (v < 0 ? '-' : '+') + Math.abs(v).toFixed(3);
+    }
+  }
+
+  function frame(t) {
+    raf = 0;
+    if (resize()) hardPaint();
+    var dt = last ? Math.min(t - last, 120) : 16;
+    last = t;
+    head += dt * 0.090;              /* about 90 samples per second */
+    paint();
+    meters(t);
+    if (running) raf = window.requestAnimationFrame(frame);
+  }
+
+  function start() {
+    if (raf || !running) return;
+    last = 0;
+    raf = window.requestAnimationFrame(frame);
+  }
+  function stop() {
+    if (raf) { window.cancelAnimationFrame(raf); raf = 0; }
+    last = 0;
+  }
+
+  var runBtn = document.getElementById('run');
+  function setRun(v) {
+    running = !!v;
+    if (runBtn) runBtn.setAttribute('aria-pressed', running ? 'true' : 'false');
+    if (stateEl) stateEl.textContent = running ? 'RUN' : 'HOLD';
+    if (running) start(); else stop();
+  }
+  if (runBtn) {
+    runBtn.addEventListener('click', function () { setRun(!running); });
+  }
+
+  var ids = ['t1', 't2', 't3'];
+  for (var k = 0; k < 3; k++) {
+    (function (n) {
+      var b = document.getElementById(ids[n]);
+      if (!b) return;
+      b.addEventListener('click', function () {
+        on[n] = !on[n];
+        b.setAttribute('aria-pressed', on[n] ? 'true' : 'false');
+        hardPaint();
+        meterAt = -1e9;
+        meters(now());
+      });
+    })(k);
+  }
+
+  function reboot() {
+    readColors();
+    resize();
+    hardPaint();
+    meterAt = -1e9;
+    meters(now());
+  }
+
+  reboot();
+  /* Reduced motion: park it HELD, painted once, and let the reader opt in. */
+  setRun(running);
+
+  var rt = 0;
+  window.addEventListener('resize', function () {
+    if (rt) clearTimeout(rt);
+    rt = setTimeout(function () { rt = 0; reboot(); if (running) start(); }, 140);
+  });
+
+  function bind(q, fn) {
+    if (!q) return;
+    if (q.addEventListener) q.addEventListener('change', fn);
+    else if (q.addListener) q.addListener(fn);
+  }
+  bind(themeQ, function () { reboot(); if (running) start(); });
+  bind(reduceQ, function () { if (reduceQ.matches) setRun(false); });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stop();
+    else if (running) start();
+  });
+})();
+</script>
+</body>
+</html>

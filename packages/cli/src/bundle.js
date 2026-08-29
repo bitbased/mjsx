@@ -16,6 +16,7 @@ var TOOLS = path.join(U.REPO, 'backends/esp32/tools');
    browser playground or the device itself would use. tsc stays reachable
    through MJSX_TSC for anyone who wants to diff the two. */
 var jsx = require(path.join(U.REPO, 'packages/core/src/jsx.js'));
+var es5 = require(path.join(U.REPO, 'packages/core/src/es5lint.js'));
 
 function findTsc() {
   var cands = [process.env.MJSX_TSC];
@@ -30,6 +31,15 @@ function findTsc() {
    ES5 that MicroQuickJS requires, handing arrow functions and `let` back
    to an engine that rejects them. */
 function transpile(file, tsc) {
+  /* Check the SOURCE, before any transform: modern syntax parses happily
+     here and in every desktop backend, then the engine rejects the whole
+     bundle and the board will not boot. Cheaper to say so now. */
+  var subset = es5.lint(fs.readFileSync(file, 'utf8'), { level: 'mquickjs' });
+  if (subset.length) {
+    var first = subset[0];
+    U.die('mjsx push: ' + path.basename(file) + ':' + first.line + ' — ' + first.message +
+          (subset.length > 1 ? ' (and ' + (subset.length - 1) + ' more; run `mjsx lint`)' : ''));
+  }
   if (!tsc) {
     try {
       return jsx.transpile(fs.readFileSync(file, 'utf8'));

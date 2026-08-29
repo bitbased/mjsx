@@ -259,6 +259,13 @@ function hitForLabel(t, label) {
   if (m) { label = m[1]; want = parseInt(m[2], 10); }
   const at = [];
   for (let i = 0; i < t.labels.length; i++) if (t.labels[i].str === label) at.push(t.labels[i]);
+  /* nothing drew that exactly: take a substring, so a row that reads
+     "workshop *  -48" answers to "workshop" */
+  if (!at.length) {
+    for (let i = 0; i < t.labels.length; i++) {
+      if (t.labels[i].str.indexOf(label) >= 0) at.push(t.labels[i]);
+    }
+  }
   const order = want > 0 ? [at[want - 1]] : at.slice().reverse();
   for (let i = 0; i < order.length; i++) {
     if (!order[i]) continue;
@@ -315,7 +322,9 @@ function runShot(spec) {
     } else if (a.op === 'key') { UI.key('down', a.key); UI.key('press', a.key); UI.key('up', a.key); }
     else if (a.op === 'type') UI.type(a.text);
     else if (a.op === 'scroll') UI.scrollBy(a.x, a.y, a.dy);
-    else if (a.op === 'advance') t.clock.t += a.ms;
+    /* time passing means the host ticked: timers come due, momentum
+       advances, a T9 cycle window lapses */
+    else if (a.op === 'advance') { t.clock.t += a.ms; UI.ticker(); }
     UI.render();
   }
 
@@ -391,7 +400,7 @@ function outPath(spec) {
 }
 
 function report(spec, r) {
-  const rel = spec.out.slice(ROOT.length + 1);
+  const rel = spec.out.indexOf(ROOT + '/') === 0 ? spec.out.slice(ROOT.length + 1) : spec.out;
   return rel + '  ' + r.w + 'x' + r.h + '  ' + (r.bytes / 1024).toFixed(1) + ' kB' +
          '  colours ' + r.colours + '  ink ' + (r.ink * 100).toFixed(1) + '%';
 }
@@ -448,20 +457,22 @@ const FIELD_PAGE =
   "  ]);\n" +
   "});";
 
-const FIELD_KB_PAGE =
-  "UI.mount(function () {\n" +
-  "  var kids = [\n" +
-  "    h('text', { text: 'DOCKED ' + (UI.state.pos || 'bottom').toUpperCase(), size: 1,\n" +
-  "                align: 'center', color: UI.theme.muted }),\n" +
+function fieldKbPage(pos) {
+  return "UI.mount(function () {\n" +
+  "  return h('box', { h: gfx.height(), pad: 6, gap: 6 }, [\n" +
+  "    h('text', { text: 'POSITION \"" + pos + "\"', size: 1, align: 'center',\n" +
+  "                color: UI.theme.muted }),\n" +
   "    h('input', { id: 'name', size: 2, placeholder: 'tap to type' }),\n" +
-  "    h('text', { text: 'the page keeps its full height under a docked keyboard;\\n' +\n" +
-  "                      'an inline one flows like any other child', size: 1,\n" +
-  "                color: UI.theme.muted, wrap: true })\n" +
-  "  ];\n" +
-  "  kids.push(h(Keyboard, { layout: 'qwerty', position: UI.state.pos || 'bottom',\n" +
-  "                          height: 4 * 34 + 14 }));\n" +
-  "  return h('box', { h: gfx.height(), pad: 6, gap: 6 }, kids);\n" +
+  "    h('text', { text: '" + (pos === 'inline'
+      ? "an inline keyboard flows like any other child: it takes layout space and "
+        + "the page above it is shortened by exactly that much"
+      : "a docked keyboard is an overlay pinned to the screen edge: it takes no flow "
+        + "space and the page keeps its full height") + "',\n" +
+  "                size: 1, color: UI.theme.muted, wrap: true }),\n" +
+  "    h(Keyboard, { layout: 'qwerty', position: '" + pos + "', height: 4 * 34 + 14 })\n" +
+  "  ]);\n" +
   "});";
+}
 
 const BUTTON_PAGE =
   "UI.mount(function () {\n" +
@@ -474,11 +485,15 @@ const BUTTON_PAGE =
   "      h(Button, { label: 'ERR', size: 2, bg: UI.theme.err, onTap: function () {} })\n" +
   "    ]),\n" +
   "    h(Button, { label: 'ACCENT', size: 2, bg: UI.theme.accent, onTap: function () {} }),\n" +
-  "    h('text', { text: 'hitPad 12: the dashed box is the TOUCH target,', size: 1,\n" +
-  "                color: UI.theme.muted, wrap: true }),\n" +
-  "    h('box', { border: UI.theme.muted, radius: 6, pad: 12 },\n" +
-  "      h(Button, { label: 'SMALL', size: 1, pad: 4, hitPad: 12, onTap: function () {} })),\n" +
-  "    h('text', { text: 'the filled one is the paint. A fingertip is wider than a cursor.',\n" +
+  "    h('text', { text: 'hitPad 12: the outlined box is the TOUCH target this demo draws,',\n" +
+  "                size: 1, color: UI.theme.muted, wrap: true }),\n" +
+  "    h('row', {}, [\n" +
+  "      h('box', { w: 104, border: UI.theme.muted, radius: 6, pad: 12 },\n" +
+  "        h(Button, { label: 'SMALL', size: 1, w: 80, pad: 4, hitPad: 12,\n" +
+  "                    onTap: function () {} })),\n" +
+  "      h('box', {})\n" +
+  "    ]),\n" +
+  "    h('text', { text: 'the filled key inside it is the paint. A fingertip is wider than a cursor.',\n" +
   "                size: 1, color: UI.theme.muted, wrap: true })\n" +
   "  ]);\n" +
   "});";
@@ -486,14 +501,18 @@ const BUTTON_PAGE =
 const ARC_PAGE =
   "UI.mount(function () {\n" +
   "  var items = [];\n" +
-  "  var labels = ['<', 'A', 'B', 'C', '>'];\n" +
-  "  for (var i = 0; i < labels.length; i++) {\n" +
-  "    items.push({ w: 40, h: 32, node: h(Button, { label: labels[i], size: 1, w: 40, h: 32,\n" +
+  "  for (var i = 1; i <= 5; i++) {\n" +
+  "    items.push({ w: 40, h: 32, node: h(Button, { label: '' + i, size: 1, w: 40, h: 32,\n" +
+  "                                                 bg: i === 3 ? UI.theme.accent : undefined,\n" +
   "                                                 onTap: function () {} }) });\n" +
   "  }\n" +
-  "  return h('box', { h: gfx.height(), pad: em(1), gap: em(0.5) }, [\n" +
+  "  return h('box', { h: gfx.height(), pad: em(1), gap: em(0.5), vcenter: true }, [\n" +
   "    h('text', { text: 'ARCFOOTER', size: 2, align: 'center', color: UI.theme.accent }),\n" +
-  "    h('text', { text: 'one call, both shapes: items sit where the ray from centre meets the boundary',\n" +
+  "    h('text', { text: 'at: 90 (bottom), spread: 120', size: 1, align: 'center',\n" +
+  "                color: UI.theme.muted }),\n" +
+  "    h('text', { text: 'five items, evenly spaced along the boundary from at-spread/2 ' +\n" +
+  "                      'to at+spread/2. Item 1 is the first angle, which on a screen ' +\n" +
+  "                      'y-down is the RIGHT end of a bottom arc.',\n" +
   "                size: 1, align: 'center', color: UI.theme.muted, wrap: true }),\n" +
   "    h(ArcFooter, { items: items, at: 90, spread: 120 })\n" +
   "  ]);\n" +
@@ -626,7 +645,13 @@ const CLIP_PAGE =
 /* One page, two shapes. Nothing here asks what the glass is: the safe
    inset and the ArcFooter do it. */
 const SHAPE_PAGE =
-  "UI.safe = { top: 0, left: 0, bottom: 0, right: 0, inset: UI.isRound() };\n" +
+  /* The only line in this page that asks what the glass is. Round: hold
+     the flow inside a rectangle the circle fully contains (a 168px band
+     is 118px from centre at its corners, inside a 120px radius) and keep
+     a bottom band for the footer. Square: just the footer band. */
+  "UI.safe = UI.isRound()\n" +
+  "  ? { top: 36, left: 36, right: 36, bottom: 60, inset: true }\n" +
+  "  : { top: 0, left: 0, right: 0, bottom: 44, inset: true };\n" +
   "UI.mount(function () {\n" +
   "  var rows = [];\n" +
   "  var names = ['PLA MATTE', 'PETG BLACK', 'ABS RED', 'TPU CLEAR', 'PLA SILK'];\n" +
@@ -644,7 +669,7 @@ const SHAPE_PAGE =
   "      { w: 44, h: 30, node: h(Button, { label: 'SCAN', size: 1, w: 44, h: 30,\n" +
   "                                        bg: UI.theme.accent, onTap: function () {} }) },\n" +
   "      { w: 44, h: 30, node: h(Button, { label: 'CFG', size: 1, w: 44, h: 30, onTap: function () {} }) }\n" +
-  "    ], at: 90, spread: 100 })\n" +
+  "    ], at: 90, spread: 60 })\n" +
   "  ]);\n" +
   "});";
 
@@ -661,20 +686,43 @@ function shotList() {
   };
 
   /* ---- keyboards ---- */
+  /* what 'auto' resolves to here, and why — the one thing worth saying
+     about an auto shot is which layout the width bought */
+  const AUTO_PICK = {
+    lcd35: 'auto on 320px of glass picks QWERTY: ten columns of ~22px fit',
+    wide: 'auto on 480px picks QWERTY with room to spare',
+    lcd147: 'auto on 172px picks T9: ten columns do not fit, four do',
+    round128: 'auto on round glass measures the CHORD where the bottom rows sit ' +
+              '(~178px across a 240px circle, not 240) and picks T9'
+  };
   for (const p of ['lcd35', 'lcd147']) {
     for (const l of KB_LAYOUTS) {
       add('kb', l, p, kbPage(l, KB_KH[p], 'bottom'),
           'The ' + l.toUpperCase() + ' layout docked at the bottom of ' + p +
-          ', field focused; ' + (l === 'auto' ? 'auto picks by the width the keys actually get' :
-            'a named layout is honoured exactly'),
+          ' (' + PROFILES[p].w + 'x' + PROFILES[p].h + '), field focused: ' +
+          (l === 'auto' ? AUTO_PICK[p] : 'a named layout is honoured exactly, however cramped'),
           { actions: [{ op: 'focus', id: 'f' }] });
     }
   }
   for (const l of KB_LAYOUTS) {
     add('kb', l, 'round128', kbAutoPage(l),
-        'The ' + l.toUpperCase() + ' layout on round glass: the keys come out under a ' +
-        'finger height, so the keyboard takes the whole display and insets every row to ' +
-        'the chord it actually has — the trapezoid',
+        l === 'strip'
+          ? 'STRIP on round glass. Its two rows are tall enough to stay DOCKED, and a ' +
+            'docked panel is NOT chord-inset — so the side keys run under the rim. The ' +
+            'four-row layouts go full-display instead, and inset'
+          : 'The ' + l.toUpperCase() + ' layout on round glass: at a quarter-screen ' +
+            'height the keys come out under a finger, so the keyboard takes the whole ' +
+            'display and insets every row to the chord it actually has — the trapezoid. ' +
+            (l === 'auto' ? AUTO_PICK.round128
+             : l === 'qwerty'
+               ? 'The arc under the panel carries an OK of its own, so QWERTY shows two'
+               : 'OK moves into the bottom arc — space a full-width row could never use'),
+        { actions: [{ op: 'focus', id: 'f' }] });
+  }
+  for (const l of ['auto', 'qwerty']) {
+    add('kb', l, 'wide', kbPage(l, KB_KH.wide, 'bottom'),
+        'The ' + l.toUpperCase() + ' layout on a 480x320 desktop window: ' +
+        (l === 'auto' ? AUTO_PICK.wide : 'the width ten columns were drawn for'),
         { actions: [{ op: 'focus', id: 'f' }] });
   }
   add('kb', 'qwerty-sym1', 'lcd35', kbPage('qwerty', 42, 'bottom'),
@@ -756,15 +804,26 @@ function shotList() {
       'the start has scrolled out to the left',
       { actions: [{ op: 'focus', id: 'note' },
                   { op: 'type', text: 'the quick brown fox jumps over the lazy dog' }] });
-  add('input', 'kb-bottom', 'lcd35', FIELD_KB_PAGE,
+  add('input', 'kb-bottom', 'lcd35', fieldKbPage('bottom'),
       'position="bottom": the keyboard is an overlay pinned to the screen edge, the page ' +
       'keeps its full height, and the inset keeps a revealed field out from under it',
       { actions: [{ op: 'focus', id: 'name' }] });
-  add('input', 'kb-inline', 'lcd35',
-      FIELD_KB_PAGE.replace("UI.state.pos || 'bottom'", "'inline'"),
+  add('input', 'kb-inline', 'lcd35', fieldKbPage('inline'),
       'position="inline": the same keyboard as an ordinary child in the flow — it takes ' +
       'layout space instead of covering the page',
       { actions: [{ op: 'focus', id: 'name' }] });
+  add('input', 'mirror-password', 'lcd147',
+      "UI.mount(function () {\n" +
+      "  return h('box', { h: gfx.height(), pad: 8, gap: 6 }, [\n" +
+      "    h('text', { text: 'PIN', size: 1, color: UI.theme.muted }),\n" +
+      "    h('input', { id: 'pin', size: 2, password: true, maxLen: 6, placeholder: '******' }),\n" +
+      "    h(Keyboard, { layout: 'numbers', position: 'bottom',\n" +
+      "                  height: Math.floor(gfx.height() / 2.6) })\n" +
+      "  ]);\n" +
+      "});",
+      'The mirrored field carries the original\'s props: a password field stays masked ' +
+      'when the full-display keyboard takes over, and the number pad grows to fill it',
+      { actions: [{ op: 'focus', id: 'pin' }, { op: 'type', text: '1234' }] });
   add('input', 'empty', 'round128', FIELD_PAGE,
       'The same field page on round glass, unfocused: the corners the layout cannot use');
   add('input', 'focused', 'lcd147', FIELD_PAGE,
@@ -861,12 +920,42 @@ function shotList() {
   /* ---- the examples, per profile ---- */
   const exNames = readdirSync(EXAMPLES).filter((n) =>
     statSync(join(EXAMPLES, n)).isDirectory() && existsSync(join(EXAMPLES, n, 'app.jsx'))).sort();
+  /* Examples whose first frame is a placeholder until their own timers
+     run (the wifi demo scan). Time only passes when the harness says so. */
+  const SETTLE = [];
+  for (let i = 0; i < 6; i++) SETTLE.push({ op: 'advance', ms: 400 });
+  const EX_ACTIONS = { wifi: SETTLE };
   for (const n of exNames) {
-    const cap = exampleCaption(n);
     for (const p of ['lcd35', 'lcd147', 'round128']) {
-      add('ex', n, p, null, cap, { file: 'examples/' + n + '/app.jsx' });
+      add('ex', n, p, null, exampleCaption(n, p),
+          { file: 'examples/' + n + '/app.jsx', actions: EX_ACTIONS[n] });
     }
   }
+  add('ex', 'wifi-join', 'lcd35', null,
+      'examples/wifi after tapping a secured network: the password field appears and ' +
+      'the keyboard comes up with no layout named — the app asked for "whatever types ' +
+      'best here", and 320px of glass buys QWERTY',
+      { file: 'examples/wifi/app.jsx',
+        actions: SETTLE.concat([{ op: 'tapLabel', label: 'workshop' },
+                                { op: 'type', text: 'hunter2' }]) });
+  add('ex', 'wifi-join', 'round128', null,
+      'The same wifi password step on round glass: the same unnamed Keyboard resolves to ' +
+      'T9 here, and at this height it takes the whole display and mirrors the field',
+      { file: 'examples/wifi/app.jsx',
+        actions: SETTLE.concat([{ op: 'tapLabel', label: 'workshop' }]) });
+  /* the landscape panel, for the examples whose layout actually reflows */
+  for (const n of ['fonts', 'input', 'layers', 'screen', 'sensors', 'shapes']) {
+    add('ex', n, 'lcd169', null, exampleCaption(n, 'lcd169'),
+        { file: 'examples/' + n + '/app.jsx' });
+  }
+  add('ex', 'layers', 'wide', null, exampleCaption('layers', 'wide'),
+      { file: 'examples/layers/app.jsx' });
+  /* a chip pressed on a real example, which is what --tap-label is for */
+  add('ex', 'input-chip', 'lcd35', null,
+      'examples/input with the T9 chip tapped and a field focused: the selected chip ' +
+      'lights accent and the layout under it changes',
+      { file: 'examples/input/app.jsx',
+        actions: [{ op: 'tapLabel', label: 'T9' }, { op: 'focus', id: 'name' }] });
 
   for (const s of S) {
     s.out = join(OUT, s.topic + '-' + s.name + '-' + s.profile + '.png');
@@ -874,17 +963,39 @@ function shotList() {
   return S;
 }
 
-/* The example's own one-line description, from the header comment: the
-   caption should say what the source says. */
-function exampleCaption(name) {
+/* The example's own description, from the head of its header comment: a
+   caption should say what the source says. First sentence, or the first
+   ~120 characters of it, whichever comes first. */
+function exampleCaption(name, profile) {
   const src = readFileSync(join(EXAMPLES, name, 'app.jsx'), 'utf8').split('\n');
-  let line = '';
-  for (let i = 1; i < src.length && i < 6; i++) {
+  const parts = [];
+  for (let i = 1; i < src.length && i < 12; i++) {
+    if (/^\s*\*\//.test(src[i])) break;
     const s = src[i].replace(/^\s*\*\s?/, '').trim();
-    if (s && s !== '/*') { line = s; break; }
+    if (!s) { if (parts.length) break; else continue; }
+    parts.push(s);
   }
-  line = line.replace(/[:\-—]$/, '').trim();
-  return 'examples/' + name + ': ' + line;
+  let text = parts.join(' '), cut = false;
+  const dot = text.indexOf('. ');
+  if (dot > 30 && dot < 140) text = text.slice(0, dot);
+  if (text.length > 140) { text = text.slice(0, 137).replace(/\s+\S*$/, ''); cut = true; }
+  text = text.replace(/[.:\-—,]+$/, '').trim() + (cut ? '...' : '');
+  /* These gate on natives a pixel buffer does not have, and each says so
+     on its own first line; the shot is that labelled fallback, which is
+     itself worth documenting. */
+  const NO_HW = ['camera', 'gpio', 'i2c', 'screen', 'sensors', 'wifi'];
+  return 'examples/' + name + ' — ' + text + '. On ' + shapeWord(profile) +
+         (NO_HW.indexOf(name) >= 0
+           ? '. No device natives under the pure-js backend, so the app draws its own ' +
+             'labelled fallback (the line under the title)'
+           : '');
+}
+
+function shapeWord(profile) {
+  const p = PROFILES[profile];
+  return p.w + 'x' + p.h + (p.round ? ' round glass'
+    : profile === 'wide' ? ' (desktop window)'
+    : p.w > p.h ? ' (landscape)' : '');
 }
 
 /* ---- main ------------------------------------------------------------- */

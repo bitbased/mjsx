@@ -96,3 +96,10 @@ venv/
 # Hardware-bound apps that belong on the device but not in the repo.
 # Same shape as examples/; the bundler and pusher pick them up automatically.
 local-examples/
+
+# Documentation screenshots are COMMITTED, unlike out/gallery: the docs
+# have to show pictures on a fresh clone, with no render step first. The
+# blanket *.png rule above would otherwise swallow them.
+# Regenerate with: bun scripts/shoot.mjs --all
+!docs/img/
+!docs/img/*.png

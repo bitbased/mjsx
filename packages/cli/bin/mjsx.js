@@ -23,6 +23,7 @@ var HELP = 'usage: mjsx <command> ...\n' +
   '  ota <ip> <firmware.bin>          firmware update over HTTP\n' +
   '  device wifi <port|auto> ...      provision WiFi over USB serial\n' +
   '  fleet ls|push|ota ...            the same, across every board on the LAN\n' +
+  '  lint [path...]                   check code stays in the subset its target parses\n' +
   '\n' +
   'Every command runs to a deadline and exits; network steps take --timeout\n' +
   '(and discovery --wait) as seconds, or with an ms/s suffix.\n' +
@@ -31,7 +32,7 @@ var HELP = 'usage: mjsx <command> ...\n' +
   '\n' +
   'mjsx <command> --help shows each command\'s details.';
 
-var COMMANDS = ['dev', 'run', 'push', 'ota', 'device', 'fleet'];
+var COMMANDS = ['dev', 'run', 'push', 'ota', 'device', 'fleet', 'lint'];
 
 /* --debug is global: strip it here so no command forwards it onward
    (mjsx dev passes its flags straight through to the sim). */

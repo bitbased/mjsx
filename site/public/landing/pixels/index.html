@@ -1,0 +1,1510 @@
+<!--
+  DIRECTION: THE PIXEL ITSELF.
+  mjsx is a bitmap engine for tiny screens, so the page is built out of visible pixels.
+
+  The four choices that define it:
+  1. EVERY PICTURE IS A REAL BITMAP. Each device screen is a <canvas> sized to the panel's
+     true pixel count (240x280, 320x480, 172x320, 240x240 round) and blown up by a WHOLE
+     integer with image-rendering: pixelated. Nothing is faked in CSS; the four boards are
+     drawn at 1:1 against each other so their pixel counts are honestly comparable.
+  2. THE PAGE DOGFOODS THE CONTRACT. A ~120-line object in this file implements
+     gfx.clear/rect/frect/circle/line/text/clip/unclip/width/height + sys.millis over
+     Canvas2D -- one more backend -- including a hand-typed 5x7 bitmap font at
+     advance 6 / lineH 8, mjsx's own default metric. The wordmark is gfx.text().
+  3. FIVE COLOURS, LIFTED FROM THE SOURCE. The palette is UI.theme in
+     packages/core/src/mjsx.js: accent 4b8bf5, ok 4ade80, warn fbbf24, err f87171,
+     over panel 1b1e24 / key 212530. Panels stay black in both page themes, because
+     UI.theme.bg is 0x000000 and a screen is a screen.
+  4. HARD EDGES ONLY. Chunky grid, 3px borders, offset shadows with zero blur, no
+     gradients on chrome, monospace throughout. Playful and toy-like, but organised
+     like a well-made handheld console UI.
+
+  Self-contained: one file, no build step, no external requests, no binary assets.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mjsx — JSX for microcontrollers</title>
+<meta name="description" content="mjsx: JSX for microcontrollers, Raspberry Pi, desktop and the browser. One portable core, ten native calls, several backends.">
+<style>
+/* ---------------------------------------------------------------- tokens
+   Every token is defined here on bare :root, then REDEFINED wholesale in
+   the dark block below. Nothing exists only inside the media query. */
+:root{
+  color-scheme: light dark;
+
+  --paper:      #f0ece1;
+  --paper-2:    #e4dfd0;
+  --paper-3:    #d8d2bf;
+  --grid:       #d5cdb7;
+
+  --ink:        #14161b;
+  --ink-2:      #4c515c;
+  --edge:       #14161b;
+  --drop:       #14161b;
+  --rule:       #b9b19b;
+
+  --blue:       #2559c8;
+  --green:      #0d7a3e;
+  --amber:      #8a5202;
+  --red:        #c02f28;
+
+  --blue-flat:  #4b8bf5;
+  --green-flat: #4ade80;
+  --amber-flat: #fbbf24;
+  --red-flat:   #f87171;
+
+  --glass:      #000000;
+  --bezel:      #23262e;
+  --bezel-lip:  #3a3f4b;
+  --plate:      #b9b19b;
+  --plate-ink:  #14161b;
+
+  --focus:      #2559c8;
+  --sel:        #d8e2fb;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:      #0b0d11;
+    --paper-2:    #14171d;
+    --paper-3:    #1b1f27;
+    --grid:       #191d25;
+
+    --ink:        #eef1f6;
+    --ink-2:      #98a1ae;
+    --edge:       #39404e;
+    --drop:       #232936;
+    --rule:       #2c323d;
+
+    --blue:       #4b8bf5;
+    --green:      #4ade80;
+    --amber:      #fbbf24;
+    --red:        #f87171;
+
+    --blue-flat:  #4b8bf5;
+    --green-flat: #4ade80;
+    --amber-flat: #fbbf24;
+    --red-flat:   #f87171;
+
+    --glass:      #000000;
+    --bezel:      #191c22;
+    --bezel-lip:  #2e3441;
+    --plate:      #2a303b;
+    --plate-ink:  #cdd4de;
+
+    --focus:      #4b8bf5;
+    --sel:        #1d3565;
+  }
+}
+
+/* ---------------------------------------------------------------- base */
+*{box-sizing:border-box}
+html{ -webkit-text-size-adjust:100%; }
+html,body{ max-width:100%; overflow-x:hidden; }
+body{
+  margin:0;
+  background-color:var(--paper);
+  background-image:
+    repeating-linear-gradient(0deg, var(--grid) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(90deg, var(--grid) 0 1px, transparent 1px 32px);
+  color:var(--ink);
+  font-family: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  font-size:15px;
+  line-height:1.6;
+}
+::selection{ background:var(--sel); color:var(--ink); }
+
+a{ color:var(--blue); text-underline-offset:3px; text-decoration-thickness:2px; }
+a:hover{ color:var(--ink); }
+
+:focus-visible{
+  outline:3px solid var(--focus);
+  outline-offset:3px;
+}
+
+h1,h2,h3{ font-weight:700; line-height:1.15; margin:0; letter-spacing:.02em; }
+p{ margin:0 0 1em; max-width:62ch; }
+p:last-child{ margin-bottom:0; }
+ul{ margin:0; padding:0; list-style:none; }
+
+.wrap{ width:100%; max-width:1180px; margin:0 auto; padding:0 clamp(14px,4vw,40px); }
+
+.skip{
+  position:absolute; left:-9999px; top:0; z-index:20;
+  background:var(--blue); color:#fff; padding:10px 16px; border:3px solid var(--edge);
+}
+.skip:focus{ left:8px; top:8px; }
+
+/* ------------------------------------------------------------- chrome */
+.slab{
+  background:var(--paper-2);
+  border:3px solid var(--edge);
+  box-shadow:8px 8px 0 var(--drop);
+}
+.tag{
+  display:inline-block;
+  font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700;
+  padding:3px 8px; border:2px solid var(--edge); background:var(--paper-3); color:var(--ink);
+  white-space:nowrap;
+}
+.tag.blue{ background:var(--blue); color:#fff; border-color:var(--edge); }
+.tag.green{ background:var(--green); color:#fff; }
+.tag.amber{ background:var(--amber); color:#fff; }
+.tag.red{ background:var(--red); color:#fff; }
+
+.mono-lbl{
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink-2); font-weight:700;
+}
+
+/* ------------------------------------------------------------- header */
+.topbar{
+  border-bottom:3px solid var(--edge);
+  background:var(--paper-2);
+  position:relative; z-index:5;
+}
+.topbar .wrap{
+  display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center;
+  padding-top:10px; padding-bottom:10px;
+}
+.brandmark{
+  display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.06em;
+}
+.brandmark .dot{ width:14px; height:14px; background:var(--blue); border:2px solid var(--edge); }
+.topnav{ display:flex; flex-wrap:wrap; gap:4px 14px; margin-left:auto; font-size:12px; }
+.topnav a{
+  text-decoration:none; text-transform:uppercase; letter-spacing:.12em; font-weight:700;
+  color:var(--ink-2); padding:3px 2px; border-bottom:3px solid transparent;
+}
+.topnav a:hover, .topnav a:focus-visible{ color:var(--ink); border-bottom-color:var(--blue); }
+
+/* --------------------------------------------------------------- hero */
+.hero{ padding:clamp(28px,6vw,64px) 0 clamp(24px,5vw,52px); }
+.hero-grid{
+  display:grid; gap:clamp(24px,4vw,44px);
+  grid-template-columns:1fr;
+  align-items:start;
+}
+@media (min-width:940px){
+  .hero-grid{ grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr); }
+}
+.wordmark-box{ margin:0 0 18px; }
+.wordmark-box canvas{ display:block; }
+.wm-cap{ font-size:11px; color:var(--ink-2); letter-spacing:.08em; margin-top:8px; }
+h1{ font-size:clamp(26px,4.6vw,40px); margin:0 0 14px; }
+h1 .sub{ display:block; color:var(--ink-2); font-size:.62em; margin-top:8px; font-weight:700; }
+.lede{ font-size:clamp(15px,1.7vw,17px); }
+
+.chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+.chip{
+  border:3px solid var(--edge); background:var(--paper-3); padding:6px 10px;
+  box-shadow:4px 4px 0 var(--drop);
+  display:flex; align-items:baseline; gap:8px; font-size:12px;
+}
+.chip b{ font-size:16px; letter-spacing:.02em; }
+.chip.c1 b{ color:var(--blue); } .chip.c2 b{ color:var(--green); }
+.chip.c3 b{ color:var(--amber); } .chip.c4 b{ color:var(--red); }
+
+/* -------------------------------------------------------------- device */
+.device{
+  background:var(--bezel);
+  border:3px solid var(--edge);
+  box-shadow:10px 10px 0 var(--drop);
+  padding:14px;
+  display:inline-block;
+  max-width:100%;
+}
+.device .screenwell{
+  background:#000; border:2px solid var(--bezel-lip); padding:0; line-height:0;
+  display:block;
+}
+.device.round .screenwell{ border-radius:50%; overflow:hidden; }
+.device.round{ border-radius:0; }
+.plate{
+  margin-top:10px; display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center;
+  font-size:10px; letter-spacing:.14em; text-transform:uppercase; font-weight:700;
+  color:var(--plate-ink); background:var(--plate); border:2px solid var(--edge);
+  padding:4px 7px;
+}
+canvas{
+  display:block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  max-width:100%;
+  height:auto;
+}
+.devcol{ display:flex; flex-direction:column; align-items:flex-start; gap:14px; }
+.devnote{ font-size:12px; color:var(--ink-2); max-width:44ch; }
+
+.btnrow{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+button.px{
+  font:inherit; font-weight:700; font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+  background:var(--blue); color:#fff; border:3px solid var(--edge);
+  box-shadow:5px 5px 0 var(--drop);
+  padding:9px 14px; cursor:pointer;
+}
+button.px:hover{ background:var(--ink); }
+button.px:active{ transform:translate(3px,3px); box-shadow:2px 2px 0 var(--drop); }
+button.px.ghost{ background:var(--paper-3); color:var(--ink); }
+button.px.ghost:hover{ background:var(--paper); }
+button.px[aria-pressed="true"]{ background:var(--amber); color:#fff; }
+.readout{
+  font-size:12px; color:var(--ink-2); border:2px dashed var(--rule); padding:5px 9px;
+}
+.readout b{ color:var(--ink); }
+
+/* ------------------------------------------------------------ sections */
+section{ padding:clamp(34px,6vw,72px) 0; border-top:3px solid var(--edge); }
+.sechead{ margin-bottom:clamp(20px,3vw,34px); }
+.sechead h2{ font-size:clamp(20px,3.2vw,30px); margin:6px 0 12px; }
+.sechead p{ font-size:15px; color:var(--ink-2); }
+.kicker{
+  display:inline-block; font-size:11px; font-weight:700; letter-spacing:.2em;
+  text-transform:uppercase; color:#fff; background:var(--ink); padding:4px 9px;
+}
+
+.two{ display:grid; gap:clamp(20px,3vw,36px); grid-template-columns:1fr; align-items:start; }
+@media (min-width:900px){ .two{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }
+.two.wide-left{ }
+@media (min-width:900px){ .two.wide-left{ grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); } }
+
+/* --------------------------------------------------------- call list */
+.calls{ border:3px solid var(--edge); background:var(--paper-2); box-shadow:8px 8px 0 var(--drop); }
+.calls li{ border-bottom:2px solid var(--rule); }
+.calls li:last-child{ border-bottom:0; }
+.calls button{
+  width:100%; text-align:left; font:inherit; cursor:pointer;
+  background:transparent; border:0; padding:9px 12px;
+  display:grid; grid-template-columns:auto 1fr; gap:4px 12px; align-items:baseline;
+  color:var(--ink);
+}
+.calls button:hover{ background:var(--paper-3); }
+.calls button[aria-pressed="true"]{ background:var(--blue); color:#fff; }
+.calls button[aria-pressed="true"] .cdesc{ color:#fff; }
+.calls .cname{ font-weight:700; font-size:13px; white-space:nowrap; }
+.calls .cdesc{ font-size:12px; color:var(--ink-2); grid-column:2; }
+.calls .swatchdot{ width:10px; height:10px; border:2px solid var(--edge); display:inline-block; vertical-align:middle; margin-right:6px; }
+
+.scene-side{ display:flex; flex-direction:column; gap:12px; align-items:flex-start; }
+
+/* --------------------------------------------------------- pipeline */
+.pipe{
+  display:flex; flex-wrap:wrap; align-items:stretch; gap:8px;
+  margin-top:8px;
+}
+.pipe .step{
+  border:3px solid var(--edge); background:var(--paper-2); padding:8px 10px;
+  box-shadow:4px 4px 0 var(--drop); font-size:12px; font-weight:700;
+  display:flex; flex-direction:column; gap:2px; min-width:0;
+}
+.pipe .step span{ font-weight:400; color:var(--ink-2); font-size:11px; }
+.pipe .step.hot{ background:var(--blue); color:#fff; }
+.pipe .step.hot span{ color:#dbe6ff; }
+.pipe .arrow{ align-self:center; font-weight:700; color:var(--ink-2); }
+
+/* ------------------------------------------------------------- code */
+.codewrap{ border:3px solid var(--edge); box-shadow:8px 8px 0 var(--drop); background:#000; }
+.codebar{
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between;
+  background:#1b1e24; border-bottom:2px solid #3a3f4b; padding:7px 10px;
+  font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#98a1ae; font-weight:700;
+}
+.codebar .dots{ display:flex; gap:5px; }
+.codebar .dots i{ width:9px; height:9px; display:block; }
+pre.code{
+  margin:0; padding:14px 14px 16px; overflow-x:auto; color:#e7ebf2;
+  font-size:13px; line-height:1.65; tab-size:2;
+}
+pre.code code{ font:inherit; }
+.k{ color:#4b8bf5; } .t{ color:#4ade80; } .a{ color:#fbbf24; }
+.s{ color:#f87171; } .n{ color:#f87171; } .c{ color:#98a1ae; }
+.g{ color:#e7ebf2; font-weight:700; } .f{ color:#e7ebf2; }
+
+.notes{ display:grid; gap:14px; }
+.note{
+  border-left:6px solid var(--blue); background:var(--paper-2); padding:10px 14px;
+  border-top:2px solid var(--rule); border-right:2px solid var(--rule); border-bottom:2px solid var(--rule);
+}
+.note h3{ font-size:13px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:4px; }
+.note p{ font-size:13px; color:var(--ink-2); }
+.note.g2{ border-left-color:var(--green); }
+.note.a2{ border-left-color:var(--amber); }
+.note.r2{ border-left-color:var(--red); }
+
+/* --------------------------------------------------------- backends */
+.grid-cards{
+  display:grid; gap:14px;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+}
+.card{
+  border:3px solid var(--edge); background:var(--paper-2); box-shadow:6px 6px 0 var(--drop);
+  padding:14px;
+}
+.card .cardtop{ display:flex; gap:10px; align-items:center; margin-bottom:8px; }
+.card canvas.icon{ width:32px; height:32px; flex:0 0 auto; border:2px solid var(--edge); background:#000; }
+.card h3{ font-size:14px; letter-spacing:.06em; }
+.card p{ font-size:12.5px; color:var(--ink-2); margin:0; }
+.card .path{ font-size:11px; color:var(--ink-2); margin-top:8px; display:block; word-break:break-all; }
+
+/* ----------------------------------------------------------- boards */
+.boards{
+  display:flex; flex-wrap:wrap; gap:clamp(16px,3vw,30px); align-items:flex-end;
+}
+.boards .device{ flex:0 0 auto; }
+.scalebar{
+  display:flex; align-items:center; gap:10px; margin-bottom:18px; flex-wrap:wrap;
+}
+.scalebar .bar{ height:14px; background:var(--amber); border:2px solid var(--edge); flex:0 0 auto; }
+
+/* ------------------------------------------------------------ round */
+.roundgrid{ display:grid; gap:clamp(20px,3vw,34px); grid-template-columns:1fr; align-items:start; }
+@media (min-width:900px){ .roundgrid{ grid-template-columns:minmax(0,auto) minmax(0,1fr); } }
+
+/* ------------------------------------------------------------- hw */
+.hw{ display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); }
+.hw .card p{ font-size:12.5px; }
+.hw code{ background:var(--paper-3); border:2px solid var(--rule); padding:0 4px; font-size:12px; }
+
+/* --------------------------------------------------------- footer */
+footer{ border-top:3px solid var(--edge); background:var(--paper-2); padding:clamp(28px,5vw,52px) 0 clamp(34px,6vw,60px); }
+.footgrid{ display:grid; gap:22px; grid-template-columns:1fr; }
+@media (min-width:820px){ .footgrid{ grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); } }
+footer h2{ font-size:clamp(18px,2.6vw,24px); margin-bottom:12px; }
+footer p{ font-size:13.5px; color:var(--ink-2); }
+footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+.smallprint{ margin-top:26px; font-size:11.5px; color:var(--ink-2); border-top:2px dashed var(--rule); padding-top:14px; }
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation:none !important; transition:none !important; }
+  button.px:active{ transform:none; }
+}
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brandmark"><span class="dot" aria-hidden="true"></span> mjsx</div>
+    <nav class="topnav" aria-label="Sections">
+      <a href="#contract">Contract</a>
+      <a href="#code">Code</a>
+      <a href="#backends">Where it runs</a>
+      <a href="#round">Round glass</a>
+      <a href="#hardware">Hardware</a>
+      <a href="#status">Status</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============================================================ HERO -->
+  <div class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="wordmark-box">
+          <canvas id="wm" width="268" height="100" data-fit="2" role="img"
+                  aria-label="The word mjsx drawn as a bitmap"></canvas>
+          <p class="wm-cap">↑ that wordmark is a bitmap: <b>gfx.text(x, y, size, colour, str)</b>, the sixth of ten calls, at 10&times; scale.</p>
+        </div>
+
+        <h1>JSX for microcontrollers.
+          <span class="sub">And for the Pi, the desktop, the terminal, and the browser.</span></h1>
+
+        <p class="lede">One portable core describes the screen. Underneath it sits a line so
+        narrow you can count it: <b>ten drawing functions and a clock</b>. Everything above
+        that line is the same JavaScript file, whether it is running inside a chip's embedded
+        interpreter or inside a browser tab.</p>
+
+        <p class="lede">No virtual DOM. No reconciler. State changes, the frame is dirty,
+        the frame is drawn again — pixel for pixel.</p>
+
+        <div class="chips">
+          <div class="chip c1"><b>10</b> native calls</div>
+          <div class="chip c2"><b>0</b> dependencies</div>
+          <div class="chip c3"><b>~2.4k</b> lines of core</div>
+          <div class="chip c4"><b>4</b> boards, daily</div>
+        </div>
+      </div>
+
+      <div class="devcol">
+        <div class="device">
+          <div class="screenwell">
+            <canvas id="counter" width="240" height="280" data-fit="2" role="img"
+                    aria-label="A 240 by 280 pixel panel showing the counter example: the text COUNT colon zero above a plus one button"></canvas>
+          </div>
+          <div class="plate"><span>1.69 in IPS</span><span>240 &times; 280</span><span>shown 2&times;</span></div>
+        </div>
+
+        <div class="btnrow">
+          <button class="px" id="tap" type="button">Tap +1</button>
+          <button class="px ghost" id="reset" type="button">Reset</button>
+          <p class="readout" aria-live="polite" id="frames">count <b>0</b> · full redraws <b>1</b></p>
+        </div>
+        <p class="devnote">This is <b>examples/counter/app.jsx</b>, drawn here at the panel's
+        true resolution and scaled by a whole number, so every pixel on your screen is
+        four pixels of the same colour and none of them are lying to you. Tap it: there is
+        no diff to compute, so the whole frame is redrawn.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== CONTRACT -->
+  <section id="contract">
+    <div class="wrap">
+      <div class="sechead">
+        <span class="kicker">01 — How it works</span>
+        <h2>The whole porting contract fits on one screen.</h2>
+        <p>mjsx-core draws through two globals a backend supplies before the core loads:
+        <b>gfx</b> and <b>sys</b>. It assumes ten gfx calls and one sys call exist, and
+        nothing else. A backend is whatever realises those ten.</p>
+      </div>
+
+      <div class="two wide-left">
+        <div>
+          <ul class="calls" id="calls">
+            <li><button type="button" data-call="clear" aria-pressed="false">
+              <span class="cname"><span class="swatchdot" style="background:#000" aria-hidden="true"></span>gfx.clear(c)</span>
+              <span class="cdesc">Fill the whole surface. Start of every frame.</span></button></li>
+            <li><button type="button" data-call="rect" aria-pressed="false">
+              <span class="cname"><span class="swatchdot" style="background:#4b8bf5" aria-hidden="true"></span>gfx.rect(x,y,w,h,c,r)</span>
+              <span class="cdesc">1px outline, optionally rounded.</span></button></li>
+            <li><button type="button" data-call="frect" aria-pressed="false">
+              <span class="cname"><span class="swatchdot" style="background:#212530" aria-hidden="true"></span>gfx.frect(x,y,w,h,c,r)</span>
+              <span class="cdesc">Filled rect, optionally rounded. The workhorse call.</span></button></li>
+            <li><button type="button" data-call="circle" aria-pressed="false">
+              <span class="cname"><span class="swatchdot" style="background:#4ade80" aria-hidden="true"></span>gfx.circle(x,y,r,c,filled)</span>
+              <span class="cdesc">Centre, radius, boolean filled.</span></button></li>
+            <li><button type="button" data-call="line" aria-pressed="false">
+              <span class="cname"><span class="swatchdot" style="background:#fbbf24" aria-hidden="true"></span>gfx.line(x0,y0,x1,y1,c)</span>
+              <span class="cdesc">1px line. Thick lines are parallel 1px lines.</span></button></li>
+            <li><button type="button" data-call="text" aria-pressed="false">
+              <span class="cname"><span class="swatchdot" style="background:#ffffff" aria-hidden="true"></span>gfx.text(x,y,size,c,str)</span>
+              <span class="cdesc">The core never rasterises a glyph. The font is the backend's.</span></button></li>
+            <li><button type="button" data-call="clip" aria-pressed="false">
+              <span class="cname"><span class="swatchdot" style="background:#f87171" aria-hidden="true"></span>gfx.clip(x,y,w,h)</span>
+              <span class="cdesc">Set THE clip rect — one rect, not a stack.</span></button></li>
+            <li><button type="button" data-call="unclip" aria-pressed="false">
+              <span class="cname"><span class="swatchdot" style="background:#98a1ae" aria-hidden="true"></span>gfx.unclip()</span>
+              <span class="cdesc">Remove it. The core intersects nested clips itself.</span></button></li>
+            <li><button type="button" data-call="width" aria-pressed="false">
+              <span class="cname"><span class="swatchdot" style="background:#4b8bf5" aria-hidden="true"></span>gfx.width()</span>
+              <span class="cdesc">Logical surface width, in pixels.</span></button></li>
+            <li><button type="button" data-call="height" aria-pressed="false">
+              <span class="cname"><span class="swatchdot" style="background:#4b8bf5" aria-hidden="true"></span>gfx.height()</span>
+              <span class="cdesc">Logical surface height.</span></button></li>
+            <li><button type="button" data-call="millis" aria-pressed="false">
+              <span class="cname"><span class="swatchdot" style="background:#fbbf24" aria-hidden="true"></span>sys.millis()</span>
+              <span class="cdesc">Monotonic clock. Timers, caret blink, long-press, fling.</span></button></li>
+          </ul>
+        </div>
+
+        <div class="scene-side">
+          <div class="device">
+            <div class="screenwell">
+              <canvas id="scene" width="200" height="140" data-fit="3" role="img"
+                      aria-label="A small panel drawn using each of the ten calls: a filled panel, an outlined box, two circles, a zigzag line, clipped and unclipped text"></canvas>
+            </div>
+            <div class="plate"><span id="sceneplate">All ten calls</span><span>200 &times; 140</span></div>
+          </div>
+          <p class="devnote">Pick a call on the left and the picture answers. Every shape here
+          — and every screen on this page — was drawn by a Canvas2D object in this file that
+          implements exactly those ten functions, plus a hand-typed 5&times;7 bitmap font at
+          mjsx's own default metric (advance&nbsp;6, line height&nbsp;8). Writing a backend
+          really is that small.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:clamp(24px,4vw,40px)">
+        <p class="mono-lbl">From source to pixels</p>
+        <div class="pipe">
+          <div class="step">app.jsx <span>your component</span></div>
+          <div class="arrow" aria-hidden="true">▸</div>
+          <div class="step">jsx.js <span>~300 lines, in-repo</span></div>
+          <div class="arrow" aria-hidden="true">▸</div>
+          <div class="step">h() <span>plain element tree</span></div>
+          <div class="arrow" aria-hidden="true">▸</div>
+          <div class="step">measure / draw <span>width in, height out</span></div>
+          <div class="arrow" aria-hidden="true">▸</div>
+          <div class="step hot">the ten calls <span>the porting line</span></div>
+          <div class="arrow" aria-hidden="true">▸</div>
+          <div class="step">a backend <span>chip, terminal, window, tab</span></div>
+        </div>
+      </div>
+
+      <div class="notes" style="margin-top:26px">
+        <div class="note">
+          <h3>Hit-testing can't drift</h3>
+          <p>A control registers its hit rect at the exact rectangle it was drawn at, so
+          what you tap and what you see are the same number.</p>
+        </div>
+        <div class="note g2">
+          <h3>The touch state machine is in the core</h3>
+          <p>Drag slop, scrolling, fling, long-press and auto-repeat live above the ten calls,
+          so every backend gets identical behaviour from identical code.</p>
+        </div>
+        <div class="note a2">
+          <h3>The transpiler is written in the language it compiles</h3>
+          <p>~300 lines of the same ES5 subset it emits, with no dependencies and no host
+          APIs — so it can run in the CLI, in a browser, or inside the chip's own interpreter.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ CODE -->
+  <section id="code">
+    <div class="wrap">
+      <div class="sechead">
+        <span class="kicker">02 — The app</span>
+        <h2>This is the whole counter, and it is the whole idea.</h2>
+        <p>Ambient globals, no imports, no build step for the app author. Tap the button,
+        the state changes, the screen is drawn again to match. That is the render model,
+        stated in nine lines.</p>
+      </div>
+
+      <div class="two">
+        <div class="codewrap">
+          <div class="codebar">
+            <span class="dots" aria-hidden="true"><i style="background:#f87171"></i><i style="background:#fbbf24"></i><i style="background:#4ade80"></i></span>
+            <span>examples/counter/app.jsx</span>
+          </div>
+<pre class="code" tabindex="0" aria-label="Source code of the counter example"><code><span class="k">function</span> <span class="f">App</span>() {
+  <span class="k">var</span> count = <span class="g">UI</span>.state.count || <span class="n">0</span>;
+  <span class="k">return</span> (
+    <span class="t">&lt;box</span> <span class="a">pad</span>={<span class="f">em</span>(<span class="n">2</span>)} <span class="a">gap</span>={<span class="f">em</span>(<span class="n">2</span>)}<span class="t">&gt;</span>
+      <span class="t">&lt;text</span> <span class="a">text</span>={<span class="s">'COUNT: '</span> + count} <span class="a">size</span>={<span class="n">3</span>}
+            <span class="a">color</span>={<span class="g">UI</span>.theme.text} <span class="a">align</span>=<span class="s">"center"</span> <span class="t">/&gt;</span>
+      <span class="t">&lt;Button</span> <span class="a">label</span>=<span class="s">"+1"</span> <span class="a">size</span>={<span class="n">2</span>}
+              <span class="a">onTap</span>={<span class="k">function</span> () { <span class="g">UI</span>.<span class="f">set</span>({ count: count + <span class="n">1</span> }); }} <span class="t">/&gt;</span>
+    <span class="t">&lt;/box&gt;</span>
+  );
+}
+
+<span class="g">UI</span>.<span class="f">mount</span>(<span class="f">App</span>);</code></pre>
+        </div>
+
+        <div class="notes">
+          <div class="note">
+            <h3>em() is text-relative, not pixel-relative</h3>
+            <p><b>em(2)</b> is two line-heights of the current font, resolved at call time.
+            Swap the backend's font scale — a terminal cell instead of a panel pixel — and
+            the padding follows the text instead of staying panel-sized.</p>
+          </div>
+          <div class="note g2">
+            <h3>Button is not privileged</h3>
+            <p>It is nineteen lines built from <b>box</b> and <b>text</b>, the same primitives
+            your app uses. None of the ready-made components are mandatory; any of them can
+            be rebuilt in app code when they don't fit.</p>
+          </div>
+          <div class="note a2">
+            <h3>ES5 on purpose</h3>
+            <p>The core is written in the MicroQuickJS-safe subset deliberately. The same
+            file runs unmodified on a chip's embedded interpreter and in a browser's own
+            engine — no branching on the host, no second build.</p>
+          </div>
+          <div class="note r2">
+            <h3>No reconciler, and that is the feature</h3>
+            <p>There is no retained tree to diff and no VDOM to allocate. State goes in
+            through <b>UI.set</b>, the frame is marked dirty, and the frame is drawn again.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== BACKENDS -->
+  <section id="backends">
+    <div class="wrap">
+      <div class="sechead">
+        <span class="kicker">03 — Where it runs</span>
+        <h2>Six backends. The same ten functions, six times.</h2>
+        <p>Nothing above the porting line is special-cased per target. On the chip
+        <b>gfx.frect</b> is a C function writing to a panel; in the headless renderer it
+        writes into an RGBA buffer; in a terminal it writes into a sub-pixel buffer that is
+        flushed as ANSI escape codes.</p>
+      </div>
+
+      <div class="grid-cards">
+        <div class="card">
+          <div class="cardtop">
+            <canvas class="icon" width="8" height="8" data-icon="purejs" aria-hidden="true"></canvas>
+            <h3>pure-js</h3>
+          </div>
+          <p>Headless rasteriser into an RGBA buffer; writes PPM and PNG. The reference
+          implementation, and the renderer the browser and window backends draw with.</p>
+          <span class="path">backends/pure-js</span>
+        </div>
+
+        <div class="card">
+          <div class="cardtop">
+            <canvas class="icon" width="8" height="8" data-icon="term" aria-hidden="true"></canvas>
+            <h3>terminal</h3>
+          </div>
+          <p>Near-square pixels in a terminal: two sub-pixels per character cell via the
+          half-block glyph. A real raw-mode CLI app, and the example picker.</p>
+          <span class="path">backends/terminal</span>
+        </div>
+
+        <div class="card">
+          <div class="cardtop">
+            <canvas class="icon" width="8" height="8" data-icon="sdl" aria-hidden="true"></canvas>
+            <h3>SDL window</h3>
+          </div>
+          <p>Device simulator in a native window: square, rounded-corner and round-display
+          masks, size presets for the real panels, and a sub-pixel HD mode.</p>
+          <span class="path">backends/sdl</span>
+        </div>
+
+        <div class="card">
+          <div class="cardtop">
+            <canvas class="icon" width="8" height="8" data-icon="net" aria-hidden="true"></canvas>
+            <h3>Browser mirror</h3>
+          </div>
+          <p>The UI in a browser tab over a socket — pixels out, real input back, including
+          genuine per-finger multitouch. A device mirrors its own screen the same way, to a
+          <b>/remote</b> page.</p>
+          <span class="path">backends/ &mdash; the browser backend</span>
+        </div>
+
+        <div class="card">
+          <div class="cardtop">
+            <canvas class="icon" width="8" height="8" data-icon="wasm" aria-hidden="true"></canvas>
+            <h3>WASM</h3>
+          </div>
+          <p>The <b>same</b> MicroQuickJS engine source a chip runs, compiled through
+          Emscripten. Engine parity for testing — not a reimplementation that drifts.</p>
+          <span class="path">backends/wasm</span>
+        </div>
+
+        <div class="card">
+          <div class="cardtop">
+            <canvas class="icon" width="8" height="8" data-icon="chip" aria-hidden="true"></canvas>
+            <h3>ESP32</h3>
+          </div>
+          <p>The real thing: a minimal reference firmware showing where a panel driver plugs
+          in, and a pusher that bundles core plus examples to a live board over TCP — no
+          reflash. Firmware updates itself over WiFi.</p>
+          <span class="path">backends/esp32</span>
+        </div>
+      </div>
+
+      <!-- boards -->
+      <div style="margin-top:clamp(32px,5vw,56px)">
+        <p class="mono-lbl">The fleet it drives daily — drawn 1:1, so the sizes are the real sizes</p>
+        <div class="scalebar">
+          <span class="tag amber">1 canvas pixel = 1 panel pixel</span>
+          <span class="bar" style="width:172px" aria-hidden="true"></span>
+          <span style="font-size:11px;color:var(--ink-2)">172 px, the narrowest glass</span>
+        </div>
+
+        <div class="boards">
+          <div class="device">
+            <div class="screenwell">
+              <canvas id="b1" width="240" height="280" data-fit="1" role="img"
+                      aria-label="240 by 280 panel showing the hello example: a bordered panel reading Hello mjsx"></canvas>
+            </div>
+            <div class="plate"><span>1.69 in</span><span>240 &times; 280</span><span class="tag blue">hello</span></div>
+          </div>
+
+          <div class="device">
+            <div class="screenwell">
+              <canvas id="b2" width="320" height="480" data-fit="1" role="img"
+                      aria-label="320 by 480 panel showing two text fields and a full QWERTY keyboard docked at the bottom"></canvas>
+            </div>
+            <div class="plate"><span>3.5 in</span><span>320 &times; 480</span><span class="tag blue">qwerty</span></div>
+          </div>
+
+          <div class="device">
+            <div class="screenwell">
+              <canvas id="b3" width="172" height="320" data-fit="1" role="img"
+                      aria-label="172 by 320 panel showing a T9 keypad filling the whole screen with a mirrored input field above it"></canvas>
+            </div>
+            <div class="plate"><span>1.47 in</span><span>172 &times; 320</span><span class="tag blue">t9</span></div>
+          </div>
+
+          <div class="device round">
+            <div class="screenwell">
+              <canvas id="b4" width="240" height="240" data-fit="1" role="img"
+                      aria-label="Round 240 by 240 display showing a drawing app with a toolbar of colour swatches curved along the rim"></canvas>
+            </div>
+            <div class="plate"><span>1.28 in</span><span>240 &times; 240</span><span class="tag amber">round</span></div>
+          </div>
+        </div>
+
+        <p class="devnote" style="margin-top:18px;max-width:70ch">Camera frames stream into
+        canvas sources on these boards; a browser page mirrors what the glass is showing;
+        the keyboards, the layout and the fling all come from the same core file that renders
+        the pictures above.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================== ROUND -->
+  <section id="round">
+    <div class="wrap">
+      <div class="sechead">
+        <span class="kicker">04 — Round glass</span>
+        <h2>A circle is not a rectangle with the corners hidden.</h2>
+        <p>On the 1.28 inch round panel, layout fits the <b>chord</b> of the circle at each
+        row's own height. So the keyboard becomes a trapezoid, and no key ends up under
+        the bezel.</p>
+      </div>
+
+      <div class="roundgrid">
+        <div class="devcol">
+          <div class="device round">
+            <div class="screenwell">
+              <canvas id="rk" width="240" height="240" data-fit="2" role="img"
+                      aria-label="Round 240 by 240 display: a mirrored text field near the top, four rows of T9 keys that narrow toward the bottom, and an OK key sitting in the bottom arc"></canvas>
+            </div>
+            <div class="plate"><span>1.28 in round</span><span>240 &times; 240</span><span>shown 2&times;</span></div>
+          </div>
+          <div class="btnrow">
+            <button class="px" id="chord" type="button" aria-pressed="false">Show the chords</button>
+            <p class="readout" id="chordout">rim, row bands, and the width each row actually gets</p>
+          </div>
+        </div>
+
+        <div class="notes">
+          <div class="note a2">
+            <h3>The width that decides is the width the keys get</h3>
+            <p>A 240 px circle measures 240 across the middle and only about 178 down where
+            the bottom rows sit. Ten QWERTY columns need 220, so the layout picks itself:
+            this glass gets T9, not a QWERTY squeezed under the rim.</p>
+          </div>
+          <div class="note">
+            <h3>Rows inset to their own chord</h3>
+            <p>Each key row is inset to the chord at its height, so the grid narrows going
+            down and the outermost keys stay on the glass. Toggle the overlay to see the
+            four bands the four rows are cut from.</p>
+          </div>
+          <div class="note g2">
+            <h3>OK moves into the arc</h3>
+            <p>In exclusive mode the mirrored input is pushed a tenth of the display down,
+            off the narrow top arc; the keys stop short of the bottom arc; and OK moves into
+            that arc — space the grid could never use, so it costs the keyboard no height.</p>
+          </div>
+          <div class="note r2">
+            <h3>ArcFooter: controls on the rim</h3>
+            <p>Each item sits where the ray from screen-centre at its angle meets the
+            boundary, pulled inward by its own size. On round glass that boundary is the rim;
+            on square glass it is the perimeter, so a bottom arc simply becomes the bottom
+            edge. The same call serves every shape.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:clamp(26px,4vw,44px)">
+        <p class="mono-lbl">Four layouts, and they choose themselves</p>
+        <div class="grid-cards" style="margin-top:10px">
+          <div class="card"><h3>QWERTY</h3><p>Where ten columns of about 22&nbsp;px fit — roughly 220&nbsp;px and up. Symbol pages so every glyph the face carries is typeable.</p></div>
+          <div class="card"><h3>T9</h3><p>Where four columns of about 28&nbsp;px fit. Letters-first faces, multi-tap cycling, hold a key for its digit.</p></div>
+          <div class="card"><h3>Number pad</h3><p>Digits, with OK on the utility row rather than spending a whole row of height on it.</p></div>
+          <div class="card"><h3>Strip</h3><p>A single scrolling row of characters for glass with no room for a grid at all. Drag to scroll, tap to type.</p></div>
+        </div>
+        <p class="devnote" style="margin-top:14px;max-width:70ch">Ask for a layout by name and
+        you get it exactly, however cramped — a stated preference is a decision, not a
+        suggestion. Ask for <b>auto</b> and it measures the room the keys will actually get.
+        And when docked keys would come out under 30&nbsp;px, docking is a fiction: the
+        keyboard takes the whole display, with a live mirror of the focused field above it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== HARDWARE -->
+  <section id="hardware">
+    <div class="wrap">
+      <div class="sechead">
+        <span class="kicker">05 — Hardware</span>
+        <h2>Pins and buses, from JavaScript.</h2>
+        <p>The same script that lays out a screen can read a pin. Two natives on the bridge
+        firmware give direct hardware access, and a motion module pushes readings in as
+        ordinary state.</p>
+      </div>
+
+      <div class="hw">
+        <div class="card">
+          <div class="cardtop">
+            <canvas class="icon" width="8" height="8" data-icon="pin" aria-hidden="true"></canvas>
+            <h3>sys.gpio(pin, op, value)</h3>
+          </div>
+          <p>Read with pull-up, drive high or low, or take an ADC count. Returns
+          <code>-1</code> for a refused pin — the firmware fences off every pin the active
+          board's display and touch controller use, from the same defines that wire them.</p>
+        </div>
+        <div class="card">
+          <div class="cardtop">
+            <canvas class="icon" width="8" height="8" data-icon="bus" aria-hidden="true"></canvas>
+            <h3>sys.i2c(addr, reg, value)</h3>
+          </div>
+          <p>One byte of a device on the board's shared bus: omit the value to read, pass
+          0–255 to write. It is the same sequence as the bridge's bring-up tool, so a bus
+          scan is a UI rather than a serial session.</p>
+        </div>
+        <div class="card">
+          <div class="cardtop">
+            <canvas class="icon" width="8" height="8" data-icon="imu" aria-hidden="true"></canvas>
+            <h3>Motion</h3>
+          </div>
+          <p>Accelerometer, gyroscope and temperature. The module pushes state patches on
+          its own schedule and only when a reading actually moved, so a view never polls —
+          it just renders state and is redrawn when the state changes.</p>
+        </div>
+      </div>
+
+      <p class="devnote" style="margin-top:20px;max-width:72ch">Everything here is checked
+      before it is called, the way the examples do it — other backends do not have these
+      natives, and an app that runs on a desktop and a chip has to know which one it woke
+      up on.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ========================================================== FOOTER -->
+<footer id="status">
+  <div class="wrap">
+    <div class="footgrid">
+      <div>
+        <h2>Honest status.</h2>
+        <p>mjsx is a <b>hobby project</b>, open-sourced as-is. It is <b>not published to
+        npm</b> and it is <b>not on a public git host</b> yet — so there is no install line
+        to copy here, and any that appears elsewhere is not this. If you use it, pin to the
+        repository.</p>
+        <p>It was ported out of a working ESP32 firmware's UI engine and generalised until
+        nothing in it assumed a board, an engine, or a particular way of turning a draw call
+        into pixels. It drives a four-board fleet daily, which is the only benchmark being
+        claimed on this page.</p>
+        <div class="status">
+          <span class="tag">MIT licensed</span>
+          <span class="tag amber">Pre-publication</span>
+          <span class="tag">Zero dependencies</span>
+          <span class="tag green">Contributions welcome</span>
+        </div>
+      </div>
+      <div>
+        <p class="mono-lbl">Where the facts on this page live</p>
+        <p style="margin-top:8px">
+          packages/core/src/mjsx.js — the engine<br>
+          packages/core/src/jsx.js — the transpiler<br>
+          docs/contract.md — the ten calls<br>
+          docs/components.md — keyboards and ArcFooter<br>
+          docs/devices.md — the boards<br>
+          examples/counter/app.jsx — the code above
+        </p>
+      </div>
+    </div>
+
+    <p class="smallprint">This page is one file. No fonts fetched, no scripts fetched, no
+    images fetched, no analytics, no network requests of any kind — it renders exactly the
+    same with the cable pulled out. Every device screen on it is a canvas drawn at the
+    panel's real resolution and scaled by a whole number, using an implementation of the
+    same ten calls mjsx ports through.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================================================================
+   * A 5x7 bitmap font. 96 glyphs, ASCII 32..127, five column bytes per
+   * glyph, bit 0 = top row. Same shape as the metric mjsx-core defaults
+   * to: advance 6, line height 8.
+   * ============================================================== */
+  var FNT = [
+    /*  !"#$%&' */ '0000000000' + '00005F0000' + '0007000700' + '147F147F14' + '242A7F2A12' + '2313086462' + '3649552250' + '0005030000',
+    /* ()*+,-./ */ '001C224100' + '0041221C00' + '14083E0814' + '08083E0808' + '0050300000' + '0808080808' + '0060600000' + '2010080402',
+    /* 01234567 */ '3E5149453E' + '00427F4000' + '4261514946' + '2141454B31' + '1814127F10' + '2745454539' + '3C4A494930' + '0171090503',
+    /* 89:;<=>? */ '3649494936' + '064949291E' + '0036360000' + '0056360000' + '0814224100' + '1414141414' + '0041221408' + '0201510906',
+    /* @ABCDEFG */ '324979413E' + '7E1111117E' + '7F49494936' + '3E41414122' + '7F4141221C' + '7F49494941' + '7F09090101' + '3E4149497A',
+    /* HIJKLMNO */ '7F0808087F' + '00417F4100' + '2040413F01' + '7F08142241' + '7F40404040' + '7F0204027F' + '7F0408107F' + '3E4141413E',
+    /* PQRSTUVW */ '7F09090906' + '3E4151215E' + '7F09192946' + '4649494931' + '01017F0101' + '3F4040403F' + '1F2040201F' + '7F2018207F',
+    /* XYZ[\]^_ */ '6314081463' + '0304780403' + '6151494543' + '007F414100' + '0204081020' + '0041417F00' + '0402010204' + '4040404040',
+    /* `abcdefg */ '0001020400' + '2054545478' + '7F48444438' + '3844444420' + '384444487F' + '3854545418' + '087E090102' + '0C5252523E',
+    /* hijklmno */ '7F08040478' + '00447D4000' + '2040443D00' + '7F10284400' + '00417F4000' + '7C04180478' + '7C08040478' + '3844444438',
+    /* pqrstuvw */ '7C14141408' + '081414187C' + '7C08040408' + '4854545420' + '043F444020' + '3C4040207C' + '1C2040201C' + '3C4030403C',
+    /* xyz{|}~. */ '4428102844' + '0C5050503C' + '4464544C44' + '0008364100' + '00007F0000' + '0041360800' + '0804081008' + '0000000000'
+  ].join('');
+
+  /* --------------------------------------------------------------
+   * ONE MORE BACKEND. The ten calls, over Canvas2D. Every picture on
+   * this page goes through here.
+   * ------------------------------------------------------------ */
+  function makeGfx(cv) {
+    var ctx = cv.getContext('2d');
+    var W = cv.width, H = cv.height;
+    var clipped = false;
+
+    function css(c) { return '#' + ('00000' + (c >>> 0).toString(16)).slice(-6); }
+    function px(x, y, w, h) { ctx.fillRect(x | 0, y | 0, w | 0, h | 0); }
+
+    var g = {
+      clear: function (c) { ctx.fillStyle = css(c); ctx.fillRect(0, 0, W, H); },
+
+      frect: function (x, y, w, h, c, r) {
+        ctx.fillStyle = css(c);
+        r = Math.min(r | 0, Math.floor(Math.min(w, h) / 2));
+        if (!r) { px(x, y, w, h); return; }
+        px(x, y + r, w, h - 2 * r);
+        for (var i = 0; i < r; i++) {
+          var dy = r - i - 0.5;
+          var dx = r - Math.round(Math.sqrt(r * r - dy * dy));
+          px(x + dx, y + i, w - 2 * dx, 1);
+          px(x + dx, y + h - 1 - i, w - 2 * dx, 1);
+        }
+      },
+
+      rect: function (x, y, w, h, c, r) {
+        ctx.fillStyle = css(c);
+        r = Math.min(r | 0, Math.floor(Math.min(w, h) / 2));
+        px(x + r, y, w - 2 * r, 1);
+        px(x + r, y + h - 1, w - 2 * r, 1);
+        px(x, y + r, 1, h - 2 * r);
+        px(x + w - 1, y + r, 1, h - 2 * r);
+        for (var i = 0; i < r; i++) {
+          var dy = r - i - 0.5;
+          var dx = r - Math.round(Math.sqrt(r * r - dy * dy));
+          px(x + dx, y + i, 1, 1); px(x + w - 1 - dx, y + i, 1, 1);
+          px(x + dx, y + h - 1 - i, 1, 1); px(x + w - 1 - dx, y + h - 1 - i, 1, 1);
+        }
+      },
+
+      circle: function (cx, cy, r, c, filled) {
+        ctx.fillStyle = css(c);
+        var dy, hw;
+        for (dy = -r; dy <= r; dy++) {
+          hw = Math.round(Math.sqrt(Math.max(0, r * r - dy * dy)));
+          if (filled) px(cx - hw, cy + dy, 2 * hw + 1, 1);
+          else { px(cx - hw, cy + dy, 1, 1); px(cx + hw, cy + dy, 1, 1); }
+        }
+        if (!filled) {
+          for (var dx = -r; dx <= r; dx++) {
+            hw = Math.round(Math.sqrt(Math.max(0, r * r - dx * dx)));
+            px(cx + dx, cy - hw, 1, 1); px(cx + dx, cy + hw, 1, 1);
+          }
+        }
+      },
+
+      line: function (x0, y0, x1, y1, c) {
+        ctx.fillStyle = css(c);
+        x0 |= 0; y0 |= 0; x1 |= 0; y1 |= 0;
+        var dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+        var dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+        var err = dx + dy, e2;
+        for (;;) {
+          px(x0, y0, 1, 1);
+          if (x0 === x1 && y0 === y1) break;
+          e2 = 2 * err;
+          if (e2 >= dy) { err += dy; x0 += sx; }
+          if (e2 <= dx) { err += dx; y0 += sy; }
+        }
+      },
+
+      text: function (x, y, size, c, str) {
+        size = size || 1;
+        ctx.fillStyle = css(c);
+        str = '' + str;
+        var cx = x;
+        for (var i = 0; i < str.length; i++) {
+          var n = str.charCodeAt(i) - 32;
+          if (n < 0 || n > 95) n = 31;
+          var off = n * 10;
+          for (var col = 0; col < 5; col++) {
+            var bits = parseInt(FNT.substr(off + col * 2, 2), 16);
+            for (var row = 0; row < 7; row++) {
+              if (bits & (1 << row)) px(cx + col * size, y + row * size, size, size);
+            }
+          }
+          cx += 6 * size;
+        }
+      },
+
+      clip: function (x, y, w, h) {
+        if (clipped) { ctx.restore(); }
+        ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+        clipped = true;
+      },
+      unclip: function () { if (clipped) { ctx.restore(); clipped = false; } },
+      width: function () { return W; },
+      height: function () { return H; },
+
+      /* not part of the contract: this page needs a hard circular mask,
+         and doing it per-row keeps the rim a real pixel staircase. */
+      _maskCircle: function () {
+        var cx = W / 2, cy = H / 2, R = W / 2;
+        for (var y = 0; y < H; y++) {
+          var dy = y + 0.5 - cy, t = R * R - dy * dy;
+          var hw = t > 0 ? Math.round(Math.sqrt(t)) : 0;
+          var l = Math.round(cx - hw), rr = Math.round(cx + hw);
+          ctx.clearRect(0, y, l, 1);
+          ctx.clearRect(rr, y, W - rr, 1);
+        }
+      },
+      _reset: function () { g.unclip(); ctx.clearRect(0, 0, W, H); }
+    };
+    return g;
+  }
+
+  var sys = { millis: function () { return Date.now() % 100000; } };
+
+  /* mjsx's own theme, straight out of packages/core/src/mjsx.js */
+  var T = {
+    bg: 0x000000, panel: 0x1b1e24, text: 0xffffff, muted: 0x98a1ae,
+    accent: 0x4b8bf5, ok: 0x4ade80, warn: 0xfbbf24, err: 0xf87171, key: 0x212530
+  };
+  var DIM = 0x2a3040;
+
+  /* em(), exactly as the core defines it at the default metric */
+  function em(n) { var v = Math.round(n * 8); return v < 1 ? 1 : v; }
+  function ctr(w, len, size) { return Math.floor((w - len * 6 * size) / 2); }
+
+  /* ================================================== the wordmark */
+  function drawWordmark(g) {
+    g.clear(T.bg);
+    g.text(4, 6, 10, T.accent, 'mjsx');
+    g.line(4, 76, 263, 76, T.panel);
+    g.text(4, 66, 1, T.muted, 'ONE CORE. TEN CALLS. MANY SCREENS.');
+  }
+
+  /* =================================================== the counter */
+  var counterState = { count: 0, redraws: 0 };
+  var counterHit = null;
+
+  function drawCounter(g) {
+    var W = g.width(), pad = em(2), gap = em(2);
+    g.clear(T.bg);
+    var x = pad, w = W - 2 * pad, y = pad;
+
+    var s = 'COUNT: ' + counterState.count;
+    g.text(x + ctr(w, s.length, 3), y, 3, T.text, s);
+    y += 8 * 3 + gap;
+
+    var bh = em(1.25) * 2 + 8 * 2;                 /* pad + lineH*size + pad */
+    g.frect(x, y, w, bh, T.key, 6);
+    g.text(x + ctr(w, 2, 2), y + em(1.25), 2, T.text, '+1');
+    counterHit = { x: x, y: y, w: w, h: bh };
+
+    counterState.redraws++;
+  }
+
+  /* ============================================== the ten-call scene */
+  function drawScene(g, hi) {
+    function on(name, c) { return (!hi || hi === name) ? c : DIM; }
+    g.clear(hi === 'clear' ? 0x0a0d14 : T.bg);
+
+    g.frect(6, 6, 188, 36, on('frect', T.panel), 6);
+    g.text(13, 13, 1, on('text', T.text), 'gfx.frect(x,y,w,h,c,r)');
+    g.text(13, 25, 1, on('text', T.muted), 'the workhorse call');
+
+    g.rect(6, 48, 116, 26, on('rect', T.accent), 4);
+    g.text(14, 57, 1, on('text', T.text), 'gfx.rect 1px');
+
+    g.circle(146, 61, 12, on('circle', T.ok), true);
+    g.circle(178, 61, 12, on('circle', T.ok), false);
+
+    var ys = [96, 88, 92, 82, 90, 84, 94, 86];
+    for (var i = 0; i < ys.length - 1; i++) {
+      g.line(6 + i * 12, ys[i], 6 + (i + 1) * 12, ys[i + 1], on('line', T.warn));
+    }
+
+    g.clip(102, 80, 92, 14);
+    g.text(104, 84, 1, on('clip', T.err), 'clip(): one rect, not a stack');
+    g.unclip();
+
+    g.text(6, 108, 1, on('unclip', T.muted), 'unclip(): the rest of the frame draws free');
+
+    if (hi === 'width') {
+      g.line(2, 126, 197, 126, T.accent);
+      g.line(2, 122, 2, 130, T.accent); g.line(197, 122, 197, 130, T.accent);
+      g.text(76, 130, 1, T.text, 'width() 200');
+    } else if (hi === 'height') {
+      g.line(190, 4, 190, 136, T.accent);
+      g.line(186, 4, 194, 4, T.accent); g.line(186, 136, 194, 136, T.accent);
+      g.text(120, 128, 1, T.text, 'height() 140');
+    } else if (hi === 'millis') {
+      g.text(6, 126, 1, T.warn, 'sys.millis() -> ' + sys.millis());
+    } else if (hi === 'clear') {
+      g.text(6, 126, 1, T.muted, 'clear(c) starts every frame');
+    } else {
+      g.text(6, 126, 1, T.muted, 'ten calls. nothing else is assumed.');
+    }
+  }
+
+  /* ================================================ board 1: hello */
+  function drawHello(g) {
+    var W = g.width(), pad = em(2), gap = em(1.5);
+    g.clear(T.bg);
+    var x = pad, w = W - 2 * pad, y = pad;
+    var ip = em(1.5), bh = ip * 2 + 8 * 2 + 4;
+    g.frect(x, y, w, bh, T.panel, 8);
+    g.rect(x, y, w, bh, T.accent, 8);
+    g.rect(x + 1, y + 1, w - 2, bh - 2, T.accent, 7);
+    g.text(x + ctr(w, 11, 2), y + ip + 2, 2, T.text, 'Hello mjsx!');
+    y += bh + gap;
+    g.text(x + ctr(w, 20, 1), y, 1, T.muted, 'one core. esp32, pi,');
+    g.text(x + ctr(w, 15, 1), y + 10, 1, T.muted, 'node, browser.');
+  }
+
+  /* ------------------------------------------------- keyboard bits */
+  function keyFace(g, x, y, w, h, label, bg, fg, size) {
+    g.frect(x, y, w, h, bg, 4);
+    if (label === ' ') {                     /* the space mark, drawn from lines */
+      var mx = x + Math.floor(w / 2), my = y + Math.floor(h / 2) + 4;
+      g.line(mx - 14, my, mx + 14, my, fg);
+      g.line(mx - 14, my - 5, mx - 14, my, fg);
+      g.line(mx + 14, my - 5, mx + 14, my, fg);
+      return;
+    }
+    g.text(x + ctr(w, label.length, size), y + Math.floor((h - 7 * size) / 2), size, fg, label);
+  }
+
+  function backspaceFace(g, x, y, w, h, bg, fg) {
+    g.frect(x, y, w, h, bg, 4);
+    var cx = x + Math.floor(w / 2), cy = y + Math.floor(h / 2);
+    g.line(cx - 11, cy, cx - 4, cy - 7, fg);
+    g.line(cx - 11, cy, cx - 4, cy + 7, fg);
+    g.line(cx - 4, cy - 7, cx + 10, cy - 7, fg);
+    g.line(cx - 4, cy + 7, cx + 10, cy + 7, fg);
+    g.line(cx + 10, cy - 7, cx + 10, cy + 7, fg);
+    g.line(cx - 1, cy - 4, cx + 6, cy + 4, fg);
+    g.line(cx + 6, cy - 4, cx - 1, cy + 4, fg);
+  }
+
+  function shiftFace(g, x, y, w, h, bg, fg) {
+    g.frect(x, y, w, h, bg, 4);
+    var cx = x + Math.floor(w / 2), cy = y + Math.floor(h / 2);
+    for (var i = 0; i < 8; i++) g.line(cx - i, cy - 6 + i, cx + i, cy - 6 + i, fg);
+    g.frect(cx - 3, cy + 2, 7, 5, fg, 0);
+  }
+
+  function field(g, x, y, w, h, label, value, focused, caret) {
+    g.frect(x, y, w, h, T.key, 6);
+    g.rect(x, y, w, h, focused ? T.accent : T.muted, 6);
+    if (label) g.text(x, y - 10, 1, T.muted, label);
+    g.text(x + 8, y + Math.floor((h - 14) / 2), 2, T.text, value);
+    if (caret) g.frect(x + 8 + value.length * 12, y + Math.floor((h - 18) / 2), 2, 18, T.accent, 0);
+  }
+
+  /* ========================================= board 2: 320x480 QWERTY */
+  function drawQwerty(g) {
+    var W = g.width(), H = g.height();
+    g.clear(T.bg);
+    g.text(12, 14, 2, T.text, 'SIGN IN');
+
+    field(g, 12, 56, W - 24, 30, 'USER', 'brant', false, false);
+    field(g, 12, 112, W - 24, 30, 'PASS', '*****', true, true);
+
+    g.text(12, 168, 1, T.muted, 'AUTO PICKED QWERTY: TEN COLUMNS FIT');
+
+    var kbH = Math.floor(H / 2.6);                   /* 184 */
+    var top = H - kbH;
+    g.line(0, top, W - 1, top, T.panel);
+
+    var kw = Math.floor((W - 8 - 9 * 4) / 10);       /* 27 */
+    var kh = Math.floor((kbH - 5 * 4) / 4);          /* 41 */
+    var r0 = 'QWERTYUIOP', r1 = 'ASDFGHJKL', r2 = 'ZXCVBNM';
+    var y = top + 4, i, x;
+
+    x = Math.floor((W - (10 * kw + 9 * 4)) / 2);
+    for (i = 0; i < r0.length; i++) keyFace(g, x + i * (kw + 4), y, kw, kh, r0.charAt(i), T.key, T.text, 2);
+
+    y += kh + 4;
+    x = Math.floor((W - (9 * kw + 8 * 4)) / 2);
+    for (i = 0; i < r1.length; i++) keyFace(g, x + i * (kw + 4), y, kw, kh, r1.charAt(i), T.key, T.text, 2);
+
+    y += kh + 4;
+    x = 8;
+    shiftFace(g, x, y, 41, kh, T.panel, T.text);
+    x += 45;
+    for (i = 0; i < r2.length; i++) keyFace(g, x + i * (kw + 4), y, kw, kh, r2.charAt(i), T.key, T.text, 2);
+    backspaceFace(g, x + 7 * (kw + 4), y, 41, kh, T.panel, T.text);
+
+    y += kh + 4;
+    x = 8;
+    keyFace(g, x, y, 41, kh, '123', T.panel, T.text, 1); x += 45;
+    keyFace(g, x, y, 176, kh, ' ', T.key, T.muted, 1);   x += 180;
+    keyFace(g, x, y, 27, kh, '.', T.key, T.text, 2);     x += 31;
+    keyFace(g, x, y, 48, kh, 'OK', T.accent, T.text, 2);
+  }
+
+  /* ================================== board 3: 172x320 exclusive T9 */
+  var T9 = [
+    ['1', '.,?'], ['2', 'ABC'], ['3', 'DEF'], ['x', ''],
+    ['4', 'GHI'], ['5', 'JKL'], ['6', 'MNO'], ['bk', ''],
+    ['7', 'PQRS'], ['8', 'TUV'], ['9', 'WXYZ'], ['sh', ''],
+    ['abc', ''], ['sp', ''], ['0', ''], ['OK', '']
+  ];
+
+  function t9cell(g, x, y, w, h, cell, size) {
+    var digit = cell[0], letters = cell[1];
+    if (digit === 'bk') { backspaceFace(g, x, y, w, h, T.panel, T.text); return; }
+    if (digit === 'sh') { shiftFace(g, x, y, w, h, T.panel, T.text); return; }
+    if (digit === 'sp') { keyFace(g, x, y, w, h, ' ', T.key, T.muted, 1); return; }
+    if (digit === 'OK') { keyFace(g, x, y, w, h, 'OK', T.accent, T.text, size); return; }
+    if (digit === 'abc' || digit === 'x') {
+      keyFace(g, x, y, w, h, digit, T.panel, T.text, size); return;
+    }
+    g.frect(x, y, w, h, T.key, 4);
+    if (letters) {
+      var top = y + Math.floor((h - (7 * size + 9)) / 2);
+      g.text(x + ctr(w, letters.length, size), top, size, T.text, letters);
+      g.text(x + ctr(w, 1, 1), top + 7 * size + 3, 1, T.muted, digit);
+    } else {
+      g.text(x + ctr(w, digit.length, size), y + Math.floor((h - 7 * size) / 2), size, T.text, digit);
+    }
+  }
+
+  function drawT9(g) {
+    var W = g.width();
+    g.clear(T.bg);
+    g.text(6, 6, 1, T.muted, 'KEYS UNDER 30PX DOCKED:');
+    g.text(6, 16, 1, T.muted, 'THE KEYBOARD TAKES IT ALL');
+
+    field(g, 8, 30, W - 16, 30, '', 'brant', true, true);
+
+    var kw = Math.floor((W - 8 - 3 * 4) / 4);        /* 38 */
+    var kh = 54, x0 = 4, y0 = 74;
+    var size = (3 * 6 * 2 <= kw - 4) ? 2 : 1;
+    for (var i = 0; i < 16; i++) {
+      var r = Math.floor(i / 4), c = i % 4;
+      t9cell(g, x0 + c * (kw + 4), y0 + r * (kh + 6), kw, kh, T9[i], size);
+    }
+  }
+
+  /* ==================================== board 4: round ArcFooter app */
+  function drawArc(g) {
+    var W = g.width(), R = W / 2, cx = R, cy = R;
+    g.clear(T.bg);
+
+    /* a few committed strokes, so the toolbar has something to be for */
+    var pts = [[70, 70], [92, 96], [110, 74], [132, 104], [156, 78], [172, 100]];
+    for (var i = 0; i < pts.length - 1; i++) {
+      g.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], T.ok);
+      g.line(pts[i][0], pts[i][1] + 1, pts[i + 1][0], pts[i + 1][1] + 1, T.ok);
+    }
+    g.circle(112, 130, 22, T.warn, false);
+    g.line(60, 118, 96, 152, T.err);
+    g.text(cx - ctr(0, 0, 0) - 39, 40, 1, T.muted, 'ARCFOOTER');
+
+    /* items along the rim: at = 90 (bottom), spread = 150, inset = 10 */
+    var items = [
+      { w: 22, h: 22, kind: 'sw', c: T.err },
+      { w: 22, h: 22, kind: 'sw', c: T.warn },
+      { w: 34, h: 22, kind: 'clr' },
+      { w: 22, h: 22, kind: 'sw', c: T.ok },
+      { w: 22, h: 22, kind: 'sw', c: T.accent }
+    ];
+    var at = 90, spread = 150, inset = 10, n = items.length;
+    for (var k = 0; k < n; k++) {
+      var a = (at - spread / 2 + spread * k / (n - 1)) * Math.PI / 180;
+      var it = items[k];
+      var d = R - inset - Math.max(it.w, it.h) / 2;
+      var x = Math.round(cx + Math.cos(a) * d - it.w / 2);
+      var y = Math.round(cy + Math.sin(a) * d - it.h / 2);
+      if (it.kind === 'clr') {
+        g.frect(x, y, it.w, it.h, T.key, 4);
+        g.text(x + ctr(it.w, 3, 1), y + 8, 1, 0xdd6644, 'CLR');
+      } else {
+        g.frect(x, y, it.w, it.h, it.c, 4);
+        g.rect(x, y, it.w, it.h, T.muted, 4);
+      }
+    }
+    g._maskCircle();
+  }
+
+  /* ============================ round showpiece: trapezoid keyboard */
+  function chordHalf(y0, y1, R, cy) {
+    var d = Math.max(Math.abs(y0 - cy), Math.abs(y1 - cy));
+    var t = R * R - d * d;
+    return t > 0 ? Math.floor(Math.sqrt(t)) : 0;
+  }
+
+  function drawRoundKb(g, showChord) {
+    var W = g.width(), H = g.height(), R = W / 2, cx = R, cy = H / 2;
+    g.clear(T.bg);
+
+    /* the mirrored field, pushed a tenth of the display down off the top arc */
+    var iy = Math.round(H * 0.10) + 6, ih = 28;
+    var ihw = chordHalf(iy, iy + ih, R, cy) - 6;
+    field(g, cx - ihw, iy, ihw * 2, ih, '', 'hello', true, true);
+
+    /* four rows, each inset to the chord at its own height */
+    var rows = [96, 124, 152, 180], kh = 24, widths = [];
+    var size = 1;                       /* one size, chosen by the narrowest row */
+    for (var r = 0; r < 4; r++) {
+      var hw = chordHalf(rows[r], rows[r] + kh, R, cy);
+      widths.push(hw);
+      var kw = Math.floor((hw * 2 - 3 * 4) / 4);
+      var x0 = cx - hw;
+      for (var c = 0; c < 4; c++) {
+        t9cell(g, x0 + c * (kw + 4), rows[r], kw, kh, T9[r * 4 + c], size);
+      }
+    }
+
+    /* OK in the bottom arc: space the grid could never use */
+    var oy = 208, ohw = chordHalf(oy, oy + 20, R, cy);
+    g.frect(cx - 30, oy, 60, 20, T.accent, 6);
+    g.text(cx - 12, oy + 7, 1, T.text, 'OK');
+
+    if (showChord) {
+      g.circle(cx, cy, R - 1, T.warn, false);
+      for (var i = 0; i < 4; i++) {
+        var hwi = widths[i], yy = rows[i] + (i < 2 ? 0 : kh);
+        g.line(cx - hwi, yy, cx + hwi, yy, T.warn);
+        g.line(cx - hwi, yy - 3, cx - hwi, yy + 3, T.warn);
+        g.line(cx + hwi, yy - 3, cx + hwi, yy + 3, T.warn);
+      }
+      g.line(cx, 0, cx, H - 1, DIM);
+      g.line(0, cy, W - 1, cy, DIM);
+      g.text(cx - 30, 62, 1, T.warn, 'ROW 1 ' + (widths[0] * 2));
+      g.text(cx - 30, oy - 12, 1, T.warn, 'ROW 4 ' + (widths[3] * 2));
+      g.frect(cx - 30, 74, 60, 1, DIM, 0);
+    }
+    g._maskCircle();
+    return widths;
+  }
+
+  /* ===================================================== pixel icons */
+  var ICONS = {
+    purejs: ['22222222', '2......2', '2..1...2', '2......2', '2....1.2', '2...1112', '2.111112', '22222222'],
+    term:   ['11111111', '1......1', '1.2.2..1', '1......1', '1.22.2.1', '1......1', '1.2.22.1', '11111111'],
+    sdl:    ['22222222', '2......2', '22222222', '2......2', '2..11..2', '2.1111.2', '2......2', '22222222'],
+    net:    ['...22...', '..2..2..', '.2.11.2.', '2.1..1.2', '...11...', '........', '...11...', '...11...'],
+    wasm:   ['11111111', '1......1', '1.2..2.1', '1.2..2.1', '1.2.22.1', '1.2222.1', '1......1', '11111111'],
+    chip:   ['.1.11.1.', '.222222.', '12....21', '.2.11.2.', '.2.11.2.', '12....21', '.222222.', '.1.11.1.'],
+    pin:    ['...11...', '...11...', '..2222..', '.222222.', '.2.11.2.', '.222222.', '...11...', '...11...'],
+    bus:    ['11111111', '........', '2.2.2.2.', '........', '11111111', '........', '.2.2.2.2', '........'],
+    imu:    ['..1111..', '.1....1.', '1..22..1', '1.2222.1', '1..22..1', '.1....1.', '..1111..', '...11...']
+  };
+
+  function drawIcon(g, pat) {
+    g.clear(T.bg);
+    for (var y = 0; y < 8; y++) {
+      for (var x = 0; x < 8; x++) {
+        var ch = pat[y].charAt(x);
+        if (ch === '1') g.frect(x, y, 1, 1, T.text, 0);
+        else if (ch === '2') g.frect(x, y, 1, 1, T.accent, 0);
+      }
+    }
+  }
+
+  /* ===================================================== whole-number fit */
+  function fit() {
+    var list = document.querySelectorAll('canvas[data-fit]');
+    for (var i = 0; i < list.length; i++) {
+      var c = list[i];
+      var host = c.parentElement;
+      var avail = host.clientWidth || c.width;
+      var s = parseInt(c.getAttribute('data-fit'), 10) || 1;
+      while (s > 1 && c.width * s > avail) s--;
+      if (c.width * s > avail) {
+        c.style.width = '100%';
+      } else {
+        c.style.width = (c.width * s) + 'px';
+      }
+      c.style.height = 'auto';
+    }
+  }
+
+  /* ============================================================ boot */
+  function byId(id) { return document.getElementById(id); }
+
+  var gWm = makeGfx(byId('wm'));
+  drawWordmark(gWm);
+
+  var gCounter = makeGfx(byId('counter'));
+  var out = byId('frames');
+  function paintCounter() {
+    drawCounter(gCounter);
+    out.innerHTML = 'count <b>' + counterState.count + '</b> · full redraws <b>' +
+      counterState.redraws + '</b>';
+  }
+  paintCounter();
+
+  byId('tap').addEventListener('click', function () {
+    counterState.count++; paintCounter();
+  });
+  byId('reset').addEventListener('click', function () {
+    counterState.count = 0; paintCounter();
+  });
+  byId('counter').addEventListener('click', function (ev) {
+    var cv = ev.currentTarget, r = cv.getBoundingClientRect();
+    var x = (ev.clientX - r.left) * cv.width / r.width;
+    var y = (ev.clientY - r.top) * cv.height / r.height;
+    var hit = counterHit;
+    if (hit && x >= hit.x && x <= hit.x + hit.w && y >= hit.y && y <= hit.y + hit.h) {
+      counterState.count++; paintCounter();
+    }
+  });
+
+  var gScene = makeGfx(byId('scene'));
+  var scenePlate = byId('sceneplate');
+  var current = null;
+  drawScene(gScene, null);
+
+  var callBtns = byId('calls').querySelectorAll('button');
+  function selectCall(name) {
+    current = (current === name) ? null : name;
+    for (var i = 0; i < callBtns.length; i++) {
+      callBtns[i].setAttribute('aria-pressed',
+        callBtns[i].getAttribute('data-call') === current ? 'true' : 'false');
+    }
+    gScene._reset();
+    drawScene(gScene, current);
+    scenePlate.textContent = current ? (current === 'millis' ? 'sys.millis()' : 'gfx.' + current + '()')
+                                     : 'All ten calls';
+  }
+  for (var ci = 0; ci < callBtns.length; ci++) {
+    callBtns[ci].addEventListener('click', function (ev) {
+      selectCall(ev.currentTarget.getAttribute('data-call'));
+    });
+  }
+
+  drawHello(makeGfx(byId('b1')));
+  drawQwerty(makeGfx(byId('b2')));
+  drawT9(makeGfx(byId('b3')));
+  drawArc(makeGfx(byId('b4')));
+
+  var gRound = makeGfx(byId('rk'));
+  var chordOn = false;
+  var chordBtn = byId('chord');
+  var chordOut = byId('chordout');
+  function paintRound() {
+    gRound._reset();
+    var w = drawRoundKb(gRound, chordOn);
+    chordOut.innerHTML = chordOn
+      ? 'top row <b>' + (w[0] * 2) + ' px</b> · bottom row <b>' + (w[3] * 2) +
+        ' px</b> · same circle'
+      : 'rim, row bands, and the width each row actually gets';
+  }
+  paintRound();
+  chordBtn.addEventListener('click', function () {
+    chordOn = !chordOn;
+    chordBtn.setAttribute('aria-pressed', chordOn ? 'true' : 'false');
+    chordBtn.textContent = chordOn ? 'Hide the chords' : 'Show the chords';
+    paintRound();
+  });
+
+  var icons = document.querySelectorAll('canvas[data-icon]');
+  for (var ii = 0; ii < icons.length; ii++) {
+    var pat = ICONS[icons[ii].getAttribute('data-icon')];
+    if (pat) drawIcon(makeGfx(icons[ii]), pat);
+  }
+
+  fit();
+  var t = null;
+  window.addEventListener('resize', function () {
+    if (t) clearTimeout(t);
+    t = setTimeout(fit, 120);
+  });
+})();
+</script>
+
+</body>
+</html>
