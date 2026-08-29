@@ -183,6 +183,7 @@ export default defineConfig({
           { label: 'Layout', slug: 'layout' },
           { label: 'Fonts and text', slug: 'fonts' },
           { label: 'Components', slug: 'components' },
+          { label: 'Every shape', slug: 'shapes' },
         ]),
         ...group('Text entry', [
           { label: 'Keyboards', slug: 'keyboards' },
@@ -197,11 +198,17 @@ export default defineConfig({
         ...group('Reference', [
           { label: 'The backend contract', slug: 'contract' },
           { label: 'Backend consistency', slug: 'consistency' },
+          { label: 'How the figures are made', slug: 'shots' },
         ]),
+        /* Anything synced but not placed above still gets a home rather
+           than being unreachable — but it lands under a raw slug, which is
+           how `shapes` and `shots` sat in the sidebar as lowercase
+           filenames next to written labels. A page appearing here is a
+           prompt to give it a group, not a resting place. */
         ...leftovers(new Set([
           'index', 'getting-started', 'simulator', 'ui', 'layout', 'fonts', 'components',
-          'keyboards', 'input', 'devices', 'round', 'sensors', 'hardware-api',
-          'contract', 'consistency',
+          'shapes', 'keyboards', 'input', 'devices', 'round', 'sensors', 'hardware-api',
+          'contract', 'consistency', 'shots',
         ])),
       ],
     }),

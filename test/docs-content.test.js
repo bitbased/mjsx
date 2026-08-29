@@ -166,6 +166,22 @@ describe('documentation', function () {
     expect(wrong).toEqual([]);
   });
 
+  it('every page has a written label in the sidebar', function () {
+    /* A page not placed in a group still appears, but under its raw
+       filename — `shapes` and `shots` sat in lowercase next to written
+       labels for weeks. The fallback exists so a new page is never
+       unreachable, not as somewhere to leave it. */
+    var cfg = fs.readFileSync(path.join(ROOT, 'site/astro.config.mjs'), 'utf8');
+    var placed = [];
+    var re = /\{ label: '[^']+', slug: '([a-z0-9-]+)' \}/g, m;
+    while ((m = re.exec(cfg))) placed.push(m[1]);
+
+    var unplaced = docs()
+      .map(function (f) { return f === 'README.md' ? 'index' : f.replace(/\.md$/, ''); })
+      .filter(function (slug) { return slug !== 'index' && placed.indexOf(slug) < 0; });
+    expect(unplaced).toEqual([]);
+  });
+
   it('every page says what it is for before it says anything else', function () {
     /* a heading followed straight by a heading, or by a table, gives a
        reader no way to tell whether they are on the right page */
