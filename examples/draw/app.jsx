@@ -163,6 +163,19 @@ function App() {
                 for (var k = 0; k < tools.length; k++) if (tools[k] === cur) ni = (k + 1) % tools.length;
                 UI.set({ tool: tools[ni] });
               }} /> });
+    /* WHICH slot the swatches paint -- stroke or fill. Without this the
+       swatches always wrote the stroke colour and a fill could not be
+       chosen at all: the round layout had the palette but not the thing
+       that says what the palette is FOR. */
+    items.push({ w: 26, h: 22, node:
+      <box w={26} h={22} radius={5} hitPad={4}
+           bg={slot === 'sc' ? (sc === null ? 0x14161b : sc)
+                             : (fc === null ? 0x14161b : fc)}
+           border={0xffffff} borderW={1}
+           onTap={function () { UI.set({ slot: slot === 'sc' ? 'fc' : 'sc' }); }}>
+        <text text={slot === 'sc' ? 'S' : 'F'} size={1} align="center"
+              color={(slot === 'sc' ? sc : fc) === null ? 0xaaaaaa : 0x222222} />
+      </box> });
     for (var ri = 0; ri < colors.length; ri++) {
       items.push({ w: 22, h: 22, node:
         <box w={22} h={22} bg={colors[ri]} radius={11} hitPad={4}

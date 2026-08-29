@@ -10,8 +10,17 @@
  * Hosts without the natives keep strokes as paths, draw-style, so the
  * example stays developable anywhere.
  */
+/* The drawing area's height, decided ONCE: the canvas source is allocated
+   at exactly the size the canvas element is drawn at. When those two
+   disagree the blit stretches, and a stroke committed after its preview
+   lands somewhere other than where it was drawn -- which is what happened
+   the moment the round layout gave the canvas the whole circle while the
+   source was still sized for a toolbar that round does not have. */
+var AREA_H = (typeof UI !== 'undefined' && UI.isRound && UI.isRound())
+  ? gfx.height() : gfx.height() - 40;
+
 var HAVE_CV = typeof sys !== 'undefined' && typeof sys.canvasTarget === 'function' &&
-              typeof gfx.blit === 'function' && sys.canvas(0, gfx.width(), gfx.height() - 40) === 1;
+              typeof gfx.blit === 'function' && sys.canvas(0, gfx.width(), AREA_H) === 1;
 
 var BG = 0x10141b;
 
@@ -57,7 +66,12 @@ var COLORS = [0x44dd88, 0xff6b6b, 0x4a9dff, 0xffd166, 0xffffff];
 function App() {
   var color = UI.state.color === undefined ? COLORS[0] : UI.state.color;
   var live = UI.state.liveStroke || null;
-  var areaH = gfx.height() - 40;
+  /* Round glass: the canvas is the WHOLE circle and the controls ride the
+     rim on an ArcFooter, so nothing square is cut off and no strip of
+     drawing surface is spent on a toolbar. AREA_H is shared with the
+     source allocation above -- they must never disagree. */
+  var round = UI.isRound();
+  var areaH = AREA_H;
 
   var chips = [];
   for (var i = 0; i < COLORS.length; i++) {
@@ -78,6 +92,27 @@ function App() {
     bg: UI.state.direct ? UI.theme.accent : UI.theme.panel,
     onTap: function () { UI.set({ direct: UI.state.direct ? 0 : 1 }); }
   }));
+
+  /* The same controls as items on the arc: round swatches climb the rim
+     happily (a circle has no orientation to get wrong), and the two word
+     buttons sit nearest bottom-centre where the chord is widest. */
+  var arcItems = [];
+  arcItems.push({ w: 40, h: 22, node: h(Button, {
+    label: 'CLR', size: 1, pad: em(0.25), w: 40, h: 22, bg: UI.theme.panel,
+    onTap: function () { clearCanvas(); }
+  }) });
+  for (var ai = 0; ai < COLORS.length; ai++) {
+    arcItems.push({ w: 24, h: 24, node: h('box', {
+      w: 24, h: 24, radius: 12, bg: COLORS[ai], hitPad: 4,
+      border: color === COLORS[ai] ? 0xffffff : 0x333a46, borderW: 2,
+      onTap: (function (c2) { return function () { UI.set({ color: c2 }); }; })(COLORS[ai])
+    }) });
+  }
+  arcItems.push({ w: 46, h: 22, node: h(Button, {
+    label: 'DIR', size: 1, pad: em(0.25), w: 46, h: 22,
+    bg: UI.state.direct ? UI.theme.accent : UI.theme.panel,
+    onTap: function () { UI.set({ direct: UI.state.direct ? 0 : 1 }); }
+  }) });
 
   var layers = [
     HAVE_CV
@@ -122,9 +157,9 @@ function App() {
            }}>
         {h('box', {}, layers)}
       </box>
-      <row h={40} pad={6} gap={8} bg={UI.theme.panel}>
-        {chips}
-      </row>
+      {round
+        ? h(ArcFooter, { items: arcItems, spread: 150, inset: 10 })
+        : h('row', { h: 40, pad: 6, gap: 8, bg: UI.theme.panel }, chips)}
     </box>
   );
 }

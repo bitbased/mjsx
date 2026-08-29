@@ -133,7 +133,7 @@ positions follow the edge.
 Put wide items mid-list where a round boundary is generous; angles that
 cluster at a square's corner can overlap, so keep spread and count sane.
 
-From `examples/draw/app.jsx`, which moves its toolbar onto the rim when
+From `examples/canvas/app.jsx` and `examples/draw/app.jsx`, which move their toolbars onto the rim when
 `UI.isRound()`:
 
 ```jsx
