@@ -610,7 +610,7 @@
   $('run').addEventListener('click', start);
   $('reset').addEventListener('click', function () {
     var ex = current();
-    if (ex) { elCode.value = ex.source; drawGutter(); highlight(); start(); }
+    if (ex) { elCode.value = sourceFor(ex); drawGutter(); highlight(); start(); }
   });
   $('share').addEventListener('click', function () {
     var ex = current();
@@ -646,6 +646,28 @@
     if (a) a.href = '/play/' + location.hash;
   }
 
+  /* The launcher ships as a template with a marker where the example
+     bodies go; the page splices them in from the sources it already has,
+     the same line packages/cli/src/bundle.js emits for a device bundle.
+     Doing it here rather than in examples.json keeps every example stored
+     exactly once. */
+  function launcherSource() {
+    var tpl = null, bodies = [];
+    for (var i = 0; i < examples.length; i++) {
+      var e = examples[i];
+      if (e.synthetic) { tpl = e; continue; }
+      bodies.push('/* ---- example: ' + e.name + ' ---- */\n' +
+                  "EXAMPLES.push(['" + e.name + "', function () {\n" +
+                  e.source + '\n}]);\n');
+    }
+    if (!tpl) return null;
+    return tpl.source.replace('/*__EXAMPLES__*/', bodies.join('\n'));
+  }
+
+  function sourceFor(ex) {
+    return ex && ex.synthetic ? (launcherSource() || ex.source) : ex.source;
+  }
+
   function current() {
     for (var i = 0; i < examples.length; i++) {
       if (examples[i].name === elEx.value) return examples[i];
@@ -656,7 +678,7 @@
   elEx.addEventListener('change', function () {
     var ex = current();
     if (!ex) return;
-    elCode.value = ex.source;
+    elCode.value = sourceFor(ex);
     location.hash = 'ex=' + ex.name;
     elHint.textContent = ex.needsHardware
       ? 'This example expects a device native the browser does not have, so it draws its labelled fallback.'
@@ -715,7 +737,7 @@
       if (!found) found = examples[0];
       if (found) {
         elEx.value = found.name;
-        elCode.value = found.source;
+        elCode.value = sourceFor(found);
         elHint.textContent = found.needsHardware
           ? 'This example expects a device native the browser does not have, so it draws its labelled fallback.'
           : '';
@@ -767,6 +789,11 @@
 
   say('loading examples…');
   fetch('/examples.json').then(function (r) { return r.json(); }).then(function (list) {
+    /* the launcher first: it is the thing that shows you everything else */
+    list.sort(function (a, b) {
+      if (a.synthetic !== b.synthetic) return a.synthetic ? -1 : 1;
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+    });
     examples = list;
     list.forEach(function (ex) {
       var o = document.createElement('option');

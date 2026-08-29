@@ -141,12 +141,25 @@ export default defineConfig({
       head: [{
         tag: 'script',
         content:
+          /* an embedded simulator measures itself and posts its height;
+             resize the frame to match, so it never has its own scrollbar */
           "addEventListener('message',function(e){" +
           "if(e.origin!==location.origin)return;" +
           "var d=e.data;if(!d||d.mjsx!=='sim-height')return;" +
           "var f=document.querySelectorAll('iframe.sim-embed');" +
           "for(var i=0;i<f.length;i++){if(f[i].contentWindow===e.source)" +
-          "f[i].style.height=d.height+'px';}});"
+          "f[i].style.height=d.height+'px';}});" +
+          /* A "Run it" link on a page that ALREADY has a simulator should
+             load it there, not throw the reader onto another page and lose
+             their place. With no simulator on the page the link navigates,
+             which is what it always did. */
+          "addEventListener('click',function(e){" +
+          "var a=e.target.closest&&e.target.closest('a.run-example');if(!a)return;" +
+          "var f=document.querySelector('iframe.sim-embed');if(!f)return;" +
+          "var h=a.getAttribute('href');var i=h.indexOf('#');if(i<0)return;" +
+          "e.preventDefault();" +
+          "var base=f.src.split('#')[0];f.src=base+h.slice(i);" +
+          "f.scrollIntoView({block:'center',behavior:'smooth'});});"
       }],
       sidebar: [
         ...group('Start here', [

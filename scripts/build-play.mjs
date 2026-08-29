@@ -88,6 +88,54 @@ if (existsSync(EXAMPLES)) {
     });
   }
 }
+/* ---- the launcher ----------------------------------------------------
+ * The same shape that ships to a demo board. packages/cli/src/bundle.js
+ * builds a device bundle as: the core and shim, then one
+ * `EXAMPLES.push([name, function () { ...app... }])` per example, then
+ * backends/esp32/tools/device-menu.js — which mounts a list, and on a tap
+ * calls UI.reset() and runs that example's function, with a floating dot
+ * and Escape to come back.
+ *
+ * No dynamic import anywhere, on a device or here: every example is
+ * already in the bundle as a lazy function, and picking one calls it.
+ * MicroQuickJS has no module loader, which is exactly why the device does
+ * it this way.
+ *
+ * device-menu.js is included VERBATIM rather than reimplemented, so the
+ * launcher in the browser cannot drift from the one on the glass. The
+ * example bodies are spliced in by the page from the sources it already
+ * has, so this carries the menu only and nothing is stored twice.
+ */
+const MENU = join(ROOT, 'backends/esp32/tools/device-menu.js');
+if (existsSync(MENU)) {
+  const head =
+    '/*\n' +
+    ' * Every example, in one app — the launcher a demo board runs.\n' +
+    ' *\n' +
+    ' * This is generated the way packages/cli/src/bundle.js generates a\n' +
+    ' * device bundle: each example becomes a lazy function in EXAMPLES, and\n' +
+    ' * the menu below (backends/esp32/tools/device-menu.js, verbatim) calls\n' +
+    ' * one when you tap it. Tap the dot, press Escape, or swipe in from the\n' +
+    ' * edge to come back. No dynamic import: MicroQuickJS has no module\n' +
+    ' * loader, so nothing is fetched — it is all already here.\n' +
+    ' *\n' +
+    ' * Editable like any other example. _deviceSafe() below reserves the\n' +
+    ' * demo board\'s bezel; set those to 0 to use the whole panel.\n' +
+    ' */\n' +
+    '/* the one device native the menu calls that a browser has no use for */\n' +
+    'var __replayFeed = function () {};\n\n' +
+    'var EXAMPLES = [];\n';
+  examples.push({
+    name: 'menu',
+    /* spliced by the page: EXAMPLES.push(...) for each example goes here */
+    source: head + '/*__EXAMPLES__*/\n\n' + readFileSync(MENU, 'utf8'),
+    lines: 0,
+    blurb: 'Every example in one app — the launcher a demo board runs.',
+    needsHardware: false,
+    synthetic: true
+  });
+}
+
 writeFileSync(EX_OUT, JSON.stringify(examples));
 
 console.log('wrote ' + OUT + '  ' + Math.round(out.length / 1024) + ' kB' +

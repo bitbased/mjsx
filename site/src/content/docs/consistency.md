@@ -52,24 +52,56 @@ filament-rfid firmware.
 
 Every matrix on this page reads the same way: **yes** means present and
 behaving as the contract describes, **no** means absent, **partial** means
-present but not equivalent. Anything after the dash in a cell is the
-qualifier that makes the answer true, and `—` means the question does not
-apply to that entry point.
+present but not equivalent.
 
-| Call | pure-js | glass | terminal | http/server | http/mirror recorder | sdl | wasm | esp32 (tree) | esp32 (shim) |
-|---|---|---|---|---|---|---|---|---|---|
-| `clear` | yes | yes | yes | yes (pure-js) | yes — fwd | yes (pure-js) | yes → `mjsxGfx` | yes → `Serial.printf` | yes — fwd |
-| `rect` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
-| `frect` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
-| `circle` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
-| `line` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
-| `text` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
-| `clip` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
-| `unclip` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
-| `width` | yes — logical | yes — logical | yes — `cols/xSub` | yes | yes — fwd | yes | yes (240 default) | yes — hard-coded 240 | yes — fwd |
-| `height` | yes — logical | yes — logical | yes — sub-pixel rows (≠ `backend.height`) | yes | yes — fwd | yes | yes (280 default) | yes — hard-coded 280 | yes — fwd |
-| `poly` | yes | yes | no | yes | yes — *if real has it* | yes | no | no | partial — **packed string**, else JS fallback |
-| `blit` | no | no | no | no | no — **dropped** | no | no | no | partial — conditional passthrough |
+### The eight drawing calls
+
+`clear`, `rect`, `frect`, `circle`, `line`, `text`, `clip` and `unclip` are
+present and behave as the contract describes on **every surface listed
+above**. That is stated once rather than as seventy-two cells saying "yes".
+
+What varies is *how* each surface realises them — and that is a property of
+the surface, not of the call, so it is one row each:
+
+| Surface | Realised as |
+|---|---|
+| `pure-js` | its own scanline rasterizer — the reference implementation |
+| `glass` | the same rasterizer, used as a pixel twin behind another backend |
+| `terminal` | half-block cells |
+| `http/server` | delegates to `pure-js` |
+| `http/mirror` recorder | forwards to the real `gfx` and records the op |
+| `sdl` | delegates to `pure-js`, then blits the buffer to the window |
+| `wasm` | calls into `mjsxGfx`, the host object MicroQuickJS sees |
+| `esp32` (tree) | `Serial.printf` — `hello-mjsx` logs the calls; it is a bring-up sketch, not a display driver |
+| `esp32` (shim) | forwards to `__NGFX` |
+
+### What `width` and `height` report
+
+Both are present everywhere. Only the answer differs:
+
+| Surface | Reports |
+|---|---|
+| `pure-js`, `glass` | the **logical** size, not the buffer's — the two differ at `dpr > 1` |
+| `terminal` | width from `cols/xSub`; height in **sub-pixel rows**, which is *not* `backend.height` |
+| `wasm` | 240 × 280 defaults |
+| `esp32` (tree) | **hard-coded** 240 × 280 |
+| `http/server`, `sdl` | the panel's own size (via `pure-js`) |
+| `http/mirror`, `esp32` (shim) | whatever the wrapped surface says |
+
+### `poly` and `blit` — the two that actually diverge
+
+These are the only rows of the old matrix that carried information:
+
+| Surface | `poly` | `blit` |
+|---|---|---|
+| `pure-js`, `glass`, `http/server`, `sdl` | yes | no |
+| `http/mirror` recorder | only if the real `gfx` has it | no — **dropped** |
+| `terminal`, `wasm`, `esp32` (tree) | **no** | no |
+| `esp32` (shim) | partial — **packed string**, else a JS fallback | partial — conditional passthrough |
+
+Where `poly` is absent the core falls back to scanline `frect`
+(`mjsx.js` l.422, l.428), which is why its four call sites are guarded by
+`if (gfx.poly)`.
 
 Verified by enumerating the live objects (`typeof … === 'function'` over
 each constructed `gfx`), not by reading declarations:

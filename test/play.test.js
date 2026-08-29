@@ -120,7 +120,10 @@ describe('simulator bundle', function () {
     expect(list.length).toBeGreaterThan(5);
 
     var failed = [];
-    list.forEach(function (ex) {
+    /* the launcher is a TEMPLATE with a splice marker where the example
+       bodies go — the page fills it in, so it is not runnable as stored
+       and gets its own test below */
+    list.filter(function (e) { return !e.synthetic; }).forEach(function (ex) {
       try {
         var be = createPureJsBackend(240, 280, {});
         mjsxRun(ex.source, be, {});
@@ -138,11 +141,52 @@ describe('simulator bundle', function () {
     expect(failed).toEqual([]);
   });
 
+  maybe('the launcher template splices into a working app', function () {
+    /* This is the shape a demo board runs: packages/cli/src/bundle.js
+       emits one EXAMPLES.push per example and then device-menu.js, and
+       picking one calls its function after UI.reset(). No dynamic import
+       anywhere — MicroQuickJS has no module loader. */
+    var list = JSON.parse(fs.readFileSync(EXAMPLES_JSON, 'utf8'));
+    var tpl = list.filter(function (e) { return e.synthetic; })[0];
+    expect(tpl).toBeTruthy();
+    expect(tpl.source).toContain('/*__EXAMPLES__*/');
+    /* verbatim device-menu.js, so the two cannot drift */
+    expect(tpl.source).toContain('_runExample');
+
+    var bodies = list.filter(function (e) { return !e.synthetic; }).map(function (e) {
+      return "EXAMPLES.push(['" + e.name + "', function () {\n" + e.source + '\n}]);\n';
+    });
+    var src = tpl.source.replace('/*__EXAMPLES__*/', bodies.join('\n'));
+
+    /* A TALL panel on purpose: the menu is a scroll viewport, so on a real
+       240x280 it draws only what fits and the rest are correctly absent.
+       Height enough for all of them turns "did it list everything" into a
+       question the draw ops can actually answer. */
+    var be = createPureJsBackend(240, 1400, {});
+    mjsxRun(src, be, {});
+    UI.render();
+    var rec = mjsxRecord(be.gfx);
+    var real = globalThis.gfx;
+    globalThis.gfx = rec.gfx; UI.render(); globalThis.gfx = real;
+    var labels = rec.take().filter(function (o) { return o[0] === 't'; })
+                    .map(function (o) { return o[5]; });
+
+    /* the menu lists every example it was given */
+    list.filter(function (e) { return !e.synthetic; }).forEach(function (e) {
+      expect(labels).toContain(e.name);
+    });
+
+    /* and picking one actually runs it: EXAMPLES holds lazy functions, so
+       nothing but the menu has mounted until a tap calls one */
+    var hit = UI._hits && UI._hits.length;
+    expect(hit).toBeGreaterThan(1);
+  });
+
   maybe('example sources match the files on disk', function () {
     /* the page must serve the real example, not a copy that drifted */
     var list = JSON.parse(fs.readFileSync(EXAMPLES_JSON, 'utf8'));
     var stale = [];
-    list.forEach(function (ex) {
+    list.filter(function (e) { return !e.synthetic; }).forEach(function (ex) {
       var f = path.join(ROOT, 'examples', ex.name, 'app.jsx');
       if (!fs.existsSync(f)) { stale.push(ex.name + ': no such example'); return; }
       if (fs.readFileSync(f, 'utf8') !== ex.source) stale.push(ex.name + ': source differs');
