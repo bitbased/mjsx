@@ -46,8 +46,16 @@ globalThis.Swatch = core.Swatch;
 globalThis.em = core.em;
 globalThis.Modal = core.Modal;
 globalThis.Keyboard = core.Keyboard;
+globalThis.ArcFooter = core.ArcFooter;
 
 require(path.resolve(exampleFile));
+
+/* Declared BEFORE the first render: an app that focuses a field from
+   inside its render (or from a mount-time effect) calls onFocusChange
+   during the UI.render() below, and a `var sockets` further down the
+   file would still be undefined there — the server died on startup with
+   "undefined is not an object (evaluating 'sockets.length')". */
+var sockets = [];
 
 /* The host half of native-keyboard support: when a field gains or loses
    focus, tell the page, which focuses or blurs its hidden real input --
@@ -167,7 +175,12 @@ var PAGE = '<!doctype html><meta charset=utf-8><title>mjsx</title>' +
   '});' +
   '</script>';
 
-var sockets = [];
+/* A finite integer or 0 — never NaN, whatever the socket sent. */
+function num(v) {
+  v = Number(v);
+  if (v !== v || v === Infinity || v === -Infinity) return 0;
+  return Math.round(v);
+}
 
 function broadcastFrame() {
   var buf = rgbaFrame();
@@ -203,8 +216,14 @@ var server = Bun.serve({
     message: function (ws, data) {
       var msg;
       try { msg = JSON.parse(data); } catch (e) { return; }
+      /* Anything a socket can send has to be survivable: JSON.parse
+         succeeds on `null`, `5` and `"hi"` too, and reading .t off those
+         used to throw straight out of the handler and take the whole
+         server down. Coordinates get the same treatment — a message with
+         no x/y must not feed NaN into the core's hit testing. */
+      if (!msg || typeof msg !== 'object') return;
       if (msg.t === 'ptr') {
-        UI.pointer(msg.id, msg.phase, Math.round(msg.x), Math.round(msg.y));
+        UI.pointer(msg.id, num(msg.phase), num(msg.x), num(msg.y));
       } else if (msg.t === 'key') {
         UI.key(msg.type, msg.key);
       }
@@ -219,4 +238,7 @@ setInterval(function () {
   if (UI.ticker()) { UI.render(); broadcastFrame(); }
 }, 33); // ~30fps — a live view, not a benchmark
 
-console.log('mjsx serving ' + exampleFile + ' at http://localhost:' + port + '/  (' + W + 'x' + H + ')');
+/* server.port, not the requested one: `0` means "any free port" and the
+   printed URL is the only way anything — a test harness, a person — finds
+   out which one it got. */
+console.log('mjsx serving ' + exampleFile + ' at http://localhost:' + server.port + '/  (' + W + 'x' + H + ')');

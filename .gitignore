@@ -92,3 +92,7 @@ venv/
 *.tmp
 *.temp
 *.bak
+
+# Hardware-bound apps that belong on the device but not in the repo.
+# Same shape as examples/; the bundler and pusher pick them up automatically.
+local-examples/

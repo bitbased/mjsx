@@ -19,6 +19,13 @@
  * gfx (recreate it whenever the real backend is recreated).
  */
 
+/* A finite number, whatever a socket sent — never NaN, never Infinity. */
+function fin(v) {
+  v = Number(v);
+  return v === v && v !== Infinity && v !== -Infinity ? v : 0;
+}
+function num(v) { return Math.round(fin(v)); }
+
 function createRecorder(real) {
   var ops = [];
   return {
@@ -43,7 +50,9 @@ function createRecorder(real) {
 }
 
 function createMirror(opts) {
-  var port = opts.port || 8080;
+  /* 0 is a real request ("any free port"), not a missing one — the
+     returned mirror reports server.port so the caller can find it. */
+  var port = (opts.port === 0 || opts.port) ? opts.port : 8080;
   var sockets = [];
   var lastMsg = null;  /* last frame message, replayed to new clients */
 
@@ -246,7 +255,7 @@ function createMirror(opts) {
     return bundle;
   }
 
-  Bun.serve({
+  var server = Bun.serve({
     port: port,
     fetch: function (req, srv) {
       var path = new URL(req.url).pathname;
@@ -276,19 +285,31 @@ function createMirror(opts) {
       message: function (ws, data) {
         var msg;
         try { msg = JSON.parse(data); } catch (e) { return; }
+        /* JSON.parse says yes to `null`, `5` and `"hi"` as well; reading
+           .t off those threw straight out of the handler and killed the
+           whole sim. A message missing x/y must likewise not feed NaN
+           into the host's pointer routing. */
+        if (!msg || typeof msg !== 'object') return;
         if (msg.t === 'ptr' && opts.pointer) {
-          opts.pointer(msg.id, msg.phase, Math.round(msg.x), Math.round(msg.y));
+          opts.pointer(msg.id, num(msg.phase), num(msg.x), num(msg.y));
         } else if (msg.t === 'key' && opts.key) {
           opts.key(msg.type, msg.key);
         } else if (msg.t === 'wheel' && opts.wheel) {
-          opts.wheel(Math.round(msg.x), Math.round(msg.y), msg.dy);
+          /* dy stays a float: a trackpad's sub-pixel deltas carry the
+             direction, and rounding 0.4 to 0 would lose it. */
+          opts.wheel(num(msg.x), num(msg.y), fin(msg.dy));
         }
       }
     }
   });
 
   return {
-    port: port,
+    /* server.port, not the requested one: port 0 means "any free port",
+       and this is how the caller learns which one it actually got. */
+    port: server.port,
+    /* Stop listening — a host that recreates the mirror, or a test that
+       wants the port back, needs a way off the socket. */
+    stop: function () { server.stop(true); },
     clients: function () { return sockets.length; },
     /* One frame's op list, the logical size it was laid out for, and the
        host's text metrics per size ({1:{adv,lh},...}) so the client's

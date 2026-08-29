@@ -48,7 +48,12 @@ function freshCore() {
   globalThis.Swatch = core.Swatch;
   globalThis.em = core.em;
   globalThis.Modal = core.Modal;
-globalThis.Keyboard = core.Keyboard;
+  globalThis.Keyboard = core.Keyboard;
+  globalThis.ArcFooter = core.ArcFooter;
+  /* Flat-eval parity: configStorage is a global under MicroQuickJS, a
+     module export here — an example naming it bare (the camera example
+     does) must not hit a ReferenceError when picked from the menu. */
+  globalThis.configStorage = core.configStorage;
   applyFont();
 }
 freshCore();

@@ -2292,6 +2292,7 @@ var configStorage = {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     h: h, UI: UI, FONT: FONT, em: em, Button: Button, Swatch: Swatch, Modal: Modal, Keyboard: Keyboard,
+    ArcFooter: ArcFooter,
     measure: measure, draw: draw, fitText: fitText, textLines: textLines,
     configStorage: configStorage
   };

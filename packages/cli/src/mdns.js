@@ -4,6 +4,11 @@
  * from an ephemeral port (an RFC 6762 "legacy unicast" query), so every
  * responder answers straight back to this socket and we never contend
  * with the OS resolver for port 5353.
+ *
+ * Discovery is a window, not a conversation: it opens, collects whatever
+ * answers arrive, and closes on a deadline that nothing can extend. The
+ * socket and the re-query timer are unref'd so that even a botched close
+ * cannot hold the process open past the window.
  */
 var dgram = require('dgram');
 
@@ -71,26 +76,56 @@ function ptrInstances(msg, service) {
 
 /* Resolves to [{ip, name}] — the responder's address plus the instance
    label from its PTR answer. Asks twice (UDP on a busy band) and
-   collects until waitMs is up. */
+   collects until waitMs is up, then resolves exactly once. */
 function discover(service, waitMs) {
+  var window = Math.max(50, waitMs || 5000);
   return new Promise(function (resolve) {
-    var sock = dgram.createSocket('udp4');
-    var seen = new Map();
+    var sock, seen = new Map(), settled = false, requery = null;
+
     function finish() {
-      try { sock.close(); } catch (e) {}
+      if (settled) return;
+      settled = true;
+      if (requery) clearTimeout(requery);
+      clearTimeout(deadline);
+      try { if (sock) sock.close(); } catch (e) {}
       resolve(Array.from(seen.values()));
     }
+
+    /* The one timer that is allowed to keep the loop alive, and it is
+       the one that ends the window. */
+    var deadline = setTimeout(finish, window);
+
+    try {
+      sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+    } catch (e) {
+      return finish();
+    }
+    /* Answers are welcome, but an open socket must never be the reason
+       mjsx is still running. */
+    if (typeof sock.unref === 'function') sock.unref();
+
     sock.on('message', function (msg, rinfo) {
+      if (settled) return;
       var inst = ptrInstances(msg, service);
       if (inst.length) seen.set(rinfo.address, { ip: rinfo.address, name: inst[0].split('.')[0] });
     });
+    /* A machine with no multicast route errors on send; that is an empty
+       result, not a failure and not a wait. */
     sock.on('error', finish);
+
     sock.bind(0, function () {
+      if (settled) return;
       var pkt = queryPacket(service);
-      sock.send(pkt, 5353, '224.0.0.251');
-      setTimeout(function () { try { sock.send(pkt, 5353, '224.0.0.251'); } catch (e) {} }, 700);
+      function ask() {
+        if (settled) return;
+        try { sock.send(pkt, 5353, '224.0.0.251'); } catch (e) {}
+      }
+      ask();
+      if (window > 1400) {
+        requery = setTimeout(ask, Math.min(700, Math.floor(window / 3)));
+        if (typeof requery.unref === 'function') requery.unref();
+      }
     });
-    setTimeout(finish, waitMs || 2500);
   });
 }
 

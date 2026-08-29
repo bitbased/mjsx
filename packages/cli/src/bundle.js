@@ -22,7 +22,7 @@ function findTsc() {
     if (cands[i] && fs.existsSync(cands[i])) return cands[i];
   }
   try { execFileSync('tsc', ['--version'], { stdio: 'ignore' }); return 'tsc'; } catch (e) {}
-  U.die('push needs tsc — Bun\'s transpiler modernises ES5 into syntax MicroQuickJS rejects: bun add -d typescript');
+  U.die('mjsx push: needs tsc (Bun\'s transpiler modernises ES5 into syntax MicroQuickJS rejects) — run `bun add -d typescript`, or point MJSX_TSC at one');
 }
 
 /* tsc, not Bun: tsc never modernises. The apps are written in the ES5
@@ -32,17 +32,30 @@ function transpile(file, tsc) {
   var dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mjsx-tsc-'));
   var src = path.join(dir, 'in.jsx');
   fs.writeFileSync(src, fs.readFileSync(file, 'utf8'));
-  execFileSync(tsc, [
-    '--jsx', 'react', '--jsxFactory', 'h', '--jsxFragmentFactory', 'Fragment',
-    '--target', 'es2015', '--module', 'commonjs', '--noResolve', '--skipLibCheck',
-    '--allowJs', '--ignoreConfig', '--outDir', dir, src
-  ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  try {
+    execFileSync(tsc, [
+      '--jsx', 'react', '--jsxFactory', 'h', '--jsxFragmentFactory', 'Fragment',
+      '--target', 'es2015', '--module', 'commonjs', '--noResolve', '--skipLibCheck',
+      '--allowJs', '--ignoreConfig', '--outDir', dir, src
+    ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (e) {
+    /* tsc reports syntax errors on stdout; show the first, not a stack. */
+    var out = String((e && e.stdout) || '') + String((e && e.stderr) || '');
+    var first = out.split('\n').filter(function (l) { return l.trim(); })[0];
+    U.die('mjsx push: tsc could not transform ' + path.basename(file) +
+          (first ? ' — ' + first.replace(/^.*in\.jsx/, path.basename(file)) : ' (' + U.message(e) + ')'));
+  }
   return fs.readFileSync(path.join(dir, 'in.js'), 'utf8');
 }
 
+function need(file, what) {
+  if (!fs.existsSync(file)) U.die('mjsx push: ' + what + ' is missing: ' + file + ' — run mjsx from a full checkout');
+  return file;
+}
+
 function coreAndShim() {
-  return fs.readFileSync(path.join(U.REPO, 'packages/core/src/mjsx.js'), 'utf8') +
-    '\n' + fs.readFileSync(path.join(TOOLS, 'device-shim.js'), 'utf8') +
+  return fs.readFileSync(need(path.join(U.REPO, 'packages/core/src/mjsx.js'), 'mjsx-core'), 'utf8') +
+    '\n' + fs.readFileSync(need(path.join(TOOLS, 'device-shim.js'), 'the device shim'), 'utf8') +
     /* the desktop runners give each app a CommonJS `module` for the
        optional demo() export; the engine has no such global. A stub
        keeps that runner-only convention inert on device (the harness
@@ -61,16 +74,32 @@ function buildAppBundle(appFile) {
 function buildExamplesBundle(wanted) {
   var tsc = findTsc();
   var exDir = path.join(U.REPO, 'examples');
-  var names = fs.readdirSync(exDir).filter(function (n) {
-    return fs.existsSync(path.join(exDir, n, 'app.jsx'));
-  }).sort();
+  if (!fs.existsSync(exDir)) U.die('mjsx push: no examples/ directory at ' + exDir + ' — run mjsx from a full checkout');
+  /* local-examples/ is the gitignored sibling: apps bound to one person's
+     hardware (a specific printer, a specific rig) that belong on the
+     device but not in a public repo. Same shape as examples/, picked up
+     automatically when present, and it wins a name collision so a local
+     copy can shadow a shipped example. */
+  var dirs = [exDir];
+  var localDir = path.join(U.REPO, 'local-examples');
+  if (fs.existsSync(localDir)) dirs.push(localDir);
+  var srcOf = {};
+  for (var d = 0; d < dirs.length; d++) {
+    var entries = fs.readdirSync(dirs[d]);
+    for (var e = 0; e < entries.length; e++) {
+      var app = path.join(dirs[d], entries[e], 'app.jsx');
+      if (fs.existsSync(app)) srcOf[entries[e]] = app;
+    }
+  }
+  var names = Object.keys(srcOf).sort();
+  var all = names.slice();
   if (wanted && wanted.length) {
     names = names.filter(function (n) { return wanted.indexOf(n) !== -1; });
   }
-  if (!names.length) U.die('no matching examples in ' + exDir);
+  if (!names.length) U.die('mjsx push: no examples matched — have: ' + all.join(', '));
   var bundle = coreAndShim();
   for (var i = 0; i < names.length; i++) {
-    var code = transpile(path.join(exDir, names[i], 'app.jsx'), tsc);
+    var code = transpile(srcOf[names[i]], tsc);
     bundle += '\n/* ---- example: ' + names[i] + ' ---- */\nEXAMPLES.push([\'' + names[i] + '\', function () {\n' + code + '\n}]);\n';
   }
   bundle += '\n' + fs.readFileSync(path.join(TOOLS, 'device-menu.js'), 'utf8');
@@ -98,7 +127,11 @@ function validate(bundle) {
       var src = bundle.split('\n'), n = Number(m[1]);
       for (var i = Math.max(0, n - 2); i < Math.min(src.length, n + 1); i++) lines.push('  ' + (i + 1) + ' | ' + src[i]);
     }
-    throw new Error('engine rejected the bundle:\n' + lines.join('\n'));
+    /* Not a stack trace: this is the engine's own verdict on the code
+       about to be shipped, so it survives past the one-line headline. */
+    var err = new Error('the MicroQuickJS engine rejected this bundle — the app will not boot on a board');
+    err.detail = lines.join('\n');
+    throw err;
   }
   console.log('engine check: ok');
 }

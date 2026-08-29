@@ -47,6 +47,10 @@ globalThis.Swatch = core.Swatch;
 globalThis.em = core.em;
 globalThis.Modal = core.Modal;
 globalThis.Keyboard = core.Keyboard;
+globalThis.ArcFooter = core.ArcFooter;
+/* Flat-eval parity: configStorage is a global under MicroQuickJS, a module
+   export here — an example naming it bare must not hit a ReferenceError. */
+globalThis.configStorage = core.configStorage;
 core.FONT.advance = backend.font.advance;
 core.FONT.lineH = backend.font.lineH;
 core.FONT.quantum = backend.font.quantum;

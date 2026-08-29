@@ -27,6 +27,7 @@ function fresh(w, h, opts) {
   globalThis.em = core.em;
   globalThis.Modal = core.Modal;
   globalThis.Keyboard = core.Keyboard;
+  globalThis.ArcFooter = core.ArcFooter;
   return { backend: backend, core: core, UI: core.UI, h: core.h };
 }
 

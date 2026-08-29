@@ -22,6 +22,7 @@ var HELP = 'usage: mjsx dev [example] [sim flags...]\n' +
 
 function exampleName(arg) {
   var exDir = path.join(U.REPO, 'examples');
+  if (!fs.existsSync(exDir)) U.die('mjsx dev: no examples/ directory at ' + exDir + ' — run mjsx from a full checkout');
   if (fs.existsSync(path.join(exDir, arg, 'app.jsx'))) return arg;
   var p = path.resolve(arg);
   if (path.basename(p) === 'app.jsx' && path.dirname(path.dirname(p)) === exDir) {
@@ -30,8 +31,8 @@ function exampleName(arg) {
   var have = fs.readdirSync(exDir).filter(function (n) {
     return fs.existsSync(path.join(exDir, n, 'app.jsx'));
   }).sort();
-  U.die('the sim loads the bundled examples only — pass a name or a path\n' +
-        'inside examples/. Have: ' + have.join(', '));
+  U.die('mjsx dev: the sim loads the bundled examples only — pass a name or a path inside ' +
+        'examples/ (have: ' + have.join(', ') + ')');
 }
 
 async function main(args) {
@@ -41,14 +42,22 @@ async function main(args) {
   }
   if (flags.indexOf('--help') !== -1 || positional.indexOf('-h') !== -1) {
     console.log(HELP);
-    process.exit(0);
+    return;
   }
-  var simArgs = [path.join(U.REPO, 'backends/sdl/src/sim.js')];
+  var sim = path.join(U.REPO, 'backends/sdl/src/sim.js');
+  if (!fs.existsSync(sim)) {
+    U.die('mjsx dev: the sim is missing: ' + sim + ' — run mjsx from a full checkout');
+  }
+  var simArgs = [sim];
   if (positional.length) simArgs.push(exampleName(positional[0]));
   simArgs = simArgs.concat(positional.slice(1)); /* optional W H scale, as the sim takes them */
   var hasHttp = flags.some(function (f) { return f === '--http' || f.slice(0, 7) === '--http='; });
   if (!hasHttp) flags.push('--http');
+  /* The sim is the long-running one on purpose: it runs until its window
+     closes or Ctrl-C, and mjsx exits with whatever it exited with. */
   var r = spawnSync(U.bunBin(), simArgs.concat(flags), { stdio: 'inherit' });
+  if (r.error) U.die('mjsx dev: could not start the sim (' + U.message(r.error) + ')');
+  if (r.signal) process.exit(1); /* Ctrl-C on the sim window is not a crash to report */
   process.exit(r.status === null ? 1 : r.status);
 }
 

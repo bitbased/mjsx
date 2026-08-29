@@ -64,6 +64,7 @@ globalThis.Swatch = core.Swatch;
 globalThis.em = core.em;
 globalThis.Modal = core.Modal;
 globalThis.Keyboard = core.Keyboard;
+globalThis.ArcFooter = core.ArcFooter;
 core.FONT.advance = backend.font.advance;
 core.FONT.lineH = backend.font.lineH;
 core.FONT.pick = backend.font.pick || null;

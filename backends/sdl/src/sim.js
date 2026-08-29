@@ -85,14 +85,19 @@ var hd2 = flagArgs.indexOf('--hd2') !== -1;
 /* --http[=port]: serve the SAME running sim to browsers -- a live mirror
    of the panel (frames out, touches/keys in), phone-testable over the
    LAN, mobile OSK included. Default port 8080. */
-var httpPort = 0;
+/* -1 = off. --http=0 is legal and means "any free port" — the chosen one
+   is printed below, which is how a test harness finds it. */
+var httpPort = -1;
 for (var hpi = 0; hpi < flagArgs.length; hpi++) {
   if (flagArgs[hpi] === '--http') httpPort = 8080;
-  else if (flagArgs[hpi].slice(0, 7) === '--http=') httpPort = parseInt(flagArgs[hpi].slice(7), 10) || 8080;
+  else if (flagArgs[hpi].slice(0, 7) === '--http=') {
+    var hpv = parseInt(flagArgs[hpi].slice(7), 10);
+    httpPort = hpv === 0 ? 0 : (hpv || 8080);
+  }
 }
 var mirror = null, recorder = null;
-var mirrorMod = httpPort ? require('../../http/src/mirror.js') : null;
-if (httpPort) {
+var mirrorMod = httpPort >= 0 ? require('../../http/src/mirror.js') : null;
+if (httpPort >= 0) {
   mirror = mirrorMod.createMirror({
     port: httpPort,
     /* route through globalThis.UI at CALL time -- freshCore swaps the
@@ -117,7 +122,9 @@ if (httpPort) {
     wheel: function (x, y, dy) { UI.scrollBy(x, y, dy > 0 ? 24 : -24); if (UI.dirty()) render(); },
     connect: function () { render(); }
   });
-  console.log('mirror: http://localhost:' + httpPort + '  (--http=PORT to change)');
+  /* mirror.port, not httpPort: with --http=0 the OS picks, and this line
+     is the only place the real number shows up. */
+  console.log('mirror: http://localhost:' + mirror.port + '  (--http=PORT to change)');
 }
 function dprNow() {
   if (!hd) return 1;
@@ -225,7 +232,8 @@ function freshCore() {
   globalThis.Swatch = core.Swatch;
   globalThis.em = core.em;
   globalThis.Modal = core.Modal;
-globalThis.Keyboard = core.Keyboard;
+  globalThis.Keyboard = core.Keyboard;
+  globalThis.ArcFooter = core.ArcFooter;
   /* Every fresh core learns the current font's metrics, so em() spacing and
      fitText widths always match what the backend actually rasterizes. */
   if (safeBands) core.UI.safe = safeBands;

@@ -132,12 +132,23 @@ function createTerminalBackend(cols, charH, opts) {
     height: function () { return h; } // sub-pixel rows — the same space every gfx.* call draws in
   };
 
+  /* configStorage's backing store. A terminal has no NVS, but a pair of
+     dead stubs is worse than none: store() swallowing the write while
+     fetch() answers '' makes every settings round-trip silently return the
+     default, so a preference an example just set reads back unset — the
+     one failure mode that looks like an app bug rather than a missing
+     native. Session-lifetime memory (the same thing the pure-js backend
+     does) makes the round-trip honest; nothing here claims to survive
+     the process. */
+  var storeMap = {};
+
   var sys = {
     millis: function () { return Date.now() - startedAt; },
     beep: function () { process.stdout.write('\x07'); }, // the one native call a terminal can genuinely do
     tone: function () { },
     exit: function () { },
-    store: function () { }, fetch: function () { return ''; }
+    store: function (k, v) { storeMap[k] = '' + v; },
+    fetch: function (k) { return storeMap[k] === undefined ? '' : storeMap[k]; }
   };
 
   function rgbOf(c) { return [(c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff]; }

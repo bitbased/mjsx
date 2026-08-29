@@ -34,6 +34,7 @@ globalThis.Swatch = core.Swatch;
 globalThis.em = core.em;
 globalThis.Modal = core.Modal;
 globalThis.Keyboard = core.Keyboard;
+globalThis.ArcFooter = core.ArcFooter;
 
 require(path.resolve(exampleFile)); // runs the example's top-level UI.mount(...)
 

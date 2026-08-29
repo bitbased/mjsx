@@ -8,9 +8,14 @@ The images below live in `out/gallery/`, which is gitignored — on a fresh
 clone they don't exist yet. Regenerate them with `bun run gallery`
 (`bun scripts/render-examples.mjs`), which renders every example headlessly
 through the pure-js backend at 240x280. Examples that gate on device
-natives (camera, wifi, screen, printer, canvas, gpio, i2c) render their
+natives (camera, wifi, screen, canvas, gpio, i2c) render their
 no-hardware
 fallback, which is what you'd see developing them on a desktop anyway.
+
+Apps bound to one person's hardware live in `local-examples/` instead — a
+gitignored sibling with the same shape. The bundler and the pusher pick it
+up automatically, so those apps reach the device without reaching the repo,
+and a local name shadows a shipped one.
 
 | Example | What it shows | |
 |---|---|---|
@@ -24,7 +29,6 @@ fallback, which is what you'd see developing them on a desktop anyway.
 | [draw](draw/) | Freehand drawing with tools — the `onDraw` capture control in action: per-pointer strokes, live shape preview, point simplification on release. | ![](../out/gallery/draw.png) |
 | [canvas](canvas/) | Draw's little sibling restructured around `sys.canvas`: live strokes preview as ordinary ops, then commit into a canvas source so a hundred strokes cost one blit. | ![](../out/gallery/canvas.png) |
 | [camera](camera/) | The camera as canvas sources: a live preview frame and full-frame snapshots, blitted by the UI, arriving async from the module. | ![](../out/gallery/camera.png) |
-| [printer](printer/) | Printer status drawn from state alone — the firmware's printer module pushes patches, this view just renders `UI.state.printer`. | ![](../out/gallery/printer.png) |
 | [screen](screen/) | Screen settings: brightness, sleep timeout, and what sleeping means; the natives do the real work, this view is just state and taps. | ![](../out/gallery/screen.png) |
 | [wifi](wifi/) | WiFi setup in JSX — the native settings page's job done by a script, polling the async `net.*` natives on its tick. | ![](../out/gallery/wifi.png) |
 | [gpio](gpio/) | Direct pin access through `sys.gpio`: read (INPUT_PULLUP), drive high/low, ADC; refused display/touch pins shown as -1. | ![](../out/gallery/gpio.png) |

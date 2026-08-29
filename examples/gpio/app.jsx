@@ -10,10 +10,54 @@
  * this app stops polling — otherwise every tick would release the pin it
  * just drove.
  *
- * On hosts without the native (browser, sim, terminal) the page says so
- * instead of crashing.
+ * On hosts without the native (browser, sim, terminal, the gallery
+ * renderer) a SIMULATED board stands in — see simGpio below — so the whole
+ * flow stays clickable and self-checkable anywhere. Every call goes
+ * through gpio(); when the native exists that is a straight pass-through
+ * and this page behaves exactly as it does on the bridge.
  */
 var HAVE = typeof sys !== 'undefined' && typeof sys.gpio === 'function';
+
+/* ---- the no-hardware board -------------------------------------------
+ * An UNWIRED board, modelled off the 1.69" 240x280 build (BOARD 1 in
+ * docs/hardware-api.md): its display and touch pins answer -1 exactly as
+ * the firmware's denylist does, every other pin is open so a read sees
+ * the pullup (1), a write reports the 1 the native reports, and the ADC
+ * gives a stable per-pin count — an unconnected analog pin floats, and a
+ * fixed number is the version of that a headless render can reproduce
+ * frame to frame. Nothing here reads a clock, on purpose: the gallery
+ * PNG and the golden hashes must not move between runs.
+ *
+ * The one value this board cannot show you is a genuine LOW — nothing is
+ * pulling any pin down. That needs the real thing.
+ */
+var SIM_REFUSED = [4, 5, 6, 7, 8, 10, 11, 13, 14, 15];
+
+function simRefused(p) {
+  for (var i = 0; i < SIM_REFUSED.length; i++) {
+    if (SIM_REFUSED[i] === p) return true;
+  }
+  return false;
+}
+
+function simGpio(p, op, value) {
+  if (simRefused(p)) return -1;
+  if (op === 1) return 1;                       /* write: OUTPUT, driven */
+  if (op === 2) return (p >= 1 && p <= 20) ? (p * 173) % 4096 : 0;
+  if (op === 0) return 1;                       /* INPUT_PULLUP, open pin */
+  return -1;                                    /* unknown op, as firmware */
+}
+
+/* The single door to the hardware. Same argument order, same return
+   codes, so nothing below this line knows which board it is talking to.
+   A read is forwarded as TWO arguments, never as a third `undefined`:
+   "value omitted" is how the native is told this is a read, and handing
+   it an explicit undefined would arrive as a write of 0. */
+function gpio(p, op, value) {
+  if (!HAVE) return simGpio(p, op, value);
+  if (value === undefined) return sys.gpio(p, op);
+  return sys.gpio(p, op, value);
+}
 
 function pin() { return UI.state.pin === undefined ? 16 : UI.state.pin; }
 function mode() { return UI.state.mode || 'read'; }
@@ -27,24 +71,23 @@ function step(d) {
 
 function setMode(m) {
   UI.set({ mode: m, val: null });
-  if (m === 'drive' && HAVE) UI.set({ level: 0, val: sys.gpio(pin(), 1, 0) });
+  if (m === 'drive') UI.set({ level: 0, val: gpio(pin(), 1, 0) });
 }
 
 function toggle() {
   var lv = UI.state.level ? 0 : 1;
   UI.set({ level: lv });
-  if (HAVE) UI.set({ val: sys.gpio(pin(), 1, lv) });
+  UI.set({ val: gpio(pin(), 1, lv) });
 }
 
 /* Poll only in the reading modes; renders come free when nothing changed. */
 UI.onTick = function () {
-  if (!HAVE || mode() === 'drive') return;
-  var v = sys.gpio(pin(), mode() === 'adc' ? 2 : 0);
+  if (mode() === 'drive') return;
+  var v = gpio(pin(), mode() === 'adc' ? 2 : 0);
   if (v !== UI.state.val) UI.set({ val: v });
 };
 
 function valueLine() {
-  if (!HAVE) return 'n/a';
   var v = UI.state.val;
   if (v === null || v === undefined) return '...';
   if (v === -1) return 'refused (display/touch pin)';
@@ -65,7 +108,7 @@ function App() {
   return (
     <box h={gfx.height()} scroll="gpio" pad={em(1)} gap={em(0.75)}>
       <text text="GPIO" size={2} align="center" color={UI.theme.accent} />
-      {HAVE ? null : <text text="host has no gpio" size={1} align="center"
+      {HAVE ? null : <text text="simulated - no gpio native" size={1} align="center"
                            color={UI.theme.warn} />}
 
       <row gap={em(0.5)} align="center">
@@ -96,3 +139,8 @@ function App() {
 }
 
 UI.mount(App);
+/* Seed the first frame on a simulated board so a single-frame render (the
+   gallery, a golden) shows a live reading rather than '...'. The native
+   path is left untouched: there, the first tick does the first read, as
+   it always has. */
+if (!HAVE) UI.set({ val: gpio(pin(), 0) });

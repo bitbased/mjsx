@@ -7,7 +7,12 @@ core actually invokes, verified against the source.
 
 Coordinates are pixels. Colours are 24-bit `0xRRGGBB` everywhere; the
 backend converts to its own depth (5-6-5 on the panels, RGB bytes in the
-pure-js buffer).
+pure-js buffer). The conversion is *not* lossless on every host and an
+app must not compare exact colours across backends: the terminal emits
+true-colour SGR only when `COLORTERM` says the terminal can take it and
+otherwise quantises to the xterm-256 cube
+(`backends/terminal/src/backend.js`), and the glass emulator quantises
+its anti-aliased text and corners through RGB565 to match the panel.
 
 ## The ten calls
 
@@ -33,7 +38,14 @@ Plus:
 That is the whole required surface. The ESP32 stdlib definition
 (`backends/esp32/engine/native_api.c`) declares exactly these tables; the
 same names bind to C functions there and to plain JS functions in
-`backends/pure-js/src/backend.js`.
+`backends/pure-js/src/backend.js`. "Exactly" is literal — that table has
+ten `gfx` entries and six `sys` entries and nothing else, so the in-tree
+ESP32 target has no `poly` and no `blit`; the device-side ones come from
+the out-of-tree firmware plus `backends/esp32/tools/device-shim.js`.
+
+For where each backend in this repo actually lands against the surface
+below — including where one does not honour it — see
+[`consistency.md`](consistency.md).
 
 ## Optional
 
@@ -43,18 +55,38 @@ without them:
 - **`sys.store(key, value)` / `sys.fetch(key)`** — a persistent string
   key/value store, the backing for `configStorage` (see below).
   `fetch` returns the stored string, or `''` for a missing key. On the
-  device this is NVS ("the app's settings survive a power cycle"); the
-  `hello-mjsx` firmware in this repo currently stubs both to no-ops.
+  device this is NVS ("the app's settings survive a power cycle").
   Without them `configStorage` falls back to `localStorage` (prefixed
   `mjsx.`) and then to plain memory.
+
+  **Provide both or neither.** `configStorage` binds on
+  `typeof sys.fetch === 'function'`, so a *present but stubbed* pair is
+  worse than an absent one: it wins the check and the `localStorage` /
+  memory fallbacks never run, which turns every `set` into a silent drop
+  and every `get` into its default — within one session, not just across
+  power cycles. One host in this tree does exactly that today: the
+  `hello-mjsx` firmware's `sysNStore` / `sysNFetch`
+  (`backends/esp32/firmware/hello-mjsx/hello-mjsx.ino` l.49-50), so
+  `configStorage` — and therefore `UI.isRound()` — cannot work on it. The
+  terminal backend had the same defect and was fixed; it now keeps a
+  session `storeMap`. See `docs/consistency.md` (D1).
 - **`gfx.poly(polys, color, rule)`** — fill polygons given as a list of
   point-lists (`{x, y}` floats, logical coordinates), `rule` is
   `'nonzero'` or `'evenodd'`. When present, the `path` element hands its
   stroke outlines and fills here so the backend can rasterize at device
   resolution; when absent the core scanline-fills through `frect` itself.
+  That signature is the one the *core* calls. The ESP32 device path is
+  not the same shape: `backends/esp32/tools/device-shim.js` re-encodes
+  the rings into a base-127 packed string and hands *that* to the
+  firmware's native `poly`, precisely so a whole polygon crosses the
+  JS/C boundary as one value. A JS backend takes arrays; a native one
+  takes the packed string. The shim is the only translator.
 - **`gfx.blit(src, x, y, w, h)`** — composite external pixels (a camera
   frame, a bitmap) for the `canvas` element. Backends without it get a
-  crossed placeholder frame instead.
+  crossed placeholder frame instead. No backend in this repo implements
+  it: every in-tree host draws the placeholder, and the only real `blit`
+  is the one `device-shim.js` passes through when the firmware under it
+  has one.
 - **`sys.beep(ok)` / `sys.tone(hz, ms)` / `sys.exit()`** — declared in the
   ESP32 native-api for apps; the core itself never calls them.
 - **Font metrics** — the core defaults to a fixed-width bitmap metric
@@ -65,6 +97,16 @@ without them:
   `UI.scrollQuantum` similarly aligns scroll offsets — the terminal
   backend sets both (`backends/terminal/src/run.js`).
 
+  This is a **runner** responsibility, not a backend one, and it is easy
+  to forget: the pure-js backend reports its metrics as `backend.font`
+  but `backends/pure-js/src/run.js` and `backends/http/src/server.js` do
+  not copy them onto `FONT`, so layout measures with the linear default
+  (advance 6/size) while the rasterizer draws the ladder font (advance 7
+  at size 2). Centred and right-aligned text is visibly displaced as a
+  result. `backends/sdl/src/run.js` shows the three lines to copy
+  (l.68-70). See
+  `docs/consistency.md` (D2).
+
 ## Host-declared facts
 
 The host tells the app about the glass through `configStorage`:
@@ -72,7 +114,11 @@ The host tells the app about the glass through `configStorage`:
 - **`round`** — `'1'` means round glass. `UI.isRound()` reads it once
   (`configStorage.get('round', '0') === '1'`) and caches the answer.
   A firmware seeds the key through `sys.store`; web and sim leave it
-  unset, so the answer defaults to square.
+  unset, so the answer defaults to square. Nothing in `backends/` writes
+  the key — the sim's `--circle` / `SHAPE:CIR` is a *window mask only*,
+  so the sim previews round glass while the app still lays out square.
+  A host that wants the round layouts must set the key itself, before the
+  first `UI.isRound()` call, because the answer is cached from then on.
 
 ## Driving the engine
 
@@ -99,6 +145,18 @@ surface. Feed input with `UI.pointer(id, phase, x, y)` and
 Under MicroQuickJS the core is eval'd flat and `h`/`UI`/`configStorage`
 land as globals; under Node/Bun it is also loadable as a CommonJS module.
 Same file, no branching on the host.
+
+One asymmetry to know about when writing an app that must run both ways:
+the CommonJS form makes those names *exports*, and a runner has to put
+them back on `globalThis` by hand. Every runner in this tree wires `h`,
+`UI`, `Button`, `Swatch`, `em`, `Modal`, `Keyboard` and `ArcFooter` — and
+only the three terminal runners also wire `configStorage`. So an app that
+reads `configStorage` bare works on device and under `backends/terminal/**`,
+and throws `ReferenceError` under `backends/pure-js/src/run.js`,
+`backends/http/src/server.js`, `backends/sdl/src/run.js`,
+`backends/sdl/src/sim.js` and `test/load.js`. Until those five are fixed,
+either add the line yourself or reach it through the module. See
+`docs/consistency.md` (D3).
 
 ## Worked example
 

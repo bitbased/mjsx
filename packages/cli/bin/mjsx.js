@@ -4,7 +4,17 @@
  * the ESP32 bundle-push tooling, and the bridge firmware's HTTP and
  * serial protocols. Plain JS, no dependencies; `mjsx device wifi` alone
  * asks for the serialport package and says so when it is missing.
+ *
+ * Two guarantees this file enforces for every command:
+ *   - it exits. main() resolving is the end of the process, whatever
+ *     sockets, watchers or pooled connections are still open underneath.
+ *     Waiting for the event loop to drain is what made `fleet ls` hang
+ *     after it had already printed its results.
+ *   - it fails in one line. Anything thrown reaches one handler that
+ *     prints a sentence; --debug adds the stack.
  */
+var U = require('../src/util.js');
+
 var HELP = 'usage: mjsx <command> ...\n' +
   '\n' +
   '  dev [example]                    device sim in a window + browser mirror\n' +
@@ -14,21 +24,47 @@ var HELP = 'usage: mjsx <command> ...\n' +
   '  device wifi <port|auto> ...      provision WiFi over USB serial\n' +
   '  fleet ls|push|ota ...            the same, across every board on the LAN\n' +
   '\n' +
+  'Every command runs to a deadline and exits; network steps take --timeout\n' +
+  '(and discovery --wait) as seconds, or with an ms/s suffix.\n' +
+  '\n' +
+  '  --debug   print the stack behind a failure, not just the message\n' +
+  '\n' +
   'mjsx <command> --help shows each command\'s details.';
 
-var table = { dev: 1, run: 1, push: 1, ota: 1, device: 1, fleet: 1 };
-var argv = process.argv.slice(2);
+var COMMANDS = ['dev', 'run', 'push', 'ota', 'device', 'fleet'];
+
+/* --debug is global: strip it here so no command forwards it onward
+   (mjsx dev passes its flags straight through to the sim). */
+var argv = [];
+var raw = process.argv.slice(2);
+for (var i = 0; i < raw.length; i++) {
+  if (raw[i] === '--debug') U.setDebug(true);
+  else argv.push(raw[i]);
+}
+
 var cmd = argv.shift();
 
-if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
+if (cmd === 'help' || cmd === '--help' || cmd === '-h') {
   console.log(HELP);
-  process.exit(cmd ? 0 : 1);
+  process.exit(0);
 }
-if (!table[cmd]) {
-  console.error('unknown command: ' + cmd + '\n\n' + HELP);
+if (!cmd) {
+  console.error('mjsx: no command given — try one of: ' + COMMANDS.join(', ') + ' (mjsx --help)');
   process.exit(1);
 }
-Promise.resolve(require('../src/' + cmd + '.js').main(argv)).catch(function (e) {
-  console.error(e && e.message ? e.message : String(e));
+if (COMMANDS.indexOf(cmd) === -1) {
+  console.error('mjsx: unknown command "' + cmd + '" — try one of: ' + COMMANDS.join(', ') + ' (mjsx --help)');
   process.exit(1);
-});
+}
+
+function crash(e) {
+  U.report(e, cmd);
+  process.exit(1);
+}
+process.on('unhandledRejection', crash);
+process.on('uncaughtException', crash);
+
+Promise.resolve(require('../src/' + cmd + '.js').main(argv)).then(function () {
+  /* Explicit: the work is done, so the process is done. */
+  process.exit(0);
+}, crash);
