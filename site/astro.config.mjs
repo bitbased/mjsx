@@ -59,9 +59,25 @@ function publicDirIndexes() {
     hooks: {
       'astro:server:setup': ({ server }) => {
         const PUBLIC = fileURLToPath(new URL('./public/', import.meta.url));
-        server.middlewares.use((req, _res, next) => {
+        server.middlewares.use((req, res, next) => {
           const [path, rest] = req.url.split(/(?=[?#])/);
-          if (path.endsWith('/') && path !== '/') {
+          if (path === '/') return next();
+
+          /* /landing -> /landing/ as a REDIRECT, not a rewrite. The chooser
+             links to its siblings relatively (`oscilloscope/`), and a
+             relative href on a slashless URL resolves against the PARENT:
+             serving the page at /landing would send those links to
+             /oscilloscope/. A static host redirects here for the same
+             reason, so dev matching it keeps the two honest. */
+          if (!path.endsWith('/') && existsSync(join(PUBLIC, path, 'index.html'))) {
+            res.statusCode = 301;
+            res.setHeader('Location', path + '/' + (rest || ''));
+            res.end();
+            return;
+          }
+          /* and /landing/ -> /landing/index.html, which `astro dev` does
+             not do for anything under public/ */
+          if (path.endsWith('/')) {
             const candidate = join(PUBLIC, path, 'index.html');
             if (existsSync(candidate)) req.url = path + 'index.html' + (rest || '');
           }

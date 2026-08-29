@@ -554,7 +554,7 @@ table { max-width: 100%; }
   </div>
 
   <div class="lede measure">
-    <p>The engine is one file. <span class="mono">packages/core/src/mjsx.js</span> holds all of it in 2,514 lines: <span class="mono">h()</span>, the layout pass, hit&#8209;testing, and the touch state machine. There is no virtual DOM in it and no reconciler &mdash; a frame that is dirty is redrawn from the top, and the rectangle you can tap is registered at the exact rectangle that was drawn, so the two cannot drift apart.</p>
+    <p>The engine is one file. <span class="mono">packages/core/src/mjsx.js</span> holds all of it in 2,526 lines: <span class="mono">h()</span>, the layout pass, hit&#8209;testing, and the touch state machine. There is no virtual DOM in it and no reconciler &mdash; a frame that is dirty is redrawn from the top, and the rectangle you can tap is registered at the exact rectangle that was drawn, so the two cannot drift apart.</p>
     <p>Below that file there is a line, and below the line there are exactly ten drawing calls. Everything that has ever been ported is those ten.</p>
     <p class="byline">Written in an ES5 subset on purpose &mdash; the same characters run on a chip&rsquo;s embedded interpreter and in a browser, with nothing transpiled between them.</p>
   </div>
@@ -864,7 +864,7 @@ table { max-width: 100%; }
       <p>It was ported out of a working ESP32 firmware&rsquo;s interface code and generalised until nothing in it assumed a board, an engine, or a particular way of turning a draw call into pixels. It drives four boards daily and it is written by one person for the pleasure of it.<span class="endmark" aria-hidden="true"></span></p>
     </div>
     <div class="imprint">
-      <div><b>Engine</b> &nbsp;packages/core/src/mjsx.js &mdash; 2,514 lines</div>
+      <div><b>Engine</b> &nbsp;packages/core/src/mjsx.js &mdash; 2,526 lines</div>
       <div><b>Transpiler</b> &nbsp;packages/core/src/jsx.js &mdash; 312 lines</div>
       <div><b>Contract</b> &nbsp;ten gfx calls &middot; one clock</div>
       <div><b>Dialect</b> &nbsp;ES5, MicroQuickJS&#8209;safe</div>

@@ -259,6 +259,50 @@ describe('documentation', function () {
     expect(read('consistency.md')).toContain(n + ' hashes');
   });
 
+  it('the line counts the landing pages quote are current', function () {
+    /* Those pages stake their credibility on every number being measured
+       rather than claimed — one of them says so in as many words. An exact
+       line count is the most fragile kind of number there is: all six said
+       2,514 within a day of the core reaching 2,526. */
+    var LANDING = path.join(ROOT, 'site/public/landing');
+    if (!fs.existsSync(LANDING)) return;
+    var counts = {
+      'packages/core/src/mjsx.js': null,
+      'packages/core/src/jsx.js': null
+    };
+    Object.keys(counts).forEach(function (f) {
+      counts[f] = fs.readFileSync(path.join(ROOT, f), 'utf8').split('\n').length - 1;
+    });
+    var core = counts['packages/core/src/mjsx.js'].toLocaleString('en-US');
+    var jsx = String(counts['packages/core/src/jsx.js']);
+
+    var stale = [];
+    function walk(dir) {
+      fs.readdirSync(dir, { withFileTypes: true }).forEach(function (e) {
+        var full = path.join(dir, e.name);
+        if (e.isDirectory()) return walk(full);
+        if (e.name !== 'index.html') return;
+        /* tags stripped: these pages set the number in its own element
+           ("312</b> lines of transpiler"), so the words and the digits are
+           not adjacent in the source */
+        var html = fs.readFileSync(full, 'utf8').replace(/<[^>]+>/g, '');
+        var m, re = /([\d,]{4,}) lines of core/g;
+        while ((m = re.exec(html))) {
+          if (m[1] !== core) {
+            stale.push(path.relative(ROOT, full) + ': says ' + m[1] +
+                       ' lines of core, actual ' + core);
+          }
+        }
+        if (html.indexOf(jsx + ' lines of transpiler') < 0 &&
+            html.indexOf('lines of transpiler') >= 0) {
+          stale.push(path.relative(ROOT, full) + ': transpiler count is not ' + jsx);
+        }
+      });
+    }
+    walk(LANDING);
+    expect(stale).toEqual([]);
+  });
+
   it('every page has a written label in the sidebar', function () {
     /* A page not placed in a group still appears, but under its raw
        filename — `shapes` and `shots` sat in lowercase next to written
