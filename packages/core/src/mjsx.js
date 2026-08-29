@@ -1032,34 +1032,80 @@ function kbOkKey(kh, w) {
   return kbKey('OK', function () { kbSend('Enter'); }, { h: kh, w: w, bg: UI.theme.accent });
 }
 
-function kbQwerty(kh) {
+function kbQwerty(kh, availW) {
   var letters = KB.page === 0;
   /* two symbol pages: #+= flips between them, so every glyph the face
      carries is typeable -- brackets, backslash, pipe, tilde, backtick */
   var sym2 = KB.page === 2;
+  /* Row three carries nine keys, two of which are LABELLED rather than a
+     single glyph. On a narrow row each cell falls under the width of a
+     three-character label and the text is dropped outright -- a shift key
+     and a backspace with nothing written on them. Measure the cell and
+     use single-glyph labels when that is what fits. */
+  var r3cell = Math.floor(((availW || gfx.width()) - 8 * 2) / 9);
+  var tight = r3cell < fadv(1) * 3 + 6;
   var r3k = kbCharRow(letters ? 'zxcvbnm' : (sym2 ? '`$&"\':;' : '_"\':;!?'), kh);
-  r3k.unshift(kbKey(letters ? (KB.shift ? 'ABC' : 'abc') : (sym2 ? '123' : '#+='),
+  var shiftLbl = letters ? (KB.shift ? 'ABC' : 'abc') : (sym2 ? '123' : '#+=');
+  if (tight) shiftLbl = letters ? (KB.shift ? 'A' : 'a') : (sym2 ? '1' : '#');
+  r3k.unshift(kbKey(shiftLbl,
     function () {
       if (letters) KB.shift = KB.shift ? 0 : 1;
       else KB.page = sym2 ? 1 : 2;
       UI._dirty = true;
     },
     { h: kh, bg: KB.shift && letters ? UI.theme.accent : UI.theme.panel }));
-  r3k.push(kbDelKey(kh));
+  r3k.push(tight
+    ? kbKey('<', function () { kbSend('Backspace'); },
+        { h: kh, bg: UI.theme.panel,
+          onHold: function () { kbSend('Backspace'); }, holdEvery: 120 })
+    : kbDelKey(kh));
   return [
     h('row', { gap: 2 }, kbCharRow(letters ? 'qwertyuiop' : (sym2 ? '[]{}<>()^~' : '1234567890'), kh)),
     h('row', { gap: 2 }, kbCharRow(letters ? 'asdfghjkl' : (sym2 ? '*/\\|=+-#%' : '@#$%&-+()'), kh)),
     h('row', { gap: 2 }, r3k),
-    h('row', { gap: 2 }, [
-      kbKey(letters ? '123' : 'abc',
-        function () { KB.page = letters ? 1 : 0; UI._dirty = true; },
-        { h: kh, w: em(5), bg: UI.theme.panel }),
-      kbKey(',', function () { kbTapChar(','); }, { h: kh, w: em(3) }),
-      kbKey('SPACE', function () { kbSend(' '); }, { h: kh }),
-      kbKey('.', function () { kbTapChar('.'); }, { h: kh, w: em(3) }),
-      kbOkKey(kh, em(5))
-    ])
+    kbBottomRow(kh, availW)
   ];
+}
+
+/* The QWERTY bottom row, fitted to the width it actually gets.
+ *
+ * Its side keys are FIXED width, so on a narrow row (a phone in portrait,
+ * and above all the bottom chord of round glass) the fixed keys eat the
+ * whole row and SPACE -- the only flexing key -- collapses to nothing.
+ * A keyboard with no space bar is not a keyboard, so the row sheds and
+ * shrinks in a deliberate order instead: punctuation goes first (both
+ * marks live on the symbol page anyway), then the side keys narrow, and
+ * SPACE keeps a finger's width throughout.
+ */
+function kbBottomRow(kh, availW) {
+  var letters = KB.page === 0;
+  var W = availW || gfx.width();
+  var side = em(5), punct = em(3), minSpace = em(4), gap = 2;
+  var need = function (nPunct, s) { return s * 2 + punct * nPunct + minSpace + gap * (3 + nPunct); };
+  var nP = 2;
+  if (need(2, side) > W) nP = 0;              /* drop , and . */
+  if (need(nP, side) > W) {                    /* still tight: narrow the sides */
+    side = Math.floor((W - minSpace - gap * (3 + nP) - punct * nP) / 2);
+    if (side < em(2.5)) side = em(2.5);
+  }
+  /* a side key too narrow for its three-character label gets one glyph,
+     for the same reason row three does */
+  var lbl = letters ? '123' : 'abc';
+  var okLbl = 'OK';
+  if (side < fadv(1) * 3 + 6) { lbl = letters ? '1' : 'a'; }
+  var spLbl = 'SPACE';
+  var ks = [kbKey(lbl,
+    function () { KB.page = letters ? 1 : 0; UI._dirty = true; },
+    { h: kh, w: side, bg: UI.theme.panel })];
+  if (nP) ks.push(kbKey(',', function () { kbTapChar(','); }, { h: kh, w: punct }));
+  /* SPACE is what is left over; if that is narrower than its own label,
+     say it with an underscore rather than rendering a blank slab */
+  var spW = W - side * 2 - punct * nP - gap * (3 + nP);
+  if (spW < fadv(1) * 5 + 6) spLbl = '___';
+  ks.push(kbKey(spLbl, function () { kbSend(' '); }, { h: kh }));
+  if (nP) ks.push(kbKey('.', function () { kbTapChar('.'); }, { h: kh, w: punct }));
+  ks.push(kbOkKey(kh, side));
+  return h('row', { gap: gap }, ks);
 }
 
 function kbNumbers(kh) {
@@ -1172,13 +1218,20 @@ function kbT9(kh) {
 var STRIP_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789.,!?@#$%&-_+()/:;\'"*=';
 /* the symbol strip, a LONG PRESS of abc away: everything the face has */
 var STRIP_SYMS = '.,!?@#$%&-_+()/:;\'"*=<>[]{}\\|~^\u0060';
-function kbStrip(kh) {
+function kbStrip(kh, availW) {
   var adv = fadv(2);
   var cell = adv * 2;
   var chars = KB.stripSym ? STRIP_SYMS : kbCap(STRIP_CHARS);
   var contentW = chars.length * cell;
+  var fullW = availW || gfx.width();
   var sideW = em(4);
-  var stripW = gfx.width() - 8 - sideW * 2 - 4;   /* keyboard pad 4, row gap 2 */
+  /* the two side keys must not crowd the strip out: keep it at least a
+     few characters wide however narrow the row is */
+  if (sideW * 2 + cell * 3 + 12 > fullW) {
+    sideW = Math.floor((fullW - cell * 3 - 12) / 2);
+    if (sideW < em(2)) sideW = em(2);
+  }
+  var stripW = fullW - 8 - sideW * 2 - 4;   /* keyboard pad 4, row gap 2 */
   var maxOff = contentW - stripW;
   if (maxOff < 0) maxOff = 0;
   if (KB.strip > maxOff) KB.strip = maxOff;
@@ -1220,7 +1273,9 @@ function kbStrip(kh) {
     ]),
     h('row', { gap: 2 }, [
       kbKey('SPACE', function () { kbSend(' '); }, { h: kh }),
-      kbOkKey(kh, em(6))
+      /* OK is fixed-width and SPACE is the flexing one, so a narrow row
+         would starve the space bar; cap OK at a third of the row. */
+      kbOkKey(kh, Math.min(em(6), Math.floor(fullW / 3)))
     ])
   ];
 }
@@ -1283,11 +1338,16 @@ function Keyboard(p) {
   /* The panel is ~40 nodes rebuilt per keystroke without this; its real
      inputs are just these. KB.strip rebuilds per drag frame (the offset
      is a prop); everything read at DRAW time needs no dep. */
+  /* The width a row really gets, which is what the fixed-width keys in the
+     bottom rows must fit inside: the panel's own padding off the display,
+     and on round glass the chord where the keys sit rather than the
+     bounding box. */
+  var rowW = (UI.isRound() ? kbW : gfx.width()) - 8;
   function kbRows() {
     if (layout === 'numbers') return kbNumbers(kh);
     if (layout === 't9') return kbT9(kh);
-    if (layout === 'strip') return kbStrip(kh);
-    return kbQwerty(kh);
+    if (layout === 'strip') return kbStrip(kh, rowW);
+    return kbQwerty(kh, rowW);
   }
   var rows = null; /* built lazily; the exclusive branch always builds fresh */
   var pos = pos0;
@@ -1339,11 +1399,20 @@ function Keyboard(p) {
     if (xkh < kh) xkh = kh;
     var xMax = (flh(2) + 2) * 3;
     if (xkh > xMax) xkh = xMax;
+    /* Exclusive rows are as wide as the display less the outer pad and the
+       panel pad -- except on round glass, where the row that matters is the
+       BOTTOM one (nearest the rim, narrowest chord, and the one carrying
+       the fixed-width side keys around SPACE). */
+    var xPanelH0 = 8 + rowsN * xkh + (rowsN - 1) * 2;
+    var xLastTop = gfx.height() - 6 - xPanelH0 + 4 + (rowsN - 1) * (xkh + 2);
+    var xRowW = UI.isRound()
+      ? kbChordHW(xLastTop, xLastTop + xkh) * 2 - 8
+      : gfx.width() - 12 - 8;
     var xrows;
     if (layout === 'numbers') xrows = kbNumbers(xkh);
     else if (layout === 't9') xrows = kbT9(xkh);
-    else if (layout === 'strip') xrows = kbStrip(xkh);
-    else xrows = kbQwerty(xkh);
+    else if (layout === 'strip') xrows = kbStrip(xkh, xRowW);
+    else xrows = kbQwerty(xkh, xRowW);
     var xMirror = h('row', { gap: 4 }, [
       h('input', { id: UI._focus, size: xsz, password: xp.password,
                    maxLen: xp.maxLen, placeholder: xp.placeholder, label: xp.label,
