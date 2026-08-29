@@ -269,7 +269,7 @@ h(Keyboard, { layout: kb, position: pos, height: Math.floor(gfx.height() / 2.6) 
 | Page | The question it answers |
 |---|---|
 | [getting-started.md](/getting-started) | Install, run an example in a window and in the terminal, write a first app, push it to a board. |
-| [../examples/README.md](../examples/README.md) | The fourteen shipped examples and what each one demonstrates. Every one is a single flat `app.jsx` with no imports and no build step. |
+| ../examples/README.md (`examples/README.md` in the repo) | The fourteen shipped examples and what each one demonstrates. Every one is a single flat `app.jsx` with no imports and no build step. |
 
 <div class="shapes">
   <input type="radio" name="sw-ex-hello-6" id="sw-ex-hello-6-0">
@@ -798,7 +798,7 @@ theme: {
 
 | Page | The question it answers |
 |---|---|
-| [../CONTRIBUTING.md](../CONTRIBUTING.md) | The one hard rule (the core file stays in the MicroQuickJS ES5 subset), how to add an example, and how to add a backend. |
+| ../CONTRIBUTING.md (`CONTRIBUTING.md` in the repo) | The one hard rule (the core file stays in the MicroQuickJS ES5 subset), how to add an example, and how to add a backend. |
 
 <div class="shapes">
   <input type="radio" name="sw-ex-hello-20" id="sw-ex-hello-20-0" checked>

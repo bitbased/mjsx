@@ -196,3 +196,40 @@ html:has(iframe.sim-embed.compact):not(:has(iframe.sim-embed:not(.compact)))
   /* the sticky column needs something to sit against when scrolled */
   background: var(--sl-color-bg);
 }
+
+/* A CODE SPAN IN A TABLE MUST NOT WRAP.
+   docs/contract.md is the reference page for the ten calls, and its
+   signature column was breaking mid-argument — `gfx.rect(x, y, w,` on one
+   line and `h, color, radius)` on the next. That is not a signature any
+   more, it is two fragments, and it happened on the page where getting it
+   exactly right matters most.
+
+   Prose in a cell still wraps; only the code holds together, and the
+   column sizes to the longest one. If that ever makes a table wider than
+   its column, .table-scroll catches it — but a wrapped identifier is
+   always wrong, where a scrollbar is merely a last resort. */
+.sl-markdown-content :is(td, th) code {
+  white-space: nowrap;
+}
+/* let the signature column take the width it needs, rather than an even
+   share that forces the break */
+.table-scroll > table { table-layout: auto; }
+
+/* A LONG CODE TOKEN MUST BREAK RATHER THAN RUN OFF THE PAGE.
+   `docs/img/shape-input-round128-round128.png` and
+   `bun scripts/shoot.mjs …` have no break opportunity a normal wrap can
+   use, so in a 45rem column — and much worse on a phone — they ran
+   straight out of the article. Measured at 420px: code spans reaching
+   780px in a 405px viewport.
+
+   break-word only breaks when there is no better option, so ordinary
+   identifiers still wrap at their own edges. Table cells keep nowrap
+   (a wrapped signature is worse than a scrollbar) and .table-scroll
+   catches the overflow there. */
+.sl-markdown-content code,
+.sl-markdown-content kbd {
+  overflow-wrap: break-word;
+}
+.sl-markdown-content :is(td, th) code {
+  overflow-wrap: normal;
+}

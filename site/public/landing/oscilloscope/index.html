@@ -501,7 +501,7 @@
   table {
     border-collapse: collapse;
     width: 100%;
-    min-width: 540px;
+    min-width: min(540px, 100%);
     font-family: var(--mono);
     font-size: 12.5px;
   }
@@ -749,6 +749,23 @@
       transition-duration: 0.001ms !important;
     }
   }
+
+/* A TABLE MUST NOT PUSH THE PAGE SIDEWAYS.
+   Audited at 420px: these tables were wider than the viewport, so the
+   whole page scrolled horizontally on a phone. Below the breakpoint a
+   table scrolls inside its own box instead; above it, nothing changes. */
+@media (max-width: 760px) {
+  table { display: block; overflow-x: auto; max-width: 100%; }
+}
+table { max-width: 100%; }
+
+/* A GRID CHILD DOES NOT SHRINK BELOW ITS CONTENT unless told to: the
+   default min-width is `auto`, so a long line of code inside a panel set
+   the column's width and pushed the page sideways on a phone (measured:
+   557px of content in a 405px viewport). min-width:0 lets the column
+   shrink; the code block then scrolls inside its own box. */
+.cols > * { min-width: 0; }
+pre.code { overflow-x: auto; max-width: 100%; }
 </style>
 </head>
 <body>

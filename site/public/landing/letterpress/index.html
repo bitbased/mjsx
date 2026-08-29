@@ -90,7 +90,7 @@ body{
   text-rendering: optimizeLegibility;
   font-kerning: normal;
 }
-@media (min-width: 900px){ body{ font-size: 18px; } }
+@media (min-width: min(900px, 100%)){ body{ font-size: 18px; } }
 
 .sheet{
   max-width: 1180px;
@@ -220,7 +220,7 @@ section{ padding-top: clamp(46px, 7vw, 96px); }
   display:block; font-family: var(--mono); font-size: 10px; letter-spacing:.16em;
   text-transform: uppercase; color: var(--spot); margin-bottom: .45em;
 }
-@media (min-width: 1140px){
+@media (min-width: min(1140px, 100%)){
   .with-rail{ padding-right: 16.5rem; }
   .note{
     float: right; clear: right;
@@ -341,7 +341,7 @@ caption.tcap{
 
 /* ------------------------------------------------------- FRAME FIGURE */
 .frame-fig{ display: grid; gap: clamp(18px,3vw,34px); grid-template-columns: 1fr; }
-@media (min-width: 760px){ .frame-fig{ grid-template-columns: auto minmax(0,1fr); align-items: start; } }
+@media (min-width: min(760px, 100%)){ .frame-fig{ grid-template-columns: auto minmax(0,1fr); align-items: start; } }
 .panel-mount{ display:flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .panel-hold{
   border: 1px solid var(--ink);
@@ -396,15 +396,15 @@ caption.tcap{
 .plate svg{ display:block; width: 100%; height: auto; }
 /* the fleet plate stops shrinking before its dimension labels stop being readable */
 .plate-scroll{ overflow-x: auto; }
-.plate-scroll svg{ min-width: 520px; }
+.plate-scroll svg{ min-width: min(520px, 100%); }
 .drag-note{ display: none; float: right; text-transform: none; letter-spacing: .04em; }
 @media (max-width: 700px){ .drag-note{ display: inline; } }
 .plate-row{
   display: grid; gap: clamp(20px,3.4vw,40px);
   grid-template-columns: 1fr;
 }
-@media (min-width: 720px){ .plate-row.three{ grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 620px){ .plate-row.two{ grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: min(720px, 100%)){ .plate-row.three{ grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: min(620px, 100%)){ .plate-row.two{ grid-template-columns: repeat(2, 1fr); } }
 .plate-title{
   font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em;
   text-transform: uppercase; color: var(--ink-3);
@@ -433,7 +433,7 @@ svg .knock{ fill: var(--paper); stroke: none; }   /* dimension-line knockout */
 }
 .dl .item:first-child{ border-top: 1px solid var(--ink); }
 .dl .item:last-child{ border-bottom: 1px solid var(--rule); }
-@media (min-width: 680px){
+@media (min-width: min(680px, 100%)){
   .dl .item{ grid-template-columns: 10.5rem minmax(0,1fr); }
 }
 .dl dt{
@@ -444,7 +444,7 @@ svg .knock{ fill: var(--paper); stroke: none; }   /* dimension-line knockout */
 
 /* -------------------------------------------------------------- NOTES */
 .notes{ list-style: none; margin: 0; padding: 0; }
-@media (min-width: 900px){
+@media (min-width: min(900px, 100%)){
   .notes{ column-count: 2; column-gap: clamp(30px, 4.5vw, 62px); }
 }
 .notes li{
@@ -486,7 +486,7 @@ sup a{ text-decoration: none; color: var(--spot); font-family: var(--mono); font
   display: grid; gap: clamp(20px,3vw,44px); grid-template-columns: 1fr;
   padding-top: 20px;
 }
-@media (min-width: 820px){ .colophon .grid{ grid-template-columns: 1.35fr 1fr; } }
+@media (min-width: min(820px, 100%)){ .colophon .grid{ grid-template-columns: 1.35fr 1fr; } }
 .colophon h2{
   font-family: var(--serif); font-weight: 600; text-transform: uppercase;
   letter-spacing: .2em; font-size: .82rem; margin: 0 0 1.2em; color: var(--ink-3);
@@ -519,6 +519,15 @@ sup a{ text-decoration: none; color: var(--spot); font-family: var(--mono); font
   body{ background:#fff; color:#000; }
   .tog{ display:none; }
 }
+
+/* A TABLE MUST NOT PUSH THE PAGE SIDEWAYS.
+   Audited at 420px: these tables were wider than the viewport, so the
+   whole page scrolled horizontally on a phone. Below the breakpoint a
+   table scrolls inside its own box instead; above it, nothing changes. */
+@media (max-width: 760px) {
+  table { display: block; overflow-x: auto; max-width: 100%; }
+}
+table { max-width: 100%; }
 </style>
 </head>
 <body>

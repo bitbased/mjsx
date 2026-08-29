@@ -380,7 +380,7 @@ td.why { color: var(--dim); }
 /* Narrow screens scroll the table inside its own box rather than crushing
    the meaning column into two words a line. */
 .tablescroll { overflow-x: auto; }
-.tablescroll table { min-width: 520px; }
+.tablescroll table { min-width: min(520px, 100%); }
 
 /* --- code ---------------------------------------------------------------- */
 
@@ -411,7 +411,7 @@ pre.code {
 /* Grid items default to min-width:auto, which lets a wide <pre> refuse to
    shrink and starve its neighbour. */
 .split > * { min-width: 0; }
-@media (min-width: 860px) {
+@media (min-width: min(860px, 100%)) {
   .split.two { grid-template-columns: 1fr 1fr; align-items: start; }
 }
 
@@ -465,6 +465,15 @@ footer.foot {
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   .cursor { animation: none !important; }
 }
+
+/* A TABLE MUST NOT PUSH THE PAGE SIDEWAYS.
+   Audited at 420px: these tables were wider than the viewport, so the
+   whole page scrolled horizontally on a phone. Below the breakpoint a
+   table scrolls inside its own box instead; above it, nothing changes. */
+@media (max-width: 760px) {
+  table { display: block; overflow-x: auto; max-width: 100%; }
+}
+table { max-width: 100%; }
 </style>
 </head>
 <body>

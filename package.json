@@ -27,6 +27,7 @@
     "docs:build": "bun run docs:sync && cd site && bun run build",
     "docs:viewer": "bun scripts/build-viewer.mjs",
     "figures": "bun scripts/shoot.mjs --all --embed-overlay",
-    "lint": "bun scripts/lint.mjs"
+    "lint": "bun scripts/lint.mjs",
+    "audit": "bun scripts/audit-site.mjs"
   }
 }

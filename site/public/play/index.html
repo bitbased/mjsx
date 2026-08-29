@@ -71,7 +71,11 @@
 
   .bar { display:flex; flex-wrap:wrap; gap:1.1rem; align-items:flex-end;
          margin-bottom:1rem; }
-  .group { display:flex; flex-direction:column; gap:.3rem; }
+  /* min-width:0 is what lets a flex item actually shrink — without it the
+     example <select> keeps its content width and pushes the whole page
+     sideways on a phone (measured: 492px of content in a 405px viewport). */
+  .group { display:flex; flex-direction:column; gap:.3rem; min-width:0; max-width:100%; }
+  .group select { max-width:100%; }
   .group > span { font-size:.68rem; text-transform:uppercase; letter-spacing:.09em;
                   color:var(--muted); }
   select, .btn {

@@ -170,7 +170,7 @@ section{padding:clamp(30px,5vw,64px) clamp(16px,3.2vw,44px); border-bottom:1px s
    or table push the whole sheet sideways. Nothing here may do that. */
 .hero > *,.codegrid > *,.two > *,.gnotes > *,.boards > *,.notes li > *{min-width:0}
 .code pre,.plate,.tbl-wrap,.ladder{max-width:100%}
-@media (min-width:940px){ .hero{grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr)} }
+@media (min-width:min(940px, 100%)){ .hero{grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr)} }
 h1{
   font-size:clamp(27px,5.4vw,54px); line-height:1.06; letter-spacing:.005em;
   text-transform:uppercase; margin:0 0 4px;
@@ -211,12 +211,12 @@ figure{margin:0}
   color:var(--ink-3); margin-top:8px; padding:0 2px;
 }
 .scroller{overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch}
-.scroller > svg{min-width:780px}
+.scroller > svg{min-width:min(780px, 100%)}
 .panhint{
   font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:var(--dim);
   text-transform:uppercase; margin-top:8px;
 }
-@media (min-width:840px){ .panhint{display:none} }
+@media (min-width:min(840px, 100%)){ .panhint{display:none} }
 
 /* SVG line vocabulary */
 svg text{font-family:var(--mono)}
@@ -253,7 +253,7 @@ svg text{font-family:var(--mono)}
 .notes p{font-size:14.5px; color:var(--ink-2)}
 
 .gnotes{display:grid; gap:18px 34px; grid-template-columns:1fr}
-@media (min-width:760px){ .gnotes{grid-template-columns:1fr 1fr} }
+@media (min-width:min(760px, 100%)){ .gnotes{grid-template-columns:1fr 1fr} }
 .gnote{border-left:2px solid var(--line-soft); padding-left:16px}
 .gnote h3{
   font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink);
@@ -265,7 +265,7 @@ svg text{font-family:var(--mono)}
 
 /* ============================================================ TABLES == */
 .tbl-wrap{overflow-x:auto; border:1px solid var(--line-soft); background:var(--paper)}
-table{border-collapse:collapse; width:100%; min-width:560px; font-family:var(--mono); font-size:12px}
+table{border-collapse:collapse; width:100%; min-width:min(560px, 100%); font-family:var(--mono); font-size:12px}
 caption{
   text-align:left; font-family:var(--mono); font-size:10.5px; letter-spacing:.14em;
   text-transform:uppercase; color:var(--ink-3); padding:0 0 8px;
@@ -286,7 +286,7 @@ tbody tr:last-child td{border-bottom:0}
 
 /* ============================================================== CODE == */
 .codegrid{display:grid; gap:22px; grid-template-columns:1fr}
-@media (min-width:1000px){ .codegrid{grid-template-columns:1.25fr .95fr} }
+@media (min-width:min(1000px, 100%)){ .codegrid{grid-template-columns:1.25fr .95fr} }
 .code{
   border:1px solid var(--line-soft); background:var(--paper);
   font-family:var(--mono); font-size:12.5px; line-height:1.75;
@@ -319,7 +319,7 @@ tbody tr:last-child td{border-bottom:0}
 
 /* =========================================================== ROUND ==== */
 .two{display:grid; gap:22px; grid-template-columns:1fr}
-@media (min-width:860px){ .two{grid-template-columns:1fr 1fr} }
+@media (min-width:min(860px, 100%)){ .two{grid-template-columns:1fr 1fr} }
 .ladder{
   border:1px solid var(--line-soft); background:var(--paper); font-family:var(--mono); font-size:12px;
 }
@@ -337,9 +337,9 @@ tbody tr:last-child td{border-bottom:0}
 
 /* ====================================================== TITLE BLOCK === */
 .title-block{border:1px solid var(--line); display:grid; grid-template-columns:1fr; font-family:var(--mono)}
-@media (min-width:720px){ .title-block{grid-template-columns:2fr 1fr 1fr} }
+@media (min-width:min(720px, 100%)){ .title-block{grid-template-columns:2fr 1fr 1fr} }
 .tbcell{border-top:1px solid var(--line-soft); padding:11px 14px}
-@media (min-width:720px){
+@media (min-width:min(720px, 100%)){
   .tbcell{border-left:1px solid var(--line-soft)}
   .tbcell.c1{border-left:0}
 }
@@ -367,6 +367,15 @@ footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
 @media (prefers-reduced-motion: reduce){
   .reveal.armed{clip-path:none !important; transition:none !important}
 }
+
+/* A TABLE MUST NOT PUSH THE PAGE SIDEWAYS.
+   Audited at 420px: these tables were wider than the viewport, so the
+   whole page scrolled horizontally on a phone. Below the breakpoint a
+   table scrolls inside its own box instead; above it, nothing changes. */
+@media (max-width: 760px) {
+  table { display: block; overflow-x: auto; max-width: 100%; }
+}
+table { max-width: 100%; }
 </style>
 </head>
 <body>
@@ -1326,12 +1335,15 @@ footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
   for (i = 0; i < plates.length; i++) {
     var el = plates[i];
     if (el.getBoundingClientRect().top > window.innerHeight * 0.9) {
-      el.className += ' armed';
+      el.classList.add('armed');
       armed.push(el);
     }
   }
   function release(el) {
-    if (el.className.indexOf(' drawn') === -1) el.className += ' drawn';
+    /* classList, not className: on an SVG element className is an
+       SVGAnimatedString — no indexOf, and assigning a string is a
+       no-op. The plates ARE svg, so this threw on every reveal. */
+    el.classList.add('drawn');
   }
   var io = new IntersectionObserver(function (entries) {
     for (var n = 0; n < entries.length; n++) {

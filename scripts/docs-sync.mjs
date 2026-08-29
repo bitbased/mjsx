@@ -168,6 +168,7 @@ function runLink(m) {
 
 let switchers = 0;
 let embeds = 0;
+let climbed = 0;
 let swSeq = 0;
 let playLinks = 0;
 let imgCount = 0;
@@ -328,11 +329,14 @@ for (const f of readdirSync(DOCS)) {
     return `](/${target}${hash || ''})`;
   });
 
-  /* links that climb out of docs/ cannot resolve once served */
-  const climbs = md.match(/\]\(\.\.\/[^)]+\)/g);
-  if (climbs) {
-    warnings.push(`${f}: ${climbs.length} link(s) outside docs/ will not resolve on the site (${climbs[0]})`);
-  }
+  /* Links that climb out of docs/ (../CONTRIBUTING.md) point at repo files
+     the site does not serve, so they 404 for every reader. Until there is
+     a public repo to point at, keep the LABEL and drop the link, with the
+     path shown as code so it is still findable in a checkout. */
+  md = md.replace(/\[([^\]]+)\]\((\.\.\/[^)]+)\)/g, (whole, label, target) => {
+    climbed++;
+    return label + ' (`' + target.replace(/^\.\.\//, '') + '` in the repo)';
+  });
 
   /* Nothing may still point at a page-relative img/. This is an ERROR
      rather than a warning: a broken image looks like a broken feature, and
@@ -380,6 +384,7 @@ writeFileSync(join(ROOT, 'site', 'public', 'figures.json'), JSON.stringify(figur
 console.log(`synced ${pages} page(s) and ${imgCount} image(s) into site/`);
 console.log(`  ${figures.length} figure(s) carry draw ops (viewer index written)`);
 console.log(`  ${switchers} shape switcher(s), ${embeds} embedded simulator(s), ${playLinks} simulator link(s)`);
+if (climbed) console.log(`  ${climbed} link(s) out of docs/ turned into plain text (they 404 on the site)`);
 for (const w of warnings) console.log('  warn: ' + w);
 if (broken.length) {
   for (const b of broken) console.error('  ERROR: ' + b);
