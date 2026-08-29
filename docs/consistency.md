@@ -243,9 +243,9 @@ reserves 12px/char at size 2; the glyph is 7px. Measurements above.
 `scripts/render-examples.mjs` drives `run.js`, so the whole committed
 gallery (`out/gallery/*.png`) is rendered with mis-centred text.
 `test/load.js` inherits the same gap, so the tests cannot see it — and
-the golden matrix that grew during this audit (45 hashes across three
-shapes, `test/golden/matrix.js`) is seeded through that same unsynced
-loader, which locks the mismatch in.
+the golden matrix (`test/golden/matrix.js`, 70 hashes across the five
+shapes) is seeded through that same unsynced loader, which locks the
+mismatch in.
 
 *Remedy: add the `core.FONT.advance/lineH/pick = backend.font.*` lines
 that `backends/sdl/src/run.js` l.68–70 already has to
@@ -504,5 +504,5 @@ not verified**: native `gfx.poly` (packed), native `gfx.blit`,
 `sys.fonts`, `sys.view`, `sys.rotate`. Every example that uses one gates
 it (`typeof sys.x === 'function'`) and renders a fallback — that pattern
 is consistent across `examples/gpio`, `i2c`, `camera`, `canvas`,
-`screen`, `wifi`, `printer`, and it is the right pattern. No in-tree
+`screen`, `wifi` and `sensors`, and it is the right pattern. No in-tree
 backend provides any of them.

@@ -635,8 +635,8 @@ Three tools go with it:
   from a touch point of view. This is what an overlay panel — a keyboard, a
   docked toolbar — wants.
 - **`UI.openModal(fn)`** draws the modal last, after clearing `_hits`,
-  `_swipes` and `_flings`. Everything under it stops listening entirely:
-  "a dialog you can press through is not a dialog."
+  `_swipes` and `_flings`. Everything under it stops listening entirely — a
+  dialog you can press through is not a dialog.
 - **`UI.inset(side, px)`** reserves a band as covered, which extends the
   scroll range of zones that reach into it (above).
 

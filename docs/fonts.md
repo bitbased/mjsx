@@ -44,7 +44,7 @@ function flh(size)  { return FONT.pick ? FONT.pick(size).lineH - 2 : FONT.lineH 
 - **`fink(size)`** — the visible cap-ink height, which is shorter than the
   line box because the box carries leading (and, in the 6x8 family, a blank
   baseline row under the caps). `input` centres on this rather than on the
-  line box, "or centring the line box leaves text riding high."
+  line box, because centring the line box leaves the text riding high.
 - **`em(n)`** — spacing in line-heights. Its own section below.
 
 Two consequences of these being the *only* text facts in the engine:
@@ -220,7 +220,7 @@ Two details in the tables themselves:
 
 - **Descenders live below the cell.** The 4x6 glyph arrays are
   variable-length: `g j p q y` use row 6, below the 6-row cell, inside the
-  line pitch's spacing rows — "which is what real descenders do." A
+  line pitch's spacing rows, which is what real descenders do. A
   rasterizer draws `rows.length` rows, not a fixed cell height.
 - **A missing glyph is a blank cell, not an error.** The pure-js backend
   case-folds to uppercase where the face has no lowercase, and otherwise

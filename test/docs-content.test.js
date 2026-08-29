@@ -97,12 +97,28 @@ describe('documentation', function () {
       /* examples/<name> */
       /* stand-ins in command lines, not references to a real example */
       var PLACEHOLDER = ['yours', 'your-app', 'name', 'app'];
-      var re = /`?examples\/([a-z0-9-]+)\//g, m;
+      var re = /`?examples\/([a-z0-9-]+)\/?`?/g, m;
       while ((m = re.exec(md))) {
         if (PLACEHOLDER.indexOf(m[1]) >= 0) continue;
         if (!fs.existsSync(path.join(ROOT, 'examples', m[1]))) {
           bad.push('docs/' + f + ': examples/' + m[1] + ' does not exist');
         }
+      }
+      /* A list that opens with `examples/gpio` and continues `i2c`,
+         `camera`, ... drops the prefix after the first item, so the bare
+         names were invisible to the check above. `printer` sat in one such
+         list for weeks naming an example that has never existed. */
+      var LIST = /`examples\/[a-z0-9-]+`((?:\s*,?\s*(?:and\s+)?`[a-z0-9-]+`)+)/g;
+      while ((m = LIST.exec(md))) {
+        var names = m[1].match(/`([a-z0-9-]+)`/g) || [];
+        names.forEach(function (n) {
+          var name = n.replace(/`/g, '');
+          if (PLACEHOLDER.indexOf(name) >= 0) return;
+          if (!fs.existsSync(path.join(ROOT, 'examples', name))) {
+            bad.push('docs/' + f + ': the example list names ' + name +
+                     ', which does not exist');
+          }
+        });
       }
       /* sibling doc links */
       var dre = /\]\((?:\.\/)?([a-z0-9-]+)\.md(?:#[^)]*)?\)/g;
@@ -229,6 +245,18 @@ describe('documentation', function () {
     });
     expect(checked).toBeGreaterThan(5);
     expect(wrong).toEqual([]);
+  });
+
+  it('the golden matrix size the audit quotes is current', function () {
+    /* consistency.md cites the matrix as evidence that the FONT divergence
+       is locked into the goldens. It said "45 hashes across three shapes"
+       long after the matrix grew to five shapes — the finding stayed true
+       while its evidence went stale, which is the worst way for a number
+       to be wrong. */
+    var hashes = JSON.parse(
+      fs.readFileSync(path.join(ROOT, 'test/golden/hashes.json'), 'utf8'));
+    var n = Object.keys(hashes).length;
+    expect(read('consistency.md')).toContain(n + ' hashes');
   });
 
   it('every page has a written label in the sidebar', function () {

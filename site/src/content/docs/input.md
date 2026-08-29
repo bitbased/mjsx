@@ -161,7 +161,7 @@ h('box', { h: gfx.height(), pad: em(1), gap: em(0.75) }, [
 | `exclusive` | falsy | Ask the keyboard to take the whole display while this field has focus. |
 | `focusable` | `true` | `false` keeps the field out of the focus order. |
 | `w` | fills | Fixed width, used only when narrower than what is available. |
-| `pad` | `max(4, floor(lineH / 3))` | Inner padding; also sets the field's height. |
+| `pad` | `max(4, floor((flh(size) + 2) / 3))` | Inner padding; also sets the field's height. |
 | `bg` | `UI.theme.key` | Fill. |
 | `border` | `UI.theme.muted` | Unfocused border. Focused is always `UI.theme.accent`. |
 | `color` | `UI.theme.text` | Text colour. |
