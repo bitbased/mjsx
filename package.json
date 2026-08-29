@@ -19,8 +19,10 @@
     "sim": "bun backends/sdl/src/sim.js",
     "sim:web": "bun backends/sdl/src/sim.js --http",
     "gallery": "bun scripts/render-examples.mjs",
-    "docs:sync": "bun scripts/docs-sync.mjs",
+    "docs:sync": "bun scripts/build-viewer.mjs && bun scripts/docs-sync.mjs",
     "docs:dev": "bun scripts/docs-sync.mjs && cd site && bun run dev",
-    "docs:build": "bun scripts/docs-sync.mjs && cd site && bun run build"
+    "docs:build": "bun scripts/docs-sync.mjs && cd site && bun run build",
+    "docs:viewer": "bun scripts/build-viewer.mjs",
+    "figures": "bun scripts/shoot.mjs --all"
   }
 }

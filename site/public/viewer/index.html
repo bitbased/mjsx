@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mjsx figure viewer</title>
+<!--
+  Every figure in this documentation carries its own source: the frame's
+  draw ops, in a PNG text chunk. This page pulls them back out and replays
+  them through the REAL mjsx rasterizer, bundled to /mjsx-backend.js — the
+  same code that drew the screenshot and the same code a device runs. So
+  the toggles below are not filters over a picture; each one re-renders
+  the frame.
+-->
+<style>
+  :root {
+    --bg:#f7f6f3; --panel:#fff; --ink:#1e2127; --muted:#6b7280;
+    --line:#dcd9d2; --accent:#2f6fbf; --accent-soft:#e6eefa; --screen:#0d0f13;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#14161b; --panel:#1b1e25; --ink:#dfe3ea; --muted:#949bab;
+      --line:#2b303b; --accent:#6fb3ff; --accent-soft:#16283f; --screen:#0d0f13;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:64rem; margin:0 auto; padding:2rem 1.25rem 4rem; }
+  h1 { font-size:1.5rem; margin:0 0 .3rem; }
+  .sub { color:var(--muted); margin:0 0 1.5rem; max-width:44rem; }
+  .cols { display:grid; grid-template-columns:15rem 1fr; gap:1.5rem; align-items:start; }
+  @media (max-width:780px) { .cols { grid-template-columns:1fr; } }
+
+  .rail { border:1px solid var(--line); border-radius:10px; background:var(--panel);
+          padding:.75rem; max-height:80vh; overflow:auto; }
+  .rail h2 { font-size:.72rem; text-transform:uppercase; letter-spacing:.09em;
+             color:var(--muted); margin:.2rem 0 .5rem; }
+  .thumbs { display:grid; grid-template-columns:repeat(auto-fill,minmax(4.5rem,1fr)); gap:.4rem; }
+  .thumb { border:1px solid var(--line); border-radius:7px; background:var(--bg);
+           padding:.3rem; cursor:pointer; display:flex; flex-direction:column;
+           align-items:center; gap:.25rem; font-size:.62rem; color:var(--muted);
+           line-height:1.15; text-align:center; word-break:break-word; }
+  .thumb img { width:3.4rem; height:3.4rem; object-fit:contain;
+               image-rendering:pixelated; background:var(--screen); border-radius:3px; }
+  .thumb:hover { border-color:var(--accent); }
+  .thumb[aria-current="true"] { border-color:var(--accent); background:var(--accent-soft); color:var(--ink); }
+
+  .stage { border:1px solid var(--line); border-radius:10px; background:var(--panel); padding:1rem; }
+  .controls { display:flex; flex-wrap:wrap; gap:1.2rem; margin-bottom:1rem; }
+  .group { display:flex; flex-direction:column; gap:.35rem; }
+  .group > span { font-size:.68rem; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); }
+  .group em { font-style:normal; text-transform:none; letter-spacing:0; opacity:.85; }
+  .seg { display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { border:0; background:var(--panel); color:var(--muted); cursor:pointer;
+                padding:.35rem .7rem; font:inherit; font-size:.8rem; border-right:1px solid var(--line); }
+  .seg button:last-child { border-right:0; }
+  .seg button[aria-pressed="true"] { background:var(--accent); color:#fff; }
+  .seg button:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+  .canvas-wrap { display:flex; justify-content:center; background:var(--screen);
+                 border-radius:8px; padding:1rem; overflow:auto; }
+  canvas { image-rendering:pixelated; max-width:100%; }
+  .meta { margin-top:1rem; font-size:.82rem; color:var(--muted); }
+  .meta dl { display:grid; grid-template-columns:auto 1fr; gap:.2rem .8rem; margin:0; }
+  .meta dt { color:var(--muted); }
+  .meta dd { margin:0; color:var(--ink); word-break:break-word; }
+  .meta code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.92em; }
+  .err { color:#c0392b; }
+  footer { margin-top:2rem; color:var(--muted); font-size:.82rem; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Figure viewer</h1>
+  <p class="sub">Every figure carries the frame's draw calls inside the PNG.
+  This page reads them back and replays them through the real rasterizer, so
+  each control below <em>re-renders</em> the frame rather than filtering a
+  picture of it.</p>
+
+  <div class="cols">
+    <nav class="rail" aria-label="Figures">
+      <h2>Figures</h2>
+      <div class="thumbs" id="thumbs"></div>
+    </nav>
+
+    <main class="stage">
+      <div class="controls">
+        <div class="group">
+          <span id="lbl-res">Resolution</span>
+          <div class="seg" role="group" aria-labelledby="lbl-res" id="dpr"></div>
+        </div>
+        <div class="group">
+          <span id="lbl-text">Text rendering <em id="mode-hint"></em></span>
+          <div class="seg" role="group" aria-labelledby="lbl-text" id="mode"></div>
+        </div>
+        <div class="group">
+          <span id="lbl-dbg">Overlay</span>
+          <div class="seg" role="group" aria-labelledby="lbl-dbg" id="debug"></div>
+        </div>
+      </div>
+
+      <div class="canvas-wrap"><canvas id="cv" width="240" height="240"></canvas></div>
+
+      <div class="meta" id="meta"></div>
+    </main>
+  </div>
+
+  <footer>
+    Rendered in your browser by the same pure-js backend that made the
+    screenshots. See <a href="/shots/">Figures and screenshots</a> for how the
+    ops get into the file.
+  </footer>
+</div>
+
+<script src="/mjsx-backend.js"></script>
+<script>
+/* ---- PNG text chunks, in the browser ---------------------------------
+   The compressed variant is zlib; DecompressionStream('deflate') handles
+   it, which is why no inflate library is shipped. */
+async function readChunks(buf) {
+  const dv = new DataView(buf);
+  const bytes = new Uint8Array(buf);
+  const out = {};
+  let p = 8;
+  const ascii = (a, b) => String.fromCharCode.apply(null, bytes.subarray(a, b));
+  while (p + 8 <= bytes.length) {
+    const len = dv.getUint32(p);
+    const type = ascii(p + 4, p + 8);
+    const data = bytes.subarray(p + 8, p + 8 + len);
+    if (type === 'tEXt' || type === 'zTXt') {
+      const nul = data.indexOf(0);
+      const key = ascii(p + 8, p + 8 + nul);
+      if (type === 'tEXt') {
+        out[key] = new TextDecoder().decode(data.subarray(nul + 1));
+      } else {
+        const body = data.subarray(nul + 2);
+        const ds = new DecompressionStream('deflate');
+        const stream = new Blob([body]).stream().pipeThrough(ds);
+        out[key] = await new Response(stream).text();
+      }
+    }
+    if (type === 'IEND') break;
+    p += 12 + len;
+  }
+  return out;
+}
+
+const DPRS = [1, 2, 3, 4];
+const MODES = [
+  ['vector', 'the designed stroke face, drawn with a round pen at any resolution'],
+  ['smooth', 'a higher-resolution member of the same bitmap family'],
+  ['pixel',  'the logical bitmap stamped larger — authentically chunky'],
+  ['exact',  'no refinement at all: the raw grid']
+];
+
+const state = { file: null, dpr: 2, mode: 'vector', debug: false, ops: null, shot: null };
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+function seg(host, items, get, set) {
+  host.innerHTML = '';
+  for (const [value, label, title] of items) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    if (title) b.title = title;
+    b.setAttribute('aria-pressed', String(get() === value));
+    b.onclick = () => { set(value); paint(); syncSegs(); };
+    host.appendChild(b);
+  }
+}
+function syncSegs() {
+  seg(document.getElementById('dpr'), DPRS.map(d => [d, d + '×']),
+      () => state.dpr, v => state.dpr = v);
+  seg(document.getElementById('mode'), MODES.map(m => [m[0], m[0], m[1]]),
+      () => state.mode, v => state.mode = v);
+  seg(document.getElementById('debug'), [[false, 'off'], [true, 'boxes']],
+      () => state.debug, v => state.debug = v);
+}
+
+function paint() {
+  if (!state.ops) return;
+  /* Refinement only exists in precise mode: at 1x every text mode
+     rasterises the same bitmap, so say so instead of looking broken. */
+  document.getElementById('mode-hint').textContent =
+    state.dpr === 1 ? '— identical at 1×, raise the resolution' : '';
+  const { w, h, ops } = state.ops;
+  const S = state.dpr;
+  /* Fidelity is the backend's: build it at dpr S and replay the ops
+     unchanged. Never scale the coordinates — that would lay the frame out
+     on a different rounding grid. */
+  const be = createPureJsBackend(w, h, { dpr: S, fontScale: state.mode });
+  mjsxReplay(ops, be.gfx);
+  cv.width = w * S;
+  cv.height = h * S;
+  cv.style.width = Math.min(w * 2, 520) + 'px';
+  const img = ctx.createImageData(w * S, h * S);
+  const raw = be.raw;
+  for (let q = 0, d = 0; q < raw.length; q += 3, d += 4) {
+    img.data[d] = raw[q]; img.data[d + 1] = raw[q + 1];
+    img.data[d + 2] = raw[q + 2]; img.data[d + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+
+  if (state.debug) {
+    /* the rectangles the frame actually drew, straight from the ops */
+    ctx.save();
+    ctx.lineWidth = 1;
+    for (const b of mjsxBoxes(ops)) {
+      ctx.strokeStyle = b.kind === 'clip' ? 'rgba(255,80,80,.9)'
+                      : b.kind === 'circle' ? 'rgba(120,220,160,.7)'
+                      : 'rgba(90,170,255,.7)';
+      ctx.strokeRect(b.x * S + .5, b.y * S + .5, Math.max(1, b.w * S - 1), Math.max(1, b.h * S - 1));
+    }
+    ctx.restore();
+  }
+  renderMeta();
+}
+
+function renderMeta() {
+  const s = state.shot || {};
+  const rows = [];
+  if (s.note) rows.push(['note', s.note]);
+  if (s.profile) rows.push(['profile', s.profile + '  ' + state.ops.w + '×' + state.ops.h]);
+  if (s.source) rows.push(['source', s.source]);
+  if (s.actions) rows.push(['actions', JSON.stringify(s.actions)]);
+  rows.push(['ops', state.ops.ops.length + ' draw calls, replayed at dpr ' + state.dpr]);
+  if (s.command) rows.push(['reproduce', '<code>' + s.command.replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;') + '</code>']);
+  document.getElementById('meta').innerHTML =
+    '<dl>' + rows.map(r => '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>').join('') + '</dl>';
+}
+
+async function load(file) {
+  state.file = file;
+  try {
+    const res = await fetch(file);
+    const meta = await readChunks(await res.arrayBuffer());
+    if (!meta['mjsx-ops']) throw new Error('this PNG carries no ops');
+    state.ops = JSON.parse(meta['mjsx-ops']);
+    state.shot = meta['mjsx-shot'] ? JSON.parse(meta['mjsx-shot']) : null;
+    paint();
+  } catch (e) {
+    document.getElementById('meta').innerHTML =
+      '<p class="err">' + file + ': ' + e.message + '</p>';
+  }
+  for (const el of document.querySelectorAll('.thumb')) {
+    el.setAttribute('aria-current', String(el.dataset.file === file));
+  }
+}
+
+async function boot() {
+  syncSegs();
+  let list = [];
+  try {
+    list = await (await fetch('/figures.json')).json();
+  } catch (e) {
+    document.getElementById('thumbs').textContent = 'figures.json missing — run bun run docs:figures';
+    return;
+  }
+  const host = document.getElementById('thumbs');
+  for (const f of list) {
+    const b = document.createElement('button');
+    b.className = 'thumb';
+    b.dataset.file = f.path;
+    b.innerHTML = '<img src="' + f.path + '" alt="" loading="lazy"><span>' + f.name + '</span>';
+    b.onclick = () => load(f.path);
+    host.appendChild(b);
+  }
+  if (list.length) load(list[0].path);
+}
+boot();
+</script>
+</body>
+</html>

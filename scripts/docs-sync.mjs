@@ -125,7 +125,22 @@ for (const f of readdirSync(DOCS)) {
   pages++;
 }
 
+/* An index for the figure viewer: only images that actually carry ops,
+   since the viewer replays rather than displays. */
+const figures = [];
+if (existsSync(IMG_OUT)) {
+  for (const f of readdirSync(IMG_OUT).sort()) {
+    if (!f.endsWith('.png')) continue;
+    const buf = readFileSync(join(IMG_OUT, f));
+    if (buf.includes('mjsx-ops')) {
+      figures.push({ path: '/img/' + f, name: f.replace(/\.png$/, '') });
+    }
+  }
+}
+writeFileSync(join(ROOT, 'site', 'public', 'figures.json'), JSON.stringify(figures));
+
 console.log(`synced ${pages} page(s) and ${imgCount} image(s) into site/`);
+console.log(`  ${figures.length} figure(s) carry draw ops (viewer index written)`);
 for (const w of warnings) console.log('  warn: ' + w);
 if (!imgCount) {
   console.log('  note: docs/img/ is empty or missing — run the shot harness to generate figures');

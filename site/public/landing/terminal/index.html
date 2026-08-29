@@ -281,6 +281,8 @@ button.tbtn:hover { color: var(--accent); border-color: var(--accent); }
   margin-left: 1px;
 }
 .term.anim .line.active .cursor { display: inline-block; animation: blink 1.05s steps(1) infinite; }
+/* One live prompt at a time: the resting prompt only exists once the run ends. */
+.term.anim .endline { display: none; }
 .term:not(.anim) .endline .cursor { display: inline-block; animation: blink 1.05s steps(1) infinite; }
 @keyframes blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
 
@@ -308,7 +310,7 @@ button.tbtn:hover { color: var(--accent); border-color: var(--accent); }
   text-align: left;
   margin: 0;
   font-family: var(--mono);
-  font-size: min(13px, 1.2vw);
+  font-size: min(15px, 1.35vw);
   line-height: 1;
   letter-spacing: 0;
   white-space: pre;
@@ -316,7 +318,7 @@ button.tbtn:hover { color: var(--accent); border-color: var(--accent); }
   background: #000000;
 }
 @supports (width: 1cqi) {
-  .screen { font-size: min(13px, calc(100cqi / 50)); }
+  .screen { font-size: min(15px, calc(100cqi / 50)); }
 }
 .screencap {
   margin: 4px 0 0;
@@ -1080,8 +1082,11 @@ wasm</p>
     runStep(0);
   }
 
+  /* The button always does what its label says: while the console is armed or
+     typing it finishes the run; once finished it starts over. */
   btn.addEventListener("click", function () {
-    if (running) {
+    if (term.classList.contains("anim")) {
+      began = true;
       finish(true);
     } else {
       began = true;
