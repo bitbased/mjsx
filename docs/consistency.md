@@ -5,14 +5,16 @@ What each backend in this tree *actually* implements, measured against
 calls. Every cell below was read out of the named source file (or run);
 nothing here is inferred from a comment.
 
-Audited against the working tree on top of commit `96bc60e`. The tree
-moved during the audit — other work landed in `backends/terminal`,
-`backends/http`, `backends/sdl/src/sim.js`, `packages/cli` and `test/`
-while it was in progress — so every finding below was **re-checked against
-the current files** before being written down, and the two that were
-partly fixed underneath it say so. `bun test` is green (189 pass / 1 skip
-across 6 files as of this writing; the suite grew during and after the
-audit); none of the divergences below are caught by it except where noted.
+First audited against the working tree on top of commit `96bc60e`, and
+re-checked against the current files since — the two findings that were
+partly fixed underneath it say so. The call counts in the next section are
+verified against `mjsx.js` by `test/docs-content.test.js`, so they are
+current rather than a snapshot.
+
+**None of the divergences below is caught by `bun test`** except where a
+finding says otherwise. That is the point of reading them: the suite proves
+the core's logic and the engine's dialect, not that two backends agree
+about what `width()` means.
 
 ## What the core actually asks for
 
@@ -20,8 +22,8 @@ Counted from `packages/core/src/mjsx.js`:
 
 | Symbol | Call sites | Notes |
 |---|---|---|
-| `gfx.height` | 16 | |
-| `gfx.width` | 13 | |
+| `gfx.height` | 23 | |
+| `gfx.width` | 18 | |
 | `gfx.frect` | 11 | includes the no-`poly` scanline fallback (l.422, l.428) |
 | `gfx.poly` | 7 | 4 are `if (gfx.poly)` presence checks |
 | `gfx.line` | 7 | |

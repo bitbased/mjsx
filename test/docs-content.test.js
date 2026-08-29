@@ -122,6 +122,50 @@ describe('documentation', function () {
     expect(bad).toEqual([]);
   });
 
+  it('the call counts in consistency.md match the source', function () {
+    /* That page's whole premise is that every number in it was read out of
+       a named file. Two of them had drifted — gfx.height claimed 16 call
+       sites against 23, gfx.width 13 against 18 — which is exactly the
+       kind of rot that makes a reader stop trusting the rest of a page
+       that is otherwise correct. Counted here so it cannot happen again. */
+    var core = fs.readFileSync(path.join(ROOT, 'packages/core/src/mjsx.js'), 'utf8');
+    var md = read('consistency.md');
+    var re = /^\| `(gfx|sys)\.([a-z]+)` \| (\d+) \|/gm, m;
+    var wrong = [], checked = 0;
+    while ((m = re.exec(md))) {
+      var sym = m[1] + '.' + m[2], claimed = Number(m[3]);
+      var actual = (core.match(new RegExp(m[1] + '\\.' + m[2] + '\\b', 'g')) || []).length;
+      checked++;
+      if (actual !== claimed) wrong.push(sym + ': doc says ' + claimed + ', source has ' + actual);
+    }
+    expect(checked).toBeGreaterThan(8);
+    expect(wrong).toEqual([]);
+  });
+
+  it('the constants the docs quote are the constants in the code', function () {
+    /* These numbers appear on four different pages each. A reader who
+       checks one against the source and finds it right will trust the
+       rest, which is exactly why a drifted one does so much damage. */
+    var core = fs.readFileSync(path.join(ROOT, 'packages/core/src/mjsx.js'), 'utf8');
+    var FACTS = [
+      ['DRAG_SLOP', /var DRAG_SLOP = (\d+);/, '6'],
+      ['qwerty threshold', /kbW >= (\d+) \? 'qwerty'/, '220'],
+      ['t9 threshold', /kbW >= (\d+) \? 't9'/, '115'],
+      ['auto-exclusive height', /!UI\._exclusive && UI\._focus && kh < (\d+)\)/, '30'],
+      ['caret blink period', /sys\.millis\(\) - ist\.bt\) \/ (\d+)\)/, '530']
+    ];
+    var wrong = [];
+    FACTS.forEach(function (f) {
+      var m = f[1].exec(core);
+      if (!m) { wrong.push(f[0] + ': not found in mjsx.js — has it been renamed?'); return; }
+      if (m[1] !== f[2]) wrong.push(f[0] + ': code says ' + m[1] + ', the docs say ' + f[2]);
+      /* and some page must actually quote it, or the test guards nothing */
+      var quoted = docs().some(function (d) { return read(d).indexOf(f[2]) >= 0; });
+      if (!quoted) wrong.push(f[0] + ': no page quotes ' + f[2] + ' any more');
+    });
+    expect(wrong).toEqual([]);
+  });
+
   it('every page says what it is for before it says anything else', function () {
     /* a heading followed straight by a heading, or by a table, gives a
        reader no way to tell whether they are on the right page */
