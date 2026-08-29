@@ -56,15 +56,41 @@ function renderKb(shape, layout) {
   };
 }
 
-/* SPACE is spelled several ways: the word, the narrow-row underscore
-   fallback, and T9's combined "SPC @-" key */
-function hasSpace(labels) {
-  var joined = labels.join(' ');
-  return labels.indexOf('SPACE') >= 0 || labels.indexOf('___') >= 0 ||
-         joined.indexOf('SPC') >= 0;
+/* The space bar carries the drawn ␣ mark, not a word, so it cannot be
+   found among the text ops -- it is found by TYPING one. Press its key
+   and see whether a space reaches the field: the only definition of a
+   working space bar that matters. T9 spells its own combined key
+   "SPC @-", which is a real label rather than a truncation. */
+function typesASpace(t) {
+  /* Press every tappable rect in turn and watch the field: the space bar
+     is whichever one puts a space in it. Keys that type something else
+     are undone before moving on. */
+  var val = function () {
+    var st = globalThis.UI._inputs.f;
+    return st && st.text ? st.text : '';
+  };
+  var before = val();
+  var hits = globalThis.UI._hits || [];
+  for (var i = 0; i < hits.length; i++) {
+    var hit = hits[i];
+    if (!hit.fn) continue;
+    var cx = hit.x + hit.w / 2, cy = hit.y + hit.h / 2;
+    /* a stray tap on the panel's shield blurs the field, and every key
+       after that would type into nothing */
+    globalThis.UI.focus('f');
+    globalThis.UI.pointer(0, 0, cx, cy);   /* (id, phase, x, y) */
+    globalThis.UI.pointer(0, 2, cx, cy);
+    var now = val();
+    if (now.length > before.length && now.charAt(now.length - 1) === ' ') return true;
+    if (now !== before) {
+      globalThis.UI.key('press', 'Backspace');
+      before = val();
+    }
+  }
+  return false;
 }
 function hasDel(labels) {
-  return labels.indexOf('DEL') >= 0 || labels.indexOf('<') >= 0;
+  return labels.indexOf('DEL') >= 0;
 }
 
 describe('keyboard fits its glass', function () {
@@ -74,7 +100,7 @@ describe('keyboard fits its glass', function () {
         (function (layout) {
           it(shape.name + ' / ' + layout + ' keeps space, delete and commit', function () {
             var r = renderKb(shape, layout);
-            expect(hasSpace(r.labels)).toBe(true);
+            expect(typesASpace(r)).toBe(true);
             expect(hasDel(r.labels)).toBe(true);
             expect(r.labels.indexOf('OK')).toBeGreaterThanOrEqual(0);
           });
@@ -121,6 +147,6 @@ describe('keyboard fits its glass', function () {
        an explicit qwerty stays qwerty -- inset, not replaced */
     var r = renderKb({ w: 240, h: 240, round: true }, 'qwerty');
     expect(r.labels.indexOf('q')).toBeGreaterThanOrEqual(0);
-    expect(hasSpace(r.labels)).toBe(true);
+    expect(typesASpace(r)).toBe(true);
   });
 });
