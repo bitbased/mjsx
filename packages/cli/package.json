@@ -1,0 +1,9 @@
+{
+  "name": "@mjsx/cli",
+  "private": true,
+  "version": "0.0.1",
+  "description": "One command over the mjsx runners and the bridge-board device tools.",
+  "bin": {
+    "mjsx": "./bin/mjsx.js"
+  }
+}

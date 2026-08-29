@@ -56,6 +56,10 @@ if (wanted.length) names = names.filter((n) => wanted.includes(n));
 
 let bundle = readFileSync(join(MJSX, "packages/core/src/mjsx.js"), "utf8");
 bundle += "\n" + readFileSync(join(here, "device-shim.js"), "utf8");
+/* the desktop runners give each app a CommonJS `module` for the optional
+   demo() export; the engine has no such global. Same stub as
+   packages/cli/src/bundle.js. */
+bundle += "\nvar module = { exports: {} };\n";
 for (const n of names) {
   const code = transpile(join(exDir, n, "app.jsx"));
   bundle += `\n/* ---- example: ${n} ---- */\nEXAMPLES.push(['${n}', function () {\n${code}\n}]);\n`;

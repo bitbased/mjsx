@@ -1,13 +1,15 @@
 {
   "name": "mjsx",
   "private": true,
-  "version": "0.0.1",
-  "description": "JSX for microcontrollers, Raspberry Pi, desktop, and the browser \u2014 one core, several backends.",
+  "version": "0.1.0-dev",
+  "description": "JSX UI engine for microcontrollers and beyond: one ES5-safe core, ten native gfx calls, swappable backends.",
+  "license": "MIT",
   "workspaces": [
     "packages/*",
     "backends/*"
   ],
   "scripts": {
+    "test": "bun test",
     "example:hello": "bun backends/pure-js/src/run.js examples/hello/app.jsx out/hello.ppm",
     "example:counter": "bun backends/pure-js/src/run.js examples/counter/app.jsx out/counter.ppm",
     "example:sensors": "bun backends/http/src/server.js examples/sensors/app.jsx",
@@ -15,6 +17,7 @@
     "examples": "bun backends/terminal/src/launcher.js",
     "example:window": "bun backends/sdl/src/run.js examples/counter/app.jsx",
     "sim": "bun backends/sdl/src/sim.js",
-    "sim:web": "bun backends/sdl/src/sim.js --http"
+    "sim:web": "bun backends/sdl/src/sim.js --http",
+    "gallery": "bun scripts/render-examples.mjs"
   }
 }
