@@ -747,10 +747,12 @@ function draw(node, x, y, availW, forcedH) {
          part. The same idea as a native scroll view's content insets. */
       var covB = (y + boxH) - (gfx.height() - UI._insetBot());
       if (covB > 0) maxOff += covB;
-      /* Round glass: a quarter-screen of extra range, so the last rows
-         can be lifted out of the narrow bottom arc into the wide middle
-         where they are readable and tappable. */
-      if (maxOff > 0 && UI.isRound()) maxOff += gfx.height() >> 2;
+      /* Round glass: a quarter-screen of extra range, UNCONDITIONALLY,
+         so the last rows can be lifted out of the narrow bottom arc
+         into the wide middle. Content that FITS the square still
+         drowns in the circle — a zone whose maxOff computed to zero is
+         exactly the one whose bottom row is stuck in the arc. */
+      if (UI.isRound()) maxOff += gfx.height() >> 2;
       var minOff = UI._insetTop() - y;
       minOff = minOff > 0 ? -minOff : 0;
       var off = UI._scroll[p.scroll] || 0;
@@ -867,46 +869,53 @@ function padB(p) { return p.padB === undefined ? (p.pad || 0) : p.padB; }
 
 /* ---- a couple of ready-made components, not mandatory to use ---- */
 
-/* ArcFooter: controls along the bottom arc of round glass.
+/* ArcFooter: controls along the EDGE of the glass, whatever its shape.
  *
+ * Each item sits where the ray from screen-centre at its angle meets
+ * the boundary, pulled inward by the item's own size — on round glass
+ * the boundary is the rim, on square glass the rectangle's perimeter,
+ * so a bottom arc becomes the bottom edge, a wide one spills around
+ * the corners onto the sides, and the same call serves every shape.
  * Items stay UPRIGHT — rotated text is neither drawable nor readable —
- * only their POSITIONS follow the arc, on a ring just inside the rim,
- * and each item is pulled inward by its own size so it never pokes
- * past the glass. Put wide items near the middle of the list, where
- * the chord is generous. On square glass the same items become a plain
- * centred bottom row: one footer serves every shape.
+ * only their positions follow the edge. Put wide items mid-list where
+ * a round boundary is generous; angles that cluster at a square's
+ * corner can overlap, so keep spread and count sane.
  *
- * items: [{ w, h, node }] — node is any finished element; w/h let the
- * footer centre each one on its arc point without measuring.
- * spread: total arc in degrees (default 120). inset: rim margin.
+ * items:  [{ w, h, node }] — finished elements; w/h centre each one on
+ *         its boundary point without measuring.
+ * at:     centre angle in degrees; 90 = bottom (the default),
+ *         270 = top, 0 = right, 180 = left.
+ * spread: total sweep in degrees (default 120).
+ * inset:  margin from the boundary.
  */
 function ArcFooter(p) {
   var items = p.items || [];
   var n = items.length, i;
   if (!n) return h('box', {});
   var W = gfx.width(), H = gfx.height();
-  if (!UI.isRound()) {
-    var total = 0;
-    for (i = 0; i < n; i++) total += items[i].w + 4;
-    total -= 4;
-    var kids = [], bx = Math.round((W - total) / 2);
-    for (i = 0; i < n; i++) {
-      kids.push(h('abs', { x: bx, y: H - (p.inset || 16) - items[i].h }, items[i].node));
-      bx += items[i].w + 4;
-    }
-    return h('box', {}, kids);
-  }
+  var round = UI.isRound();
+  var inset = p.inset === undefined ? (round ? 10 : 8) : p.inset;
   var spread = (p.spread || 120) * Math.PI / 180;
-  var a0 = Math.PI / 2 - spread / 2;   /* screen y grows down: 90° = bottom */
+  var a0 = (p.at === undefined ? 90 : p.at) * Math.PI / 180 - spread / 2;
   var out = [];
   for (i = 0; i < n; i++) {
     var t = n < 2 ? 0.5 : i / (n - 1);
     var ang = a0 + spread * t;
-    var big = items[i].w > items[i].h ? items[i].w : items[i].h;
-    var rr = H / 2 - (p.inset || 8) - big / 2;
+    var c = Math.cos(ang), s = Math.sin(ang);
+    var d;
+    if (round) {
+      var big = items[i].w > items[i].h ? items[i].w : items[i].h;
+      d = H / 2 - inset - big / 2;
+    } else {
+      var hx = W / 2 - inset - items[i].w / 2;
+      var hy = H / 2 - inset - items[i].h / 2;
+      var tx = c < 0 ? -hx / c : (c > 0 ? hx / c : 1e9);
+      var ty = s < 0 ? -hy / s : (s > 0 ? hy / s : 1e9);
+      d = tx < ty ? tx : ty;
+    }
     out.push(h('abs', {
-      x: Math.round(W / 2 + Math.cos(ang) * rr - items[i].w / 2),
-      y: Math.round(H / 2 + Math.sin(ang) * rr - items[i].h / 2)
+      x: Math.round(W / 2 + c * d - items[i].w / 2),
+      y: Math.round(H / 2 + s * d - items[i].h / 2)
     }, items[i].node));
   }
   return h('box', {}, out);
