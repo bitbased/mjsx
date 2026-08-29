@@ -1169,6 +1169,10 @@ function kbStrip(kh) {
 
 function Keyboard(p) {
   var layout = p.layout || 'qwerty';
+  /* QWERTY wants ten columns of at least ~22px: on a narrower display no
+     height in the world makes it typeable, so the request quietly becomes
+     T9 -- same rule as small hardware keyboards everywhere. */
+  if (layout === 'qwerty' && gfx.width() < 220) layout = 't9';
   /* height is a HINT for the whole keyboard: keys scale to fit it given
      the layout's row count. keyH sets one key directly instead. */
   var rowsN = layout === 'strip' ? 2 : (layout === 'qwerty' ? 4 : 5);
@@ -1176,6 +1180,14 @@ function Keyboard(p) {
   if (p.height) kh = Math.floor((p.height - 8 - (rowsN - 1) * 2) / rowsN);
   else kh = p.keyH || (flh(2) + em(1));
   if (kh < 8) kh = 8;
+  /* AUTO-EXCLUSIVE: if the docked keys come out under a finger's height,
+     docking is a fiction -- take the whole display instead, exactly as an
+     input's `exclusive` prop would. A short landscape (172px glass) hits
+     this on every layout; nobody should have to opt in to legible keys. */
+  if (!UI._exclusive && UI._focus && kh < 30) {
+    UI._exclusive = true;
+    UI._dirty = true;
+  }
   var pos0 = p.position || 'inline';
   /* The panel is ~40 nodes rebuilt per keystroke without this; its real
      inputs are just these. KB.strip rebuilds per drag frame (the offset
