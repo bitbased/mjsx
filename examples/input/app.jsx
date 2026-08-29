@@ -17,7 +17,11 @@
  *   same way.
  */
 
-var LAYOUTS = ['qwerty', 't9', 'numbers', 'strip'];
+/* AUTO first, and the default: it fits the layout to the glass (QWERTY
+   where ten columns fit, T9 where four do, STRIP below that). The named
+   ones are honoured exactly however cramped -- pick one on a small screen
+   to see the difference. */
+var LAYOUTS = ['auto', 'qwerty', 't9', 'numbers', 'strip'];
 
 function Field(p) {
   return (
@@ -60,7 +64,7 @@ function PinPad() {
 var POSITIONS = ['bottom', 'top', 'inline'];
 
 function App() {
-  var kb = UI.state.kb || 'qwerty';
+  var kb = UI.state.kb || 'auto';
   var pos = UI.state.kbPos || 'bottom';
   var focused = UI.focused();
 

@@ -65,10 +65,20 @@ h(Keyboard, { layout: kb, position: pos,
 
 Props and behaviour, all from the source:
 
-- **`layout`**: `'qwerty'` (default), `'t9'`, `'numbers'`, `'strip'`.
-  QWERTY wants ten columns of at least ~22px, so on a display narrower
-  than 220px the request quietly becomes T9 — no height in the world
-  makes ten columns typeable there.
+- **`layout`**: `'auto'` (default), `'qwerty'`, `'t9'`, `'numbers'`,
+  `'strip'`. `'auto'` fits the layout to the glass: QWERTY where ten
+  columns of ~22px fit (≥220px), T9 where four of ~28px do (≥115px),
+  STRIP's single scrolling row below that. **A named layout is honoured
+  exactly, however cramped** — a stated preference is a decision, not a
+  suggestion.
+  The width that decides is the width the keys actually get: on round
+  glass that is the chord down where the bottom rows sit, not the
+  bounding box (a 240px circle measures 240 across the middle and only
+  ~178 down there).
+- **Round glass**: each key row is inset to the chord at its own height,
+  so a keyboard is a trapezoid and the outermost keys stay on the glass
+  instead of under the bezel. In exclusive mode the mirrored input is
+  pushed a tenth of the display down, off the narrow top arc.
 - **`height`** is a hint for the whole keyboard: keys scale to fit it
   given the layout's row count (strip has 2 rows, qwerty 4, t9 and
   numbers 5). `keyH` sets one key's height directly instead.

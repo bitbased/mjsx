@@ -1225,12 +1225,45 @@ function kbStrip(kh) {
   ];
 }
 
+/* Half the chord of round glass across a horizontal band -- the width the
+   circle really has between two heights, minus a hair for the bezel. The
+   constraining edge is whichever of the two is farther from the middle. */
+function kbChordHW(yTop, yBot) {
+  var c = gfx.height() / 2, r = c - 2;
+  var a = yTop < c ? c - yTop : yTop - c;
+  var b = yBot < c ? c - yBot : yBot - c;
+  if (b > a) a = b;
+  if (a >= r) return 0;
+  return Math.floor(Math.sqrt(r * r - a * a)) - 3;
+}
+
+/* Wrap one keyboard row so it spans only the glass available at its own
+   height. A round keyboard is a trapezoid: the bottom row is narrowest
+   because it sits nearest the rim, which is exactly where an un-inset
+   layout puts SPACE and OK half under the bezel. `owned` is padding the
+   caller's own container already contributes. */
+function kbRoundRow(row, yTop, yBot, owned) {
+  var pad = Math.floor(gfx.width() / 2 - kbChordHW(yTop, yBot)) - (owned || 0);
+  if (pad < 0) pad = 0;
+  return h('box', { padL: pad, padR: pad }, [row]);
+}
+
 function Keyboard(p) {
-  var layout = p.layout || 'qwerty';
-  /* QWERTY wants ten columns of at least ~22px: on a narrower display no
-     height in the world makes it typeable, so the request quietly becomes
-     T9 -- same rule as small hardware keyboards everywhere. */
-  if (layout === 'qwerty' && gfx.width() < 220) layout = 't9';
+  /* 'auto' (the default) fits the layout to the glass; a NAMED layout is
+     honoured exactly, however cramped -- a stated preference is a decision,
+     not a suggestion, and the round insets below keep even a squeezed
+     QWERTY on the glass rather than under the bezel.
+     The width that decides is not the bounding box but the width the keys
+     actually get: on round glass, the CHORD down where the bottom rows sit
+     (a 240px circle measures 240 across the middle and only ~178 there). */
+  var kbW = gfx.width();
+  if (UI.isRound()) kbW = kbChordHW(gfx.height() * 0.72, gfx.height() * 0.86) * 2;
+  var layout = p.layout || 'auto';
+  if (layout === 'auto') {
+    /* ten columns want ~22px each; T9's four want ~28px; below that only
+       the single scrolling row of STRIP is honestly tappable */
+    layout = kbW >= 220 ? 'qwerty' : (kbW >= 115 ? 't9' : 'strip');
+  }
   /* height is a HINT for the whole keyboard: keys scale to fit it given
      the layout's row count. keyH sets one key directly instead. */
   var rowsN = layout === 'strip' ? 2 : (layout === 'qwerty' ? 4 : 5);
@@ -1295,7 +1328,13 @@ function Keyboard(p) {
        comically tall. The flex spacer absorbs the rounding. */
     var xHdr = p.header && (xp.label || xp.placeholder);
     var xScr = gfx.height() - (UI.safe.inset ? UI.safe.top + UI.safe.bottom : 0);
-    var xRoom = xScr - 12 - (xlh + xpd * 2) - 6 - (xHdr ? flh(1) + 2 + 6 : 0);
+    /* Round glass: push the mirror DOWN off the top arc. At y=0 the chord
+       is nothing; a tenth of the way down it is wide enough to hold a text
+       field and its close key. The keys lose that height, which is the
+       right trade -- a text field you cannot read is worse than a slightly
+       shorter keyboard. */
+    var xTopPad = UI.isRound() ? Math.round(gfx.height() * 0.10) : 0;
+    var xRoom = xScr - 12 - xTopPad - (xlh + xpd * 2) - 6 - (xHdr ? flh(1) + 2 + 6 : 0);
     var xkh = Math.floor((xRoom - 8 - (rowsN - 1) * 2) / rowsN);
     if (xkh < kh) xkh = kh;
     var xMax = (flh(2) + 2) * 3;
@@ -1305,16 +1344,33 @@ function Keyboard(p) {
     else if (layout === 't9') xrows = kbT9(xkh);
     else if (layout === 'strip') xrows = kbStrip(xkh);
     else xrows = kbQwerty(xkh);
+    var xMirror = h('row', { gap: 4 }, [
+      h('input', { id: UI._focus, size: xsz, password: xp.password,
+                   maxLen: xp.maxLen, placeholder: xp.placeholder, label: xp.label,
+                   value: xp.value, onChange: xp.onChange, onSubmit: xp.onSubmit,
+                   focusable: false }),
+      kbKey('x', function () { kbSend('Escape'); },
+            { w: em(4), h: xlh + xpd * 2, size: 2,
+              bg: UI.theme.panel, color: UI.theme.err })
+    ]);
+    if (UI.isRound()) {
+      /* Every row now knows where it will land, because exclusive mode owns
+         the whole display: the panel is bottom-aligned by the flex spacer,
+         so its rows count up from the bottom edge. Give each the chord it
+         actually has -- and the mirror the chord at its shifted-down band. */
+      var xPanelH = 8 + rowsN * xkh + (rowsN - 1) * 2;
+      var xPanelTop = gfx.height() - 6 - xPanelH;
+      var xInset = [];
+      for (var xr = 0; xr < xrows.length; xr++) {
+        var rTop = xPanelTop + 4 + xr * (xkh + 2);
+        xInset.push(kbRoundRow(xrows[xr], rTop, rTop + xkh, 4 + 6));
+      }
+      xrows = xInset;
+      var mTop = 6 + xTopPad;
+      xMirror = kbRoundRow(xMirror, mTop, mTop + xlh + xpd * 2, 6);
+    }
     var xkids = [
-      h('row', { gap: 4 }, [
-        h('input', { id: UI._focus, size: xsz, password: xp.password,
-                     maxLen: xp.maxLen, placeholder: xp.placeholder, label: xp.label,
-                     value: xp.value, onChange: xp.onChange, onSubmit: xp.onSubmit,
-                     focusable: false }),
-        kbKey('x', function () { kbSend('Escape'); },
-              { w: em(4), h: xlh + xpd * 2, size: 2,
-                bg: UI.theme.panel, color: UI.theme.err })
-      ]),
+      xMirror,
       h('box', { flex: 1 }),
       h('box', { bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2,
                  shield: true }, xrows)
@@ -1327,7 +1383,8 @@ function Keyboard(p) {
     return h('abs', { x: sfXI ? UI.safe.left : 0, y: sfXI ? UI.safe.top : 0,
                       w: gfx.width() - (sfXI ? UI.safe.left + UI.safe.right : 0) },
       h('box', { h: gfx.height() - (sfXI ? UI.safe.top + UI.safe.bottom : 0),
-                 bg: UI.theme.bg, pad: 6, gap: 6, shield: true }, xkids));
+                 bg: UI.theme.bg, pad: 6, padT: 6 + xTopPad, gap: 6,
+                 shield: true }, xkids));
   }
   if (pos === 'bottom' || pos === 'top') {
     /* Overlay: pinned to a screen edge, no flow space taken -- the page

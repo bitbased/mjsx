@@ -99,7 +99,9 @@ function App() {
     kids.push(<text text={'joining ' + UI.state.joining + '...'} size={1}
                     align="center" color={UI.theme.warn} />);
   }
-  if (focused) kids.push(h(Keyboard, { layout: 'qwerty', position: 'bottom',
+  /* no layout named: this app wants "whatever types best here", which is
+     QWERTY on a phone-ish panel and T9 on a watch */
+  if (focused) kids.push(h(Keyboard, { position: 'bottom',
                                        height: Math.floor(gfx.height() / 2.8) }));
 
   return h('box', { h: gfx.height(), scroll: 'wifi', pad: em(0.75), gap: em(0.6) }, kids);
