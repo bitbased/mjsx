@@ -20,6 +20,63 @@ From `examples/counter/app.jsx`:
         onTap={function () { UI.set({ count: count + 1 }); }} />
 ```
 
+![](./img/comp-button-lcd35.png)
+
+## Swatch
+
+A colour chip: a bordered, rounded square filled with `color`. That is the
+whole component —
+
+```jsx
+<Swatch color={0x4b8bf5} size={22} />
+```
+
+— which is the point of it being here rather than in your app: it is four
+lines in `mjsx.js`, and it exists so a palette is written as a palette
+rather than as a row of hand-rolled boxes.
+
+- **`color`**: the fill. Required; there is no default.
+- **`size`**: side length in pixels, default 24. Width and height are the
+  same, so a swatch is always square.
+
+The border is `UI.theme.muted`, which is what keeps a dark swatch visible
+on a dark panel. `examples/canvas` and `examples/draw` build their palettes
+out of these, and put them on the rim through `ArcFooter` on round glass.
+
+![](./img/comp-swatch-lcd35.png)
+
+## Modal
+
+A centred overlay panel, opened with `UI.openModal`:
+
+```jsx
+UI.openModal(function () {
+  return h(Modal, { header: <text text="SETTINGS" size={2} align="center" /> },
+    <text text="…" wrap={true} />,
+    <Button label="CLOSE" onTap={function () { UI.closeModal(); }} />);
+});
+```
+
+**The margins are minimums, not a size.** While the content fits, the panel
+is only as tall as it needs to be and centres vertically in what is left.
+When the content would not fit inside those margins, the panel pins to the
+available height and its *content* scrolls instead — and `header` and
+`footer`, if given, stay put above and below that scroll. So the same modal
+is a small centred card on a 3.5" panel and a full-height scrolling sheet
+on a 1.28" round one, with nothing to configure per shape.
+
+- **`margin`**: minimum gap to the screen edge, default `em(1.5)`.
+- **`header`** / **`footer`**: nodes that stay sticky when the content
+  scrolls. Omit them and the whole panel scrolls as one.
+- **`gap`**: between children, default `em(0.75)`.
+- **`scroll`**: the scroll zone's id, default `'_modal'` — name it if two
+  modals must keep separate scroll positions.
+- **`bg`**, **`border`**, **`borderW`**, **`radius`**, **`pad`**: the
+  panel's own box, defaulting to the theme's panel colour, the accent as a
+  2px border, radius 10 and `em(1)` of padding.
+
+![](./img/comp-modal-lcd35.png)
+
 ## input
 
 A single-line text field. The engine owns the editing state per `id` —
@@ -50,6 +107,8 @@ From `examples/input/app.jsx`:
        onSubmit={function (v) { UI.set({ last: p.label + ': ' + v }); }} />
 ```
 
+![](./img/input-focused-lcd35.png)
+
 ## Keyboard
 
 A virtual keyboard, drawn as plain JSX over ordinary boxes. Which is also
@@ -62,6 +121,8 @@ that.
 h(Keyboard, { layout: kb, position: pos,
               height: Math.floor(gfx.height() / 2.6) })
 ```
+
+![](./img/kb-auto-lcd35.png)
 
 Props and behaviour, all from the source:
 
@@ -152,3 +213,5 @@ items.push({ w: 34, h: 22, node:
 // ... colour swatches, each { w: 22, h: 22, node: <box .../> } ...
 {h(ArcFooter, { items: items, spread: 150, inset: 10 })}
 ```
+
+![](./img/comp-arcfooter-round128.png)

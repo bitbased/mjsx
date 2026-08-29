@@ -22,6 +22,105 @@ From `examples/counter/app.jsx`:
         onTap={function () { UI.set({ count: count + 1 }); }} />
 ```
 
+<div class="shapes">
+  <input type="radio" name="sw-comp-button-0" id="sw-comp-button-0-0">
+  <label for="sw-comp-button-0-0">
+    <img src="/img/comp-button-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-comp-button-0" id="sw-comp-button-0-1" checked>
+  <label for="sw-comp-button-0-1">
+    <img src="/img/comp-button-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/comp-button-round128.png" alt="The same button page on round glass.">
+      <figcaption><strong>Round, 240×240.</strong> The same button page on round glass.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-button-lcd35.png" alt="Button: the default key colour, the theme colours passed as bg, and a small button whose hitPad grows the touch target past the paint (the outlined box).">
+      <figcaption><strong>Portrait, 320×480.</strong> Button: the default key colour, the theme colours passed as bg, and a small button whose hitPad grows the touch target past the paint (the outlined box).</figcaption>
+    </figure>
+  </div>
+</div>
+
+## Swatch
+
+A colour chip: a bordered, rounded square filled with `color`. That is the
+whole component —
+
+```jsx
+<Swatch color={0x4b8bf5} size={22} />
+```
+
+— which is the point of it being here rather than in your app: it is four
+lines in `mjsx.js`, and it exists so a palette is written as a palette
+rather than as a row of hand-rolled boxes.
+
+- **`color`**: the fill. Required; there is no default.
+- **`size`**: side length in pixels, default 24. Width and height are the
+  same, so a swatch is always square.
+
+The border is `UI.theme.muted`, which is what keeps a dark swatch visible
+on a dark panel. `examples/canvas` and `examples/draw` build their palettes
+out of these, and put them on the rim through `ArcFooter` on round glass.
+
+![](/img/comp-swatch-lcd35.png)
+
+## Modal
+
+A centred overlay panel, opened with `UI.openModal`:
+
+```jsx
+UI.openModal(function () {
+  return h(Modal, { header: <text text="SETTINGS" size={2} align="center" /> },
+    <text text="…" wrap={true} />,
+    <Button label="CLOSE" onTap={function () { UI.closeModal(); }} />);
+});
+```
+
+**The margins are minimums, not a size.** While the content fits, the panel
+is only as tall as it needs to be and centres vertically in what is left.
+When the content would not fit inside those margins, the panel pins to the
+available height and its *content* scrolls instead — and `header` and
+`footer`, if given, stay put above and below that scroll. So the same modal
+is a small centred card on a 3.5" panel and a full-height scrolling sheet
+on a 1.28" round one, with nothing to configure per shape.
+
+- **`margin`**: minimum gap to the screen edge, default `em(1.5)`.
+- **`header`** / **`footer`**: nodes that stay sticky when the content
+  scrolls. Omit them and the whole panel scrolls as one.
+- **`gap`**: between children, default `em(0.75)`.
+- **`scroll`**: the scroll zone's id, default `'_modal'` — name it if two
+  modals must keep separate scroll positions.
+- **`bg`**, **`border`**, **`borderW`**, **`radius`**, **`pad`**: the
+  panel's own box, defaulting to the theme's panel colour, the accent as a
+  2px border, radius 10 and `em(1)` of padding.
+
+<div class="shapes">
+  <input type="radio" name="sw-comp-modal-1" id="sw-comp-modal-1-0">
+  <label for="sw-comp-modal-1-0">
+    <img src="/img/comp-modal-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-comp-modal-1" id="sw-comp-modal-1-1" checked>
+  <label for="sw-comp-modal-1-1">
+    <img src="/img/comp-modal-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/comp-modal-round128.png" alt="The same modal on round glass — margins are minimums, so the panel keeps clear of the rim.">
+      <figcaption><strong>Round, 240×240.</strong> The same modal on round glass — margins are minimums, so the panel keeps clear of the rim.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-modal-lcd35.png" alt="Modal: a centred panel over the page it interrupts, with sticky header and footer rows. Everything under it stops listening.">
+      <figcaption><strong>Portrait, 320×480.</strong> Modal: a centred panel over the page it interrupts, with sticky header and footer rows. Everything under it stops listening.</figcaption>
+    </figure>
+  </div>
+</div>
+
 ## input
 
 A single-line text field. The engine owns the editing state per `id` —
@@ -52,6 +151,29 @@ From `examples/input/app.jsx`:
        onSubmit={function (v) { UI.set({ last: p.label + ': ' + v }); }} />
 ```
 
+<div class="shapes">
+  <input type="radio" name="sw-input-focused-2" id="sw-input-focused-2-0">
+  <label for="sw-input-focused-2-0">
+    <img src="/img/input-focused-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-input-focused-2" id="sw-input-focused-2-1" checked>
+  <label for="sw-input-focused-2-1">
+    <img src="/img/input-focused-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/input-focused-lcd147.png" alt="A focused field on the 172x320 panel — the narrowest glass in the fleet.">
+      <figcaption><strong>Portrait, 172×320.</strong> A focused field on the 172x320 panel — the narrowest glass in the fleet.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/input-focused-lcd35.png" alt="The focused field: accent border, caret at the insertion point, placeholder gone.">
+      <figcaption><strong>Portrait, 320×480.</strong> The focused field: accent border, caret at the insertion point, placeholder gone.</figcaption>
+    </figure>
+  </div>
+</div>
+
 ## Keyboard
 
 A virtual keyboard, drawn as plain JSX over ordinary boxes. Which is also
@@ -64,6 +186,47 @@ that.
 h(Keyboard, { layout: kb, position: pos,
               height: Math.floor(gfx.height() / 2.6) })
 ```
+
+<div class="shapes">
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-0">
+  <label for="sw-kb-auto-3-0">
+    <img src="/img/kb-auto-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-1">
+  <label for="sw-kb-auto-3-1">
+    <img src="/img/kb-auto-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-2" checked>
+  <label for="sw-kb-auto-3-2">
+    <img src="/img/kb-auto-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-kb-auto-3" id="sw-kb-auto-3-3">
+  <label for="sw-kb-auto-3-3">
+    <img src="/img/kb-auto-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/kb-auto-round128.png" alt="The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.">
+      <figcaption><strong>Round, 240×240.</strong> The AUTO layout on round glass: at a quarter-screen height the keys come out under a finger, so the keyboard takes the whole display and insets every row to the chord it actually has — the trapezoid. auto on round glass measures the CHORD where the bottom rows sit (154px across a 240px circle, not 240) and picks T9.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd147.png" alt="The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.">
+      <figcaption><strong>Portrait, 172×320.</strong> The AUTO layout docked at the bottom of lcd147 (172x320), field focused: auto on 172px picks T9: ten columns do not fit, four do.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-lcd35.png" alt="The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.">
+      <figcaption><strong>Portrait, 320×480.</strong> The AUTO layout docked at the bottom of lcd35 (320x480), field focused: auto on 320px of glass picks QWERTY: ten columns of ~22px fit.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/kb-auto-wide.png" alt="The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.">
+      <figcaption><strong>Landscape, 480×320.</strong> The AUTO layout on a 480x320 desktop window: auto on 480px picks QWERTY with room to spare.</figcaption>
+    </figure>
+  </div>
+</div>
 
 Props and behaviour, all from the source:
 
@@ -154,3 +317,35 @@ items.push({ w: 34, h: 22, node:
 // ... colour swatches, each { w: 22, h: 22, node: <box .../> } ...
 {h(ArcFooter, { items: items, spread: 150, inset: 10 })}
 ```
+
+<div class="shapes">
+  <input type="radio" name="sw-comp-arcfooter-4" id="sw-comp-arcfooter-4-0" checked>
+  <label for="sw-comp-arcfooter-4-0">
+    <img src="/img/comp-arcfooter-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-comp-arcfooter-4" id="sw-comp-arcfooter-4-1">
+  <label for="sw-comp-arcfooter-4-1">
+    <img src="/img/comp-arcfooter-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <input type="radio" name="sw-comp-arcfooter-4" id="sw-comp-arcfooter-4-2">
+  <label for="sw-comp-arcfooter-4-2">
+    <img src="/img/comp-arcfooter-wide.png" alt="">
+    landscape<br>480×320
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/comp-arcfooter-round128.png" alt="ArcFooter on round glass: five items on the bottom arc, each pulled in from the rim by its own size, all upright.">
+      <figcaption><strong>Round, 240×240.</strong> ArcFooter on round glass: five items on the bottom arc, each pulled in from the rim by its own size, all upright.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-arcfooter-lcd35.png" alt="The identical ArcFooter call on a rectangle: the boundary is the perimeter, so the arc becomes the bottom edge and a wide spread walks the corners.">
+      <figcaption><strong>Portrait, 320×480.</strong> The identical ArcFooter call on a rectangle: the boundary is the perimeter, so the arc becomes the bottom edge and a wide spread walks the corners.</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/comp-arcfooter-wide.png" alt="The same call again on a 480x320 desktop window.">
+      <figcaption><strong>Landscape, 480×320.</strong> The same call again on a 480x320 desktop window.</figcaption>
+    </figure>
+  </div>
+</div>
