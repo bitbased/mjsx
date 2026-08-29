@@ -221,15 +221,25 @@ for (const f of readdirSync(DOCS)) {
      a thing, so that is where they should be able to run it; a link to a
      separate page is a worse version of the same idea. The iframe is the
      same /play/ in embed mode, so there is one simulator, not two. */
-  md = md.replace(/<!--\s*simulator:\s*([a-z0-9-]+)(?:\s+([a-z0-9]+))?\s*-->/g,
-    (whole, example, panel) => {
+  md = md.replace(/<!--\s*simulator:\s*([a-z0-9-]+)((?:\s+[a-z0-9]+)*)\s*-->/g,
+    (whole, example, rest) => {
       if (!RUNNABLE.has(example)) {
         warnings.push(`${f}: <!-- simulator: ${example} --> names no such example`);
         return '';
       }
+      const words = (rest || '').trim().split(/\s+/).filter(Boolean);
+      /* `compact` gives the tabbed one-column player, for an embed inside
+         an ordinary article; any other word is a panel name */
+      const compact = words.indexOf('compact') >= 0;
+      const panel = words.filter((w) => w !== 'compact')[0];
+      if (panel && !PLAY_SHAPE[panel]) {
+        warnings.push(`${f}: <!-- simulator: ${example} ${panel} --> is not a panel`);
+      }
       const shape = panel && PLAY_SHAPE[panel] ? '&shape=' + PLAY_SHAPE[panel] : '';
       embeds++;
-      return '<iframe class="sim-embed" src="/play/?embed=1#ex=' + example + shape +
+      return '<iframe class="sim-embed' + (compact ? ' compact' : '') +
+             '" src="/play/?embed=1' + (compact ? '&compact=1' : '') +
+             '#ex=' + example + shape +
              '" title="mjsx simulator running the ' + example + ' example" ' +
              'loading="lazy"></iframe>';
     });
@@ -334,10 +344,15 @@ for (const f of readdirSync(DOCS)) {
   }
 
   const desc = BLURBS[slug];
+  /* A full-width simulator and a table of contents compete for the same
+     room, and the simulator is why the page exists. Compact embeds sit in
+     ordinary articles and leave the contents alone. */
+  const wideSim = /<iframe class="sim-embed"(?![^>]*\bcompact\b)/.test(md);
   const fm = [
     '---',
     `title: ${JSON.stringify(title)}`,
     desc ? `description: ${JSON.stringify(desc)}` : null,
+    wideSim ? 'tableOfContents: false' : null,
     '---',
     '',
     '<!-- GENERATED from docs/' + f + ' by scripts/docs-sync.mjs. Edit that file. -->',

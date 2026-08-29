@@ -1,6 +1,7 @@
 ---
 title: "Getting started"
 description: "From an empty directory to a UI on real glass."
+tableOfContents: false
 ---
 <!-- GENERATED from docs/getting-started.md by scripts/docs-sync.mjs. Edit that file. -->Sixty seconds from a clone to a UI you wrote, and a few minutes more to
 that same file running on real glass. Everything here runs with

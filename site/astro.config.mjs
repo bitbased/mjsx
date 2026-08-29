@@ -72,7 +72,56 @@ function publicDirIndexes() {
   };
 }
 
+/* WIDE TABLES.
+ * docs/consistency.md is mostly matrices — one has ten columns — and
+ * Starlight drops a table straight into a 45rem prose column with no
+ * scroll container. The table then obeys the column instead of its own
+ * content: cells were crushed to 45px and `clear` came out as "cl / ea / r"
+ * stacked vertically, three characters wide. Unreadable, and the columns
+ * past the eighth were simply off the page.
+ *
+ * A table is not prose and should not be measured like prose. This wraps
+ * every one in its own scroll container so it can be as wide as its
+ * content needs and scroll sideways inside the article, and marks the wide
+ * ones so their cells stop wrapping.
+ */
+function wrapTables() {
+  return function (tree) {
+    walk(tree, null, null);
+  };
+  function walk(node, parent, index) {
+    if (!node || !node.children) return;
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      walk(node.children[i], node, i);
+    }
+    if (node.tagName !== 'table' || !parent) return;
+    if (parent.properties && String(parent.properties.className || '').includes('table-scroll')) return;
+
+    /* the widest row decides: a matrix's header is the honest count, but
+       read the body too in case a header is missing */
+    let cols = 0;
+    const countRow = (n) => {
+      if (!n || !n.children) return;
+      if (n.tagName === 'tr') {
+        const c = n.children.filter((k) => k.tagName === 'th' || k.tagName === 'td').length;
+        if (c > cols) cols = c;
+      }
+      n.children.forEach(countRow);
+    };
+    countRow(node);
+
+    parent.children[index] = {
+      type: 'element',
+      tagName: 'div',
+      properties: { className: cols > 5 ? ['table-scroll', 'is-wide'] : ['table-scroll'],
+                    'data-cols': String(cols) },
+      children: [node]
+    };
+  }
+}
+
 export default defineConfig({
+  markdown: { rehypePlugins: [wrapTables] },
   site: 'https://example.invalid/mjsx',
   base: '/',
   outDir: './dist',

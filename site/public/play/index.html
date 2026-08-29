@@ -29,6 +29,10 @@
     --err:#b4232a; --err-soft:#fdeaea; --ok:#1f7a4d;
     --code-bg:#fbfaf8;
   }
+  /* Three states, not two: an explicit stamp either way, and the
+     un-stamped default where only the media query separates them. The
+     embed stamps data-theme from its host, so the [data-theme="dark"]
+     block is the one that actually runs inside a docs page. */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg:#14161b; --panel:#1b1e25; --ink:#dfe3ea; --muted:#949bab;
@@ -37,6 +41,20 @@
       --code-bg:#15181e;
     }
   }
+  :root[data-theme="dark"] {
+    --bg:#14161b; --panel:#1b1e25; --ink:#dfe3ea; --muted:#949bab;
+    --line:#2b303b; --accent:#6fb3ff; --accent-soft:#16283f; --screen:#0d0f13;
+    --err:#ff8a8a; --err-soft:#3a1d1f; --ok:#69d19b;
+    --code-bg:#15181e;
+  }
+  /* The UA paints the canvas behind the page, and it only knows which
+     colour from color-scheme. Without this the frame was a white rectangle
+     inside a dark article even with every token correctly dark. */
+  :root { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; } }
+  html, body.embed { background:transparent; }
+
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
          font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
@@ -85,7 +103,9 @@
   .ed { display:grid; grid-template-columns:auto 1fr; background:var(--code-bg); }
   .gutter { padding:.75rem .5rem .75rem .75rem; text-align:right; color:var(--muted);
             font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-            user-select:none; border-right:1px solid var(--line); white-space:pre; }
+            user-select:none; border-right:1px solid var(--line); white-space:pre;
+            overflow:hidden; }
+  .ed { align-items:start; }
   .gutter b { font-weight:600; color:var(--err); }
   textarea { width:100%; min-height:30rem; border:0; resize:vertical; padding:.75rem;
              background:transparent; color:var(--ink); tab-size:2;
@@ -113,20 +133,52 @@
      height is an iframe's, so the editor cannot be 30rem tall. */
   body.embed { background:transparent; overflow:hidden; }
   body.embed h1, body.embed .sub, body.embed .note { display:none; }
-  body.embed .wrap { padding:.75rem; max-width:none; }
-  body.embed .bar { gap:.8rem; margin-bottom:.75rem; }
-  /* Stack much later than the standalone page does. Inside an article the
-     frame is ~700-800px wide, which is plenty for a 240-480px panel beside
-     a code pane; using the standalone 900px breakpoint made every embed
-     stack and doubled its height for no reason. */
-  body.embed .cols { gap:.9rem; grid-template-columns:1fr minmax(15rem,auto); }
-  @media (max-width:640px) { body.embed .cols { grid-template-columns:1fr; } }
-  body.embed .device { padding:.9rem; }
-  /* The editor gets a modest fixed height and scrolls inside itself; the
-     frame is then sized to the content by the host page (see the postMessage
-     below), so an embedded simulator never gets its own scrollbar. */
-  body.embed textarea { min-height:15rem; max-height:15rem; resize:none; }
-  body.embed .ed { max-height:15rem; overflow:auto; }
+  body.embed .wrap { padding:0; max-width:none; }
+  body.embed .bar { gap:.8rem; margin-bottom:.6rem; }
+  /* The device pane sizes to its canvas — 480px at 2x — so a plain `auto`
+     track let it take two thirds of the row and squeezed the editor to
+     167px, which is not an editor. The editor gets a real floor and the
+     device takes what is left; `min()` keeps the floor from causing
+     overflow in a narrow frame. */
+  body.embed .cols { gap:.9rem;
+    grid-template-columns:minmax(min(100%,22rem),1fr) auto; }
+  @media (max-width:660px) { body.embed .cols { grid-template-columns:1fr; } }
+  body.embed .device { padding:.75rem; }
+
+  /* COMPACT (?embed=1&compact=1): one column, and the code and the panel
+     take turns rather than sharing the width. Meant for an ordinary
+     article at reading width, where 45rem is not enough for both and the
+     side-by-side layout makes an editor that is 160px wide. */
+  body.compact .cols { grid-template-columns:1fr; gap:0; }
+  body.compact .tabs { display:flex; }
+  body.compact .pane[hidden] { display:none; }
+  body.compact .pane { border-top-left-radius:0; border-top-right-radius:0; }
+  body.compact textarea { height:16rem; }
+  body.compact .bar { gap:.6rem; }
+  body.compact .bar .group:first-child { flex:1 1 12rem; min-width:0; }
+  body.compact select { width:100%; }
+  .tabs { display:none; gap:.25rem; margin-bottom:-1px; }
+  .tabs button {
+    font:inherit; font-size:.78rem; padding:.35rem .8rem; cursor:pointer;
+    border:1px solid var(--line); border-bottom-color:transparent;
+    border-radius:8px 8px 0 0; background:var(--bg); color:var(--muted);
+  }
+  .tabs button[aria-selected="true"] { background:var(--panel); color:var(--ink); }
+  .tabs button:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+  /* ONE scroller. .ed used to cap its own height AND scroll while the
+     textarea inside it did the same, so the editor had two nested
+     scrollbars inside a pane inside a frame. The textarea is the scroller;
+     nothing above it clips. It stays drag-resizable — the frame reports
+     its new height, so the host grows with it. */
+  /* The two panes are one row, so they should be one height: the device
+     pane is as tall as its canvas, and an editor half that leaves a slab
+     of empty pane beside it. The editor fills the row instead, and a
+     dragged resize still wins because the browser writes an inline height,
+     which beats this stylesheet. */
+  body.embed .pane { display:flex; flex-direction:column; }
+  body.embed .pane > header, body.embed .status { flex:0 0 auto; }
+  body.embed .ed { flex:1 1 auto; min-height:0; }
+  body.embed textarea { height:100%; min-height:8rem; resize:vertical; }
   .embed-out { display:none; }
   body.embed .embed-out { display:inline; }
   a { color:var(--accent); }
@@ -157,13 +209,18 @@
         <button class="btn primary" id="run">Run</button>
         <button class="btn" id="reset">Reset</button>
         <button class="btn" id="share">Copy link</button>
-        <a class="btn embed-out" id="popout" href="/play/" target="_top">Open full page \u2197</a>
+        <a class="btn embed-out" id="popout" href="/play/" target="_top">Open full page ↗</a>
       </div>
     </div>
   </div>
 
+  <div class="tabs" role="tablist" id="tabs">
+    <button role="tab" id="tab-code" aria-selected="false" aria-controls="pane-code">Code</button>
+    <button role="tab" id="tab-panel" aria-selected="true" aria-controls="pane-panel">Panel</button>
+  </div>
+
   <div class="cols">
-    <section class="pane">
+    <section class="pane" id="pane-code">
       <header>
         <span>app.jsx</span>
         <span class="rt" id="edinfo"></span>
@@ -176,7 +233,7 @@
       <div class="status" id="status">ready</div>
     </section>
 
-    <section class="pane">
+    <section class="pane" id="pane-panel">
       <header><span>Panel</span><span class="rt" id="devinfo"></span></header>
       <div class="device">
         <div class="glass rect" id="glass"><canvas id="cv" width="240" height="280"></canvas></div>
@@ -218,7 +275,30 @@
      carries the app state and a docs page must be able to set the mode
      without fighting over it */
   var EMBED = /[?&]embed=1\b/.test(location.search);
+  var COMPACT = /[?&]compact=1\b/.test(location.search);
   if (EMBED) document.body.classList.add('embed');
+  if (COMPACT) document.body.classList.add('compact');
+
+  /* Follow the HOST's theme, not the browser's. Starlight stamps
+     data-theme on its <html>; without this the frame picked its own answer
+     from prefers-color-scheme and rendered a white panel in the middle of
+     a dark page. Same-origin, so the parent is readable; if it ever is not,
+     the frame keeps its own preference rather than throwing. */
+  function followHostTheme() {
+    if (!EMBED) return;
+    try {
+      var t = parent.document.documentElement.getAttribute('data-theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+      else document.documentElement.removeAttribute('data-theme');
+    } catch (e) {}
+  }
+  followHostTheme();
+  if (EMBED) {
+    try {
+      new MutationObserver(followHostTheme).observe(
+        parent.document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    } catch (e) {}
+  }
 
   var examples = [];
   var shape = SHAPES[0], zoom = 2;
@@ -311,6 +391,7 @@
          fix a typo */
     }
     drawGutter();
+    syncGutter();
     reportHeight();
   }
 
@@ -398,6 +479,25 @@
 
   /* ---- controls ---- */
   var debounce = 0;
+  /* the gutter is a sibling of the textarea, not inside it, so it has to be
+     scrolled to match — otherwise the line numbers slide out of step with
+     the code the moment the editor scrolls */
+  elCode.addEventListener('scroll', function () {
+    elGutter.scrollTop = elCode.scrollTop;
+  });
+  /* The gutter is a grid sibling of the textarea, so its natural height is
+     the whole FILE while the textarea's is a fixed box that scrolls. Left
+     alone it stretched the row to 34 line numbers against 18 visible
+     lines, which padded the pane and left a slab of dead space beside the
+     panel. Match it to the textarea's box, and re-match when the user
+     drags the resize handle. */
+  function syncGutter() {
+    elGutter.style.height = elCode.clientHeight + 'px';
+    elGutter.scrollTop = elCode.scrollTop;
+    reportHeight();
+  }
+  if (window.ResizeObserver) new ResizeObserver(syncGutter).observe(elCode);
+  window.addEventListener('resize', syncGutter);
   elCode.addEventListener('input', function () {
     drawGutter();
     clearTimeout(debounce);
@@ -532,6 +632,23 @@
     syncPopout();
     start();
   }
+
+  /* In compact mode the panel and the code take turns. The hidden pane is
+     `hidden`, not display:none in CSS, so it is out of the accessibility
+     tree too — and the canvas keeps rendering either way, so switching back
+     shows the live frame rather than a stale one. */
+  function showTab(which) {
+    if (!COMPACT) return;
+    var code = which === 'code';
+    $('pane-code').hidden = !code;
+    $('pane-panel').hidden = code;
+    $('tab-code').setAttribute('aria-selected', String(code));
+    $('tab-panel').setAttribute('aria-selected', String(!code));
+    reportHeight();
+  }
+  $('tab-code').addEventListener('click', function () { showTab('code'); });
+  $('tab-panel').addEventListener('click', function () { showTab('panel'); });
+  if (COMPACT) showTab('panel');
 
   /* ---- boot ---- */
   SHAPES.forEach(function (s) {

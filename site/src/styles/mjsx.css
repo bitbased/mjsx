@@ -116,12 +116,76 @@ a.run-example code {
 iframe.sim-embed {
   display: block;
   width: 100%;
-  height: 46rem;
+  height: 46rem;                 /* replaced immediately by the frame's own
+                                    measurement; this is only what shows
+                                    before the first message arrives */
   border: 1px solid var(--sl-color-gray-5);
   border-radius: 10px;
   background: var(--sl-color-bg);
+  color-scheme: dark light;      /* the frame paints its own canvas */
   margin: 1.25rem 0 1.75rem;
 }
-@media (max-width: 900px) {
-  iframe.sim-embed { height: 62rem; }
+
+/* A PAGE WITH A SIMULATOR IS A WIDE PAGE.
+   Starlight's 45rem prose column is right for reading and far too narrow
+   for a code editor beside a device — the editor collapsed to 167px. The
+   first attempt broke the frame out with negative margins, which slid it
+   under the left sidebar and the table of contents. Widening the column
+   the layout already owns has no such overlap: nothing moves outside the
+   area Starlight gave the page.
+
+   The prose stays at reading width so only the simulator gets the room. */
+html:has(iframe.sim-embed) { --sl-content-width: 110rem; }
+/* and stop the content panel adding its own gutter on top */
+html:has(iframe.sim-embed) .content-panel { padding-inline: 1.5rem; }
+html:has(iframe.sim-embed) .sl-markdown-content > :not(iframe.sim-embed):not(.table-scroll) {
+  max-width: 48rem;
+}
+/* Below the sidebar breakpoint the column is already the whole width. */
+@media (max-width: 72rem) {
+  html:has(iframe.sim-embed) { --sl-content-width: 45rem; }
+  html:has(iframe.sim-embed) .sl-markdown-content > * { max-width: none; }
+}
+
+/* COMPACT EMBEDS keep the page as it is: they are meant to sit inside an
+   ordinary article, at reading width, without rearranging it. */
+html:has(iframe.sim-embed.compact):not(:has(iframe.sim-embed:not(.compact))) {
+  --sl-content-width: 45rem;
+}
+html:has(iframe.sim-embed.compact):not(:has(iframe.sim-embed:not(.compact)))
+  .sl-markdown-content > * { max-width: none; }
+
+/* Wide tables scroll instead of being crushed. See wrapTables() in
+   site/astro.config.mjs for why this exists: a ten-column matrix in a 45rem
+   prose column had 45px cells and the word "clear" set three letters wide,
+   stacked vertically. */
+.table-scroll {
+  overflow-x: auto;
+  margin: 1rem 0 1.5rem;
+  /* a hairline that shows the box is scrollable without shouting */
+  border-radius: 6px;
+}
+.table-scroll > table {
+  margin: 0;
+  width: max-content;
+  min-width: 100%;
+}
+/* Only the wide ones stop wrapping. A three-column table of prose still
+   wants to wrap; a matrix of "yes — fwd" never does. */
+.table-scroll.is-wide th,
+.table-scroll.is-wide td {
+  white-space: nowrap;
+}
+.table-scroll.is-wide th:first-child,
+.table-scroll.is-wide td:first-child {
+  /* the row label is what you read along, so keep it against the edge
+     while the values scroll past it */
+  position: sticky;
+  left: 0;
+  background: var(--sl-color-bg);
+  z-index: 1;
+}
+.table-scroll.is-wide {
+  /* the sticky column needs something to sit against when scrolled */
+  background: var(--sl-color-bg);
 }

@@ -1,6 +1,7 @@
 ---
 title: "The simulator"
 description: "Edit an example and run it, on the real engine, in the browser."
+tableOfContents: false
 ---
 <!-- GENERATED from docs/simulator.md by scripts/docs-sync.mjs. Edit that file. -->Pick an example, edit it, and it re-runs on the panel beside it. Click and
 drag on the glass; type into it. It is running here, on this page.
