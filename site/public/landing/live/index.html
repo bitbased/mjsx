@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mjsx — running on this page</title>
+<!--
+  DIRECTION: no metaphor. The page is the thing.
+
+  Every panel below is packages/core/src/mjsx.js — the file a
+  microcontroller runs — laying out a tree and painting it through ten
+  drawing calls into an ImageData. Not screenshots, not canvas drawings
+  made for this page, not a re-implementation: the engine itself, loaded
+  from /mjsx-sim.js.
+
+  The apps are not written for this page either. They are fetched from
+  /examples.json, which scripts/build-play.mjs generates by reading
+  examples/*/app.jsx. What you play here is what is in the repository and
+  what gets pushed to a board.
+
+  So this page makes two network requests, the engine and the examples,
+  and nothing else. A landing page for a UI engine that will not run the
+  UI engine is a brochure.
+-->
+<style>
+  /* The palette is UI.theme from the core, because the panels paint with
+     it and the page should not disagree with its own screens. */
+  :root {
+    --accent:#4b8bf5; --ok:#4ade80; --warn:#fbbf24; --err:#f87171;
+    --panel:#161a20; --key:#212530; --screen:#000;
+    --bg:#0b0d11; --ink:#e6e9ef; --dim:#98a1ae; --line:#232932;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg:#f7f8fa; --ink:#11141a; --dim:#5b6472; --line:#e0e4ea;
+      --panel:#ffffff; --key:#eef1f5;
+    }
+  }
+  * { box-sizing:border-box; }
+  html { color-scheme: dark light; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 var(--sans); }
+  .wrap { max-width:76rem; margin:0 auto; padding:0 1.5rem; }
+
+  header { border-bottom:1px solid var(--line); position:sticky; top:0;
+           background:var(--bg); z-index:5; }
+  header .wrap { display:flex; align-items:center; gap:.9rem; height:3.25rem;
+                 font:600 14px/1 var(--mono); }
+  header .tag { color:var(--dim); font-weight:400; letter-spacing:.07em;
+                text-transform:uppercase; font-size:11px; }
+  header .sp { margin-left:auto; }
+  header a { color:var(--dim); text-decoration:none; font-size:12px; }
+  header a:hover { color:var(--accent); }
+
+  h1 { font-size:clamp(2rem, 4.6vw, 3.1rem); line-height:1.06; margin:0 0 .8rem;
+       letter-spacing:-.025em; text-wrap:balance; }
+  h2 { font-size:1.4rem; margin:0 0 .5rem; letter-spacing:-.015em; }
+  .lede { font-size:1.1rem; color:var(--dim); max-width:46rem; margin:0 0 1.5rem; }
+  p { max-width:46rem; }
+  code, .m { font-family:var(--mono); font-size:.92em; }
+  a { color:var(--accent); }
+
+  section { padding:3.25rem 0; border-bottom:1px solid var(--line); }
+  section:first-of-type { padding-top:2.5rem; }
+  .eyebrow { font:600 11px/1 var(--mono); letter-spacing:.15em; text-transform:uppercase;
+             color:var(--dim); margin:0 0 .8rem; }
+
+  .stage { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2.25rem;
+           align-items:start; margin-top:1.4rem; }
+  @media (max-width:880px) { .stage { grid-template-columns:1fr; } }
+  .stage.rev { grid-template-columns:auto minmax(0,1fr); }
+  @media (max-width:880px) { .stage.rev { grid-template-columns:1fr; } }
+
+  .dev { justify-self:center; }
+  .glass { background:var(--screen); border:1px solid #2a3140; border-radius:14px;
+           padding:9px; line-height:0; box-shadow:0 14px 44px rgba(0,0,0,.45); }
+  .glass.round { border-radius:50%; padding:7px; }
+  canvas { display:block; image-rendering:pixelated; touch-action:none; border-radius:5px;
+           cursor:crosshair; }
+  .glass.round canvas { border-radius:50%; }
+  .cap { font:11px/1.5 var(--mono); color:var(--dim); text-align:center;
+         margin-top:.65rem; letter-spacing:.03em; }
+  .hint { font:11px/1.5 var(--mono); color:var(--accent); text-align:center;
+          margin-top:.2rem; }
+
+  pre { margin:0; padding:1rem; background:var(--panel); border:1px solid var(--line);
+        border-radius:10px; overflow-x:auto; font:12.5px/1.6 var(--mono); }
+  pre .k { color:var(--accent); }
+  pre .s { color:var(--warn); }
+  pre .c { color:var(--dim); font-style:italic; }
+
+  .readout { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:1rem; }
+  .stat { border:1px solid var(--line); border-radius:999px; padding:.28rem .7rem;
+          font:12px/1.4 var(--mono); color:var(--dim); background:var(--panel); }
+  .stat b { color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; }
+
+  .grid { display:grid; gap:1.1rem; margin-top:1.4rem;
+          grid-template-columns:repeat(auto-fit, minmax(14rem,1fr)); }
+  .card { border:1px solid var(--line); border-radius:10px; padding:1rem 1.1rem;
+          background:var(--panel); }
+  .card h3 { margin:.1rem 0 .35rem; font:600 15px/1.3 var(--mono); }
+  .card p { font-size:.9rem; color:var(--dim); margin:0; max-width:none; }
+
+  .fleet { display:flex; flex-wrap:wrap; gap:1.4rem; align-items:flex-end; margin-top:1.4rem; }
+  .note { font-size:.9rem; color:var(--dim); }
+  .btns { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1.4rem; }
+  .btn { display:inline-block; font:600 13px/1 var(--mono); text-decoration:none;
+         border:1px solid var(--accent); color:var(--accent); border-radius:8px;
+         padding:.7rem 1.05rem; }
+  .btn.solid { background:var(--accent); color:#fff; }
+  footer { padding:2.5rem 0 4rem; }
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <span>mjsx</span>
+  <span class="tag">running, not described</span>
+  <span class="sp"></span>
+  <a href="/play/">simulator</a>
+  <a href="/">docs</a>
+</div></header>
+
+<div class="wrap">
+
+<section>
+  <h1>Play it. That is the pitch.</h1>
+  <p class="lede">
+    Below is <code>examples/asteroids/app.jsx</code> from this repository,
+    running on the engine a microcontroller runs, drawn through ten native
+    calls. <b>Hold and drag</b> — the ship steers toward your finger and how far
+    out you hold is the throttle. Tap to fire. Arrow keys and space work too.
+  </p>
+
+  <div class="stage rev">
+    <div class="dev">
+      <div class="glass round"><canvas id="cv-a"></canvas></div>
+      <div class="cap">240 × 240 · round · GC9A01</div>
+      <div class="hint">hold &amp; drag to fly · tap to fire</div>
+    </div>
+    <div>
+      <p>
+        The round board is why the control is a drag and not a pair of arrows.
+        Screen thirds and on-screen buttons are rectangle thinking — they assume
+        corners to put controls in and edges to divide. A circle has an angle
+        everywhere, so <em>pointing</em> is the gesture the shape suggests, and it
+        turns out to be the better one on a rectangle too.
+      </p>
+      <p>
+        Wrapping is the same argument. On a rectangle, leaving the right edge puts
+        you on the left. On a circle the corners <em>do not exist</em>, so a
+        box-wrapped rock vanishes into a region that is not there. Here the
+        boundary is the rim: cross it and you return diametrically opposite,
+        still on glass. That is nine lines, and the only place the file asks
+        <code>UI.isRound()</code>.
+      </p>
+      <div class="readout">
+        <span class="stat">draw calls · frame <b id="a-ops">—</b></span>
+        <span class="stat">layout+paint <b id="a-ms">—</b></span>
+        <span class="stat">fps <b id="a-fps">—</b></span>
+        <span class="stat">camera <b id="a-cam">—</b></span>
+      </div>
+      <p class="note" style="margin-top:.9rem">
+        In <span class="m">CENTRED</span> the ship is pinned to the middle and the
+        world moves past it — which on a 240px circle is the only way to see where
+        you are going. The 1px stars exist for exactly that: with the ship fixed,
+        they are the only thing that tells you the world is moving.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">touch is a real event</p>
+  <h2>Draw on it.</h2>
+  <div class="stage">
+    <div>
+      <p>
+        <code>examples/canvas/app.jsx</code>, unmodified. Drag on the panel to
+        draw; the swatches change colour. Every stroke is a
+        <code>UI.pointer</code> stroke handed to an <code>onDraw</code> handler —
+        the same call the ESP32 touch controller makes, and the same one the HTTP
+        mirror forwards from a browser.
+      </p>
+      <p class="note">
+        The palette sits on an <code>ArcFooter</code>: items are placed where the
+        ray from screen centre meets the boundary. On a rectangle that boundary is
+        the perimeter, so the arc flattens onto the bottom edge. One call, both
+        shapes, no branch.
+      </p>
+    </div>
+    <div class="dev">
+      <div class="glass"><canvas id="cv-c"></canvas></div>
+      <div class="cap">320 × 480 · 3.5″ ST7796</div>
+      <div class="hint">drag to draw</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">text entry, on a chip</p>
+  <h2>Type on it.</h2>
+  <div class="stage rev">
+    <div class="dev">
+      <div class="glass"><canvas id="cv-i"></canvas></div>
+      <div class="cap">172 × 320 · 1.47″ JD9853</div>
+      <div class="hint">tap a field, then use the keys</div>
+    </div>
+    <div>
+      <p>
+        <code>examples/input/app.jsx</code>. Tap a field and a keyboard appears —
+        drawn as ordinary boxes, sending the same <code>UI.key('press', name)</code>
+        a physical keyboard sends. There is no privileged channel: a custom pad
+        written in app JSX is a keyboard the moment its taps call that.
+      </p>
+      <p>
+        On this 172-pixel panel the docked keys would come out under a finger's
+        height, so the keyboard takes the whole display instead and mirrors the
+        field above itself. Nobody opted in to that. The field is not copied
+        either — input state is keyed by <code>id</code>, so the mirror
+        <em>is</em> the field.
+      </p>
+      <div class="readout">
+        <span class="stat">layout <b id="i-layout">—</b></span>
+        <span class="stat">draw calls <b id="i-ops">—</b></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">the whole hardware contract</p>
+  <h2>Ten calls, and a clock.</h2>
+  <p>
+    A backend gives mjsx <code>clear</code>, <code>rect</code>, <code>frect</code>,
+    <code>circle</code>, <code>line</code>, <code>text</code>, <code>clip</code>,
+    <code>unclip</code>, <code>width</code>, <code>height</code> — and
+    <code>sys.millis()</code>. That is all of it. Below is every call the asteroids
+    panel made for its last frame, in order, as the engine emitted them.
+  </p>
+  <pre id="ops" style="max-height:17rem; overflow:auto"></pre>
+  <p class="note">
+    Nothing in that list is browser-specific. The ESP32 target binds the same ten
+    names to C functions; the terminal backend binds them to half-block cells.
+    Porting is writing those ten.
+  </p>
+</section>
+
+<section>
+  <p class="eyebrow">one source, five panels, at once</p>
+  <h2>No breakpoints. No second code path.</h2>
+  <p>
+    Every panel below is running the same asteroids file, live, at a different
+    size. Nothing in it asks what shape it is on except those nine lines of
+    wrapping. Layout is width-in, height-out — a node is told its width and
+    reports its height — which is why one tree fits a 172-pixel column and a
+    480-pixel window.
+  </p>
+  <div class="fleet" id="fleet"></div>
+</section>
+
+<section>
+  <p class="eyebrow">what it costs</p>
+  <div class="grid">
+    <div class="card">
+      <h3 id="c-core">—</h3>
+      <p>The whole engine: <code>h()</code>, layout, hit-testing, the touch state
+         machine, scrolling, text fields, keyboards. One file.</p>
+    </div>
+    <div class="card">
+      <h3>0 dependencies</h3>
+      <p>An empty <code>node_modules</code>. SDL2 is optional, and only for the
+         desktop window.</p>
+    </div>
+    <div class="card">
+      <h3>No reconciler</h3>
+      <p>No virtual DOM, no diff, no keys. A dirty frame redraws the tree — which
+         is what the frame counter above is counting.</p>
+    </div>
+    <div class="card">
+      <h3>ES5, on purpose</h3>
+      <p>No classes, no arrows, no template literals — because that is what
+         MicroQuickJS on the chip accepts.</p>
+    </div>
+  </div>
+  <div class="btns">
+    <a class="btn solid" href="/play/">Open the simulator</a>
+    <a class="btn" href="/">Read the documentation</a>
+  </div>
+</section>
+
+</div>
+
+<footer><div class="wrap note">
+  A hobby project, MIT licensed, pre-publication — not on npm, not on a public git
+  host. This page loads the engine (<span class="m">/mjsx-sim.js</span>,
+  <span id="f-kb">—</span> kB) and the example sources
+  (<span class="m">/examples.json</span>), and makes no other request.
+</div></footer>
+
+<script src="/mjsx-sim.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---- a device: its own engine, its own buffer ----------------------
+     mjsxRun points the globals (gfx, sys, UI, h, …) at whatever it built,
+     so several devices on one page take turns. Each keeps its core and
+     re-points the globals before it touches anything. */
+  var KEYS = ['h','UI','Button','Swatch','em','Modal','Keyboard','ArcFooter','configStorage'];
+
+  function Device(cv, src, w, h, opts) {
+    opts = opts || {};
+    this.cv = cv;
+    this.ctx = cv.getContext('2d', { alpha: false });
+    this.w = w; this.h = h;
+    this.dpr = opts.dpr || 2;
+    cv.width = w * this.dpr; cv.height = h * this.dpr;
+    cv.style.width = (w * this.dpr) + 'px';
+    cv.style.height = (h * this.dpr) + 'px';
+    this.be = createPureJsBackend(w, h, { dpr: this.dpr });
+    if (opts.seed) {
+      /* seeded before the app runs, the way a firmware seeds its board */
+      for (var k in opts.seed) this.be.sys.store(k, opts.seed[k]);
+    }
+    this.core = mjsxRun(src, this.be, { round: !!opts.round });
+    this.saved = {};
+    for (var i = 0; i < KEYS.length; i++) this.saved[KEYS[i]] = this.core[KEYS[i]];
+    this.img = null; this.frames = 0; this.ms = 0;
+    this.render();
+    this.wire();
+  }
+  Device.prototype.enter = function () {
+    globalThis.gfx = this.be.gfx;
+    globalThis.sys = this.be.sys;
+    for (var i = 0; i < KEYS.length; i++) globalThis[KEYS[i]] = this.saved[KEYS[i]];
+  };
+  Device.prototype.blit = function () {
+    var cw = this.cv.width, ch = this.cv.height, src = this.be.raw;
+    if (!this.img || this.img.width !== cw) this.img = this.ctx.createImageData(cw, ch);
+    var d = this.img.data, n = cw * ch, s = 0, o = 0;
+    for (var i = 0; i < n; i++) {
+      d[o] = src[s]; d[o+1] = src[s+1]; d[o+2] = src[s+2]; d[o+3] = 255;
+      s += 3; o += 4;
+    }
+    this.ctx.putImageData(this.img, 0, 0);
+  };
+  Device.prototype.render = function () {
+    this.enter();
+    var t0 = performance.now();
+    this.core.UI.render();
+    this.ms = performance.now() - t0;
+    this.frames++;
+    this.blit();
+  };
+  Device.prototype.tick = function () {
+    this.enter();
+    var moved = this.core.UI.ticker();
+    if (moved || this.core.UI.dirty()) this.render();
+    return moved;
+  };
+  Device.prototype.ops = function () {
+    this.enter();
+    var rec = mjsxRecord(this.be.gfx), real = globalThis.gfx;
+    globalThis.gfx = rec.gfx;
+    this.core.UI.render();
+    globalThis.gfx = real;
+    var list = rec.take();
+    this.core.UI.render();
+    this.blit();
+    return list;
+  };
+  Device.prototype.at = function (e) {
+    var r = this.cv.getBoundingClientRect();
+    return { x: Math.round((e.clientX - r.left) / r.width * this.w),
+             y: Math.round((e.clientY - r.top) / r.height * this.h) };
+  };
+  Device.prototype.point = function (phase, e) {
+    this.enter();
+    var p = this.at(e);
+    this.core.UI.pointer('p', phase, p.x, p.y);
+    if (this.core.UI.dirty()) this.render();
+  };
+  Device.prototype.wire = function () {
+    var self = this, cv = this.cv;
+    cv.tabIndex = 0;
+    cv.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      cv.focus({ preventScroll: true });
+      try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+      self.point(0, e);
+    });
+    cv.addEventListener('pointermove', function (e) {
+      if (e.buttons || e.pointerType === 'touch') self.point(1, e);
+    });
+    cv.addEventListener('pointerup', function (e) { self.point(2, e); });
+    cv.addEventListener('pointercancel', function (e) { self.point(2, e); });
+    cv.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab') return;
+      e.preventDefault();
+      self.enter();
+      var k = e.key;
+      if (k.length === 1 && k !== ' ') self.core.UI.type(k);
+      else {
+        self.core.UI.key('down', k); self.core.UI.key('press', k); self.core.UI.key('up', k);
+      }
+      if (self.core.UI.dirty()) self.render();
+    });
+    cv.addEventListener('keyup', function (e) {
+      /* held keys have to be released, or the ship turns forever */
+      self.enter();
+      self.core.UI.key('up', e.key);
+    });
+  };
+
+  /* ---- boot: the apps come from the repository, not from this page ---- */
+  fetch('/examples.json').then(function (r) { return r.json(); }).then(function (list) {
+    var byName = {};
+    list.forEach(function (e) { if (!e.synthetic) byName[e.name] = e.source; });
+
+    var AST = byName.asteroids, CANVAS = byName.canvas, INPUT = byName.input;
+
+    /* the hero: round glass, centred camera, its starfield doing the work */
+    var a = new Device($('cv-a'), AST, 240, 240, { round: true, dpr: 2 });
+
+    var c = new Device($('cv-c'), CANVAS, 320, 480, { dpr: 1 });
+    var i = new Device($('cv-i'), INPUT, 172, 320, { dpr: 1 });
+
+    /* the fleet: one source, five panels */
+    var SHAPES = [
+      { w: 240, h: 280, label: '240×280 · 1.69″' },
+      { w: 172, h: 320, label: '172×320 · 1.47″' },
+      { w: 320, h: 172, label: '320×172 · landscape' },
+      { w: 240, h: 240, round: true, label: '240×240 · round' },
+      { w: 480, h: 320, label: '480×320 · window' }
+    ];
+    var fleet = $('fleet'), live = [a];
+    SHAPES.forEach(function (s) {
+      var wrap = document.createElement('div');
+      var box = document.createElement('div');
+      box.className = 'glass' + (s.round ? ' round' : '');
+      var cv = document.createElement('canvas');
+      box.appendChild(cv);
+      var cap = document.createElement('div');
+      cap.className = 'cap'; cap.textContent = s.label;
+      wrap.appendChild(box); wrap.appendChild(cap);
+      fleet.appendChild(wrap);
+      live.push(new Device(cv, AST, s.w, s.h, { round: s.round, dpr: 1 }));
+    });
+
+    /* ---- the frame loop -------------------------------------------------
+       Only the panels actually on screen are ticked. A page full of running
+       devices should not cost anything while you are reading about them. */
+    var seen = new WeakMap();
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (en) { seen.set(en.target, en.isIntersecting); });
+    }, { rootMargin: '120px' });
+    live.forEach(function (d) { io.observe(d.cv); seen.set(d.cv, false); });
+
+    var fpsT = performance.now(), fpsN = 0;
+    function loop() {
+      requestAnimationFrame(loop);
+      for (var n = 0; n < live.length; n++) {
+        if (seen.get(live[n].cv)) live[n].tick();
+      }
+      fpsN++;
+      var now = performance.now();
+      if (now - fpsT >= 500) {
+        $('a-fps').textContent = Math.round(fpsN * 1000 / (now - fpsT));
+        fpsT = now; fpsN = 0;
+        $('a-ms').textContent = a.ms.toFixed(2) + ' ms';
+        a.enter();
+        $('a-cam').textContent =
+          (a.core.configStorage.get('cam', 'centred') === 'centred') ? 'CENTRED' : 'WORLD';
+      }
+    }
+    requestAnimationFrame(loop);
+
+    /* ---- the op list, from the frame that is actually on screen ---- */
+    var NAME = { C:'clear', r:'rect', f:'frect', c:'circle', l:'line',
+                 t:'text', x:'clip', X:'unclip', p:'poly', b:'blit' };
+    function showOps() {
+      var list = a.ops(), out = [];
+      for (var n = 0; n < list.length; n++) {
+        var o = list[n];
+        var args = o.slice(1).map(function (v) {
+          return typeof v === 'string' ? JSON.stringify(v)
+               : (typeof v === 'number' && v > 4096 ? '0x' + v.toString(16) : v);
+        }).join(', ');
+        out.push(('   ' + (n + 1)).slice(-4) + '  gfx.' + (NAME[o[0]] || o[0]) + '(' + args + ')');
+      }
+      $('ops').textContent = out.join('\n');
+      $('a-ops').textContent = list.length;
+    }
+    showOps();
+    setInterval(showOps, 1500);
+
+    $('i-layout').textContent = i.core.UI._exclusive ? 'keyboard took the display' : 'docked';
+    $('i-ops').textContent = i.ops().length;
+  }).catch(function (e) {
+    $('ops').textContent = 'could not load /examples.json — run `bun run site`\n' + e.message;
+  });
+
+  /* ---- measured facts, measured here ---- */
+  $('c-core').textContent = MJSX_CORE_SRC.split('\n').length.toLocaleString('en-US') + ' lines';
+  fetch('/mjsx-sim.js').then(function (r) { return r.blob(); }).then(function (b) {
+    $('f-kb').textContent = Math.round(b.size / 1024);
+  }).catch(function () { $('f-kb').textContent = '~150'; });
+})();
+</script>
+</body>
+</html>

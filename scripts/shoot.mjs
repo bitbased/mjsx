@@ -1089,7 +1089,17 @@ function shotList() {
      SIMS. The bus scan walks 8 addresses a tick, so it also needs frames
      to reach the end of the address range. */
   const EX_SIM = { i2c: 'i2c' };
-  const EX_FRAMES = { i2c: 20 };
+  /* asteroids is a game: its first frame is three rocks and a stationary
+     ship, which is a true render and a poor picture. Let it play for a
+     second first — the seeded generator makes that reproducible. */
+  const EX_FRAMES = { i2c: 20, asteroids: 90 };
+  /* The blank-shot check flags anything under 0.5% ink, which catches a
+     genuinely empty render — and also catches WIREFRAME on black, where
+     thin outlines on a big field are the correct picture. asteroids draws
+     27 lines and two text runs at 0.3% ink; that is the game, not a
+     failure, so it opts out of the heuristic rather than the heuristic
+     being loosened for everyone. */
+  const EX_SPARSE = { asteroids: true };
   /* 112 addresses at 8 a tick is 14 ticks; 16 leaves margin */
   const SCAN_DONE = [];
   for (let i = 0; i < 16; i++) SCAN_DONE.push({ op: 'advance', ms: 16 });
@@ -1097,7 +1107,7 @@ function shotList() {
     for (const p of ['lcd35', 'lcd147', 'round128']) {
       add('ex', n, p, null, exampleCaption(n, p),
           { file: 'examples/' + n + '/app.jsx', actions: EX_ACTIONS[n],
-            sim: EX_SIM[n], frames: EX_FRAMES[n] });
+            sim: EX_SIM[n], frames: EX_FRAMES[n], allowBlank: EX_SPARSE[n] });
     }
   }
   /* ---- the five shapes ----
@@ -1254,7 +1264,13 @@ if (argv[0] === '--list' || argv[0] === '--all') {
       console.log('FAIL ' + s.out.slice(ROOT.length + 1) + '  ' + err.message);
       continue;
     }
-    if (r.ink < 0.005 || r.colours < 3) thin.push(s.out + ' (ink ' + (r.ink * 100).toFixed(2) + '%)');
+    /* allowBlank means the shot is legitimately sparse — wireframe on
+       black, say — so it must silence the summary too, not just the
+       per-shot error. A warning nobody can act on trains people to
+       ignore the list. */
+    if (!s.allowBlank && (r.ink < 0.005 || r.colours < 3)) {
+      thin.push(s.out + ' (ink ' + (r.ink * 100).toFixed(2) + '%)');
+    }
     console.log('ok   ' + report(s, r));
   }
   console.log('\n' + (shots.length - failed.length) + '/' + shots.length + ' shots -> ' + OUT);

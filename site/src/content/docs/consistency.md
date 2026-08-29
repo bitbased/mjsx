@@ -245,7 +245,7 @@ reserves 12px/char at size 2; the glyph is 7px. Measurements above.
 `scripts/render-examples.mjs` drives `run.js`, so the whole committed
 gallery (`out/gallery/*.png`) is rendered with mis-centred text.
 `test/load.js` inherits the same gap, so the tests cannot see it — and
-the golden matrix (`test/golden/matrix.js`, 70 hashes across the five
+the golden matrix (`test/golden/matrix.js`, 75 hashes across the five
 shapes) is seeded through that same unsynced loader, which locks the
 mismatch in.
 
