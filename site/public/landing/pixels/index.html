@@ -611,7 +611,7 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
           </div>
           <div class="note g2">
             <h3>Button is not privileged</h3>
-            <p>It is nineteen lines built from <b>box</b> and <b>text</b>, the same primitives
+            <p>It is eight lines built from <b>box</b> and <b>text</b>, the same primitives
             your app uses. None of the ready-made components are mandatory; any of them can
             be rebuilt in app code when they don't fit.</p>
           </div>
@@ -649,7 +649,8 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
             <canvas class="icon" width="8" height="8" data-icon="purejs" aria-hidden="true"></canvas>
             <h3>pure-js</h3>
           </div>
-          <p>Headless rasteriser into an RGBA buffer; writes PPM and PNG. The reference
+          <p>Headless rasteriser into an RGBA buffer, written out as a binary PPM. The gallery
+          script converts to PNG with an encoder written in the repo. The reference
           implementation, and the renderer the browser and window backends draw with.</p>
           <span class="path">backends/pure-js</span>
         </div>
@@ -682,7 +683,7 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
           <p>The UI in a browser tab over a socket — pixels out, real input back, including
           genuine per-finger multitouch. A device mirrors its own screen the same way, to a
           <b>/remote</b> page.</p>
-          <span class="path">the browser backend, under backends/</span>
+          <span class="path">backends/http</span>
         </div>
 
         <div class="card">
@@ -787,8 +788,8 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
         <div class="notes">
           <div class="note a2">
             <h3>The width that decides is the width the keys get</h3>
-            <p>A 240 px circle measures 240 across the middle and only about 178 down where
-            the bottom rows sit. Ten QWERTY columns need 220, so the layout picks itself:
+            <p>A 240 px circle measures 240 across the middle and only 154 across the band
+            its bottom rows occupy. Ten QWERTY columns need 220, so the layout picks itself:
             this glass gets T9, not a QWERTY squeezed under the rim.</p>
           </div>
           <div class="note">
@@ -1339,10 +1340,15 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
   }
 
   /* ============================ round showpiece: trapezoid keyboard */
+  /* kbChordHW, exactly as packages/core/src/mjsx.js computes it: the radius
+     is inset by 2 for the bezel, the far edge of the band is the one that
+     decides, and 3 more pixels come off so a key never touches the rim. */
   function chordHalf(y0, y1, R, cy) {
+    var r = R - 2;
     var d = Math.max(Math.abs(y0 - cy), Math.abs(y1 - cy));
-    var t = R * R - d * d;
-    return t > 0 ? Math.floor(Math.sqrt(t)) : 0;
+    if (d >= r) return 0;
+    var hw = Math.floor(Math.sqrt(r * r - d * d)) - 3;
+    return hw > 0 ? hw : 0;
   }
 
   function drawRoundKb(g, showChord) {
@@ -1357,7 +1363,7 @@ footer .status{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
     /* four rows, each inset to the chord at its own height. OK has moved
        into the bottom arc, so the utility row's last slot is a full key. */
     var ROUND9 = T9.slice(0, 15).concat([['.', '']]);
-    var rows = [96, 124, 152, 180], kh = 24, widths = [];
+    var rows = [96, 124, 152, 180], kh = 26, widths = [];
     var size = 1;                       /* one size, chosen by the narrowest row */
     for (var r = 0; r < 4; r++) {
       var hw = chordHalf(rows[r], rows[r] + kh, R, cy);

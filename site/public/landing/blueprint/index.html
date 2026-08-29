@@ -435,7 +435,7 @@ footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
         draws and handles touch for a whole interface, and it does the drawing through
         <strong>ten native calls</strong>. Anything that can fill a rectangle and report the time
         is a target: a 1.28-inch round panel wired to a chip, an ANSI terminal, a browser tab,
-        a native window, a PNG on disk.
+        a native window, an image file on disk.
       </p>
       <p class="lede">
         No virtual DOM, no reconciler, no dependencies. A dirty frame simply redraws itself.
@@ -706,7 +706,7 @@ footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
           <g text-anchor="middle">
             <text x="93" y="372" class="t">PURE-JS</text>
             <text x="93" y="390" class="ts">RGBA BUFFER</text>
-            <text x="93" y="403" class="ts">PPM + PNG FILES</text>
+            <text x="93" y="403" class="ts">BINARY PPM FILES</text>
             <text x="93" y="419" class="td">REFERENCE</text>
 
             <text x="207" y="372" class="t">TERMINAL</text>
@@ -873,7 +873,7 @@ footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
         <tr><th scope="col">No.</th><th scope="col">Backend</th><th scope="col">gfx.frect is…</th><th scope="col">Surface</th></tr>
       </thead>
       <tbody>
-        <tr><td class="no">B1</td><td class="call"><b>PURE-JS</b></td><td class="up">A write into an RGBA buffer</td><td class="note">Headless rasterizer; writes PPM and PNG. The reference implementation, and the renderer the browser and window backends draw with.</td></tr>
+        <tr><td class="no">B1</td><td class="call"><b>PURE-JS</b></td><td class="up">A write into an RGBA buffer</td><td class="note">Headless rasterizer; writes binary PPM, which the gallery script converts to PNG with an encoder written in the repo. The reference implementation, and the renderer the browser and window backends draw with.</td></tr>
         <tr><td class="no">B2</td><td class="call"><b>TERMINAL</b></td><td class="up">A write into a sub-pixel buffer flushed as ANSI</td><td class="note">Two near-square pixels per character cell via the half-block glyph; text is the terminal's own font. A real raw-mode CLI app, plus a picker.</td></tr>
         <tr><td class="no">B3</td><td class="call"><b>SDL</b></td><td class="up">A host-window blit</td><td class="note">Device simulator: square, rounded and round masks, size presets for the real panels, a high-resolution sub-pixel mode, host-font text. SDL2 is the only native dependency anywhere in the repo, and it is optional.</td></tr>
         <tr><td class="no">B4</td><td class="call"><b>HTTP</b></td><td class="up">Pure-js pixels, streamed</td><td class="note">The interface in a browser tab over HTTP and WebSocket — pixels out, real input back, including genuine per-finger multitouch.</td></tr>
@@ -1012,7 +1012,7 @@ footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
           <title id="c1t">Detail C1: the on-screen keyboard becomes a trapezoid on round glass</title>
           <desc id="c1d">A circle of 240 pixels diameter with four keyboard rows inside it. Each row is
           inset to the chord of the circle at its own height, so the rows narrow towards the bottom of
-          the glass: the top row spans nearly the full width, the bottom row little more than half.
+          the glass: the top row spans nearly the full 240 pixels, the bottom row only 154 of them.
           The OK key sits in the arc below the bottom row. Dimension lines give the diameter across the
           middle and the much shorter chord at the bottom row.</desc>
 
@@ -1063,11 +1063,11 @@ footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
             <rect x="244.8" y="278" width="23.6" height="26" rx="2" class="pf2"/>
             <rect x="271.4" y="278" width="23.6" height="26" rx="2" class="pf2"/>
           </g>
-          <!-- ROW 4 : 64 -->
+          <!-- ROW 4 : chord half-width 96 -> 154 px of a 240 px circle -->
           <g class="ol">
-            <rect x="126" y="308" width="40.7" height="26" rx="2" class="pf2"/>
-            <rect x="169.7" y="308" width="40.7" height="26" rx="2" class="pf2"/>
-            <rect x="213.3" y="308" width="40.7" height="26" rx="2" class="pf2"/>
+            <rect x="94" y="308" width="62" height="26" rx="2" class="pf2"/>
+            <rect x="159" y="308" width="62" height="26" rx="2" class="pf2"/>
+            <rect x="224" y="308" width="62" height="26" rx="2" class="pf2"/>
           </g>
           <text x="190" y="325" text-anchor="middle" class="ts">SPACE</text>
 
@@ -1084,11 +1084,11 @@ footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
           <text x="190" y="35" text-anchor="middle" class="td">Ø 240 PX</text>
 
           <!-- chord dimension at the bottom row -->
-          <line x1="126" y1="334" x2="126" y2="382" class="dl"/>
-          <line x1="254" y1="334" x2="254" y2="382" class="dl"/>
-          <line x1="126" y1="374" x2="254" y2="374" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
-          <rect x="132" y="358" width="116" height="13" class="pf2"/>
-          <text x="190" y="367" text-anchor="middle" class="td">CHORD AT BOTTOM ROW</text>
+          <line x1="94" y1="334" x2="94" y2="382" class="dl"/>
+          <line x1="286" y1="334" x2="286" y2="382" class="dl"/>
+          <line x1="94" y1="374" x2="286" y2="374" class="dl" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <rect x="112" y="358" width="156" height="13" class="pf2"/>
+          <text x="190" y="367" text-anchor="middle" class="td">CHORD AT BOTTOM ROW — 154 PX</text>
 
           <line x1="264" y1="345" x2="300" y2="345" class="dl"/>
           <circle cx="312" cy="345" r="11" class="bal"/>
@@ -1190,7 +1190,7 @@ footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
         <li><span class="cond">kbW = gfx.width()</span><span class="arrow">◂</span><span class="res">square glass</span>
           <span class="why">The width the keys actually get.</span></li>
         <li><span class="cond">kbW = chord × 2</span><span class="arrow">◂</span><span class="res">round glass</span>
-          <span class="why">Measured down where the bottom rows sit, not across the middle: "a 240px circle measures 240 across the middle and only ~178 there."</span></li>
+          <span class="why">Measured across the band the bottom rows occupy, not across the middle: "a 240px circle measures 240 across the middle and only 154 there."</span></li>
         <li><span class="cond">kbW ≥ 220</span><span class="arrow">→</span><span class="res">QWERTY</span>
           <span class="why">Ten columns want about 22 px each.</span></li>
         <li><span class="cond">kbW ≥ 115</span><span class="arrow">→</span><span class="res">T9</span>

@@ -579,9 +579,14 @@ footer.foot {
   <b>ota</b> &lt;ip&gt; &lt;firmware.bin&gt;          firmware update over HTTP
   <b>device</b> wifi &lt;port|auto&gt; ...      provision WiFi over USB serial
   <b>fleet</b> ls|push|ota ...            the same, across every board on the LAN
+  <b>lint</b> [path...]                   check code stays in the subset its target parses
 
 Every command runs to a deadline and exits; network steps take --timeout
-(and discovery --wait) as seconds, or with an ms/s suffix.</p>
+(and discovery --wait) as seconds, or with an ms/s suffix.
+
+  --debug   print the stack behind a failure, not just the message
+
+mjsx &lt;command&gt; --help shows each command's details.</p>
               <p class="note"># pushing an app to a board is a bundle over TCP, not a reflash.</p>
             </div>
           </div>
@@ -609,11 +614,11 @@ Every command runs to a deadline and exits; network steps take --timeout
   wifi      <span class="ok">PASS</span>  ops=   7
 
 
- <b>256 pass</b>
+ <b>343 pass</b>
  1 skip
  <b>0 fail</b>
- 1188 expect() calls
-Ran 257 tests across 8 files. [21.91s]</p>
+ 1300 expect() calls
+Ran 344 tests across 11 files. [22.07s]</p>
               <p class="note"># that table is the point of the wasm backend: every example replayed
 # through the SAME MicroQuickJS bytecode a chip runs, op for op. engine
 # parity, checked, rather than a second implementation that agrees by luck.</p>
@@ -756,7 +761,7 @@ wasm</p>
             <tr><th scope="col">Backend</th><th scope="col">What it is</th></tr>
           </thead>
           <tbody>
-            <tr><td class="mono2">pure-js</td><td class="why">Headless rasterizer into an RGBA buffer; writes PPM and PNG. The reference implementation, and the renderer the browser-mirror and desktop backends draw with.</td></tr>
+            <tr><td class="mono2">pure-js</td><td class="why">Headless rasterizer into an RGBA buffer; writes a binary PPM, which the gallery script converts to PNG with an encoder written in the repo. The reference implementation, and the renderer the browser-mirror and desktop backends draw with.</td></tr>
             <tr><td class="mono2">terminal</td><td class="why">Near-square pixels in a terminal — two sub-pixels per character cell via the half-block glyph. Renders once, runs interactively in raw mode, or serves the example picker.</td></tr>
             <tr><td class="mono2">sdl</td><td class="why">Device simulator in a native window: square, rounded-corner and round-display masks, size presets for the real panels, an HD sub-pixel mode.</td></tr>
             <tr><td class="mono2">http</td><td class="why">The UI in a browser tab — pixels out over a socket, real input back, including genuine per-finger multitouch.</td></tr>
@@ -828,7 +833,8 @@ wasm</p>
 1397:  var rowW = (UI.isRound() ? kbW : gfx.width()) - 8;
 1448:    var xTopPad = UI.isRound() ? Math.round(gfx.height() * 0.10) : 0;
 1454:    var xBotPad = UI.isRound() ? Math.round(gfx.height() * 0.12) : 0;
-1475:    var xRowW = UI.isRound()</p>
+1475:    var xRowW = UI.isRound()
+1492:    if (UI.isRound()) {</p>
       </div>
 
       <svg class="diagram" viewBox="0 0 720 280" role="img"
