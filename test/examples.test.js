@@ -89,8 +89,19 @@ describe('examples/asteroids', function () {
           var r = G.rocks[k];
           if (seen.has(r) || r.born !== 'edge') { seen.add(r); continue; }
           seen.add(r); born++;
-          /* on an edge of the panel */
-          var atEdge = r.x <= 2 || r.x >= sh[1] - 2 || r.y <= 2 || r.y >= sh[2] - 2;
+          /* "The edge" is the RIM on round glass and the box edge on a
+             rectangle — the ship sits dead centre on a circle, so the rim
+             is the only edge that means anything there, and the box
+             corners are not even on the display. */
+          var atEdge;
+          if (sh[3]) {
+            var rad = (sh[1] < sh[2] ? sh[1] : sh[2]) / 2 - 2;
+            var er = Math.sqrt((r.x - sh[1] / 2) * (r.x - sh[1] / 2) +
+                               (r.y - sh[2] / 2) * (r.y - sh[2] / 2));
+            atEdge = er >= rad - 6;
+          } else {
+            atEdge = r.x <= 2 || r.x >= sh[1] - 2 || r.y <= 2 || r.y >= sh[2] - 2;
+          }
           if (!atEdge) {
             bad.push(tag + ': a wave rock was born at (' + Math.round(r.x) + ',' +
                      Math.round(r.y) + '), not on an edge');
