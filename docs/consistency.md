@@ -88,7 +88,7 @@ Both are present everywhere. Only the answer differs:
 
 ### `poly` and `blit` — the two that actually diverge
 
-These are the only rows of the old matrix that carried information:
+These are the only two calls whose answer is not the same everywhere:
 
 | Surface | `poly` | `blit` |
 |---|---|---|

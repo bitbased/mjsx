@@ -230,7 +230,7 @@ the canvas, empty until something is drawn on it.*
 | Page | The question it answers |
 |---|---|
 | [contract.md](contract.md) | The ten `gfx` calls and `sys.millis()` in full, the optional natives (`poly`, `blit`, `store`/`fetch`, font metrics), the host-declared `round` key, and how a backend drives the loop. |
-| [consistency.md](consistency.md) | What each backend in this tree *actually* implements, measured against the contract — a call-by-call matrix and fourteen ranked divergences, each read out of the named source file. |
+| [consistency.md](consistency.md) | What each backend in this tree *actually* implements, measured against the contract — call by call, plus fourteen ranked divergences, each read out of the named source file. |
 
 ![](./img/ex-shapes-lcd35.png)
 

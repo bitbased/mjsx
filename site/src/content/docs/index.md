@@ -737,7 +737,7 @@ var HAVE = typeof sys !== 'undefined' && typeof sys.gpio === 'function';
 | Page | The question it answers |
 |---|---|
 | [contract.md](/contract) | The ten `gfx` calls and `sys.millis()` in full, the optional natives (`poly`, `blit`, `store`/`fetch`, font metrics), the host-declared `round` key, and how a backend drives the loop. |
-| [consistency.md](/consistency) | What each backend in this tree *actually* implements, measured against the contract — a call-by-call matrix and fourteen ranked divergences, each read out of the named source file. |
+| [consistency.md](/consistency) | What each backend in this tree *actually* implements, measured against the contract — call by call, plus fourteen ranked divergences, each read out of the named source file. |
 
 <div class="shapes">
   <input type="radio" name="sw-ex-shapes-19" id="sw-ex-shapes-19-0">
