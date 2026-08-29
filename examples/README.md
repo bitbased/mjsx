@@ -24,7 +24,7 @@ and a local name shadows a shipped one.
 | [fonts](fonts/) | The active font at sizes 1–3 plus the glyph repertoire; which font is active belongs to the host, and `em()` spacing follows its metrics. | ![](../out/gallery/fonts.png) |
 | [shapes](shapes/) | SVG-style filled paths, even-odd rule: a self-intersecting pentagram, a two-ring donut whose hole is a hole, stroke over fill. | ![](../out/gallery/shapes.png) |
 | [layers](layers/) | Layering / scrolling / cropping torture test: fixed header and footer, a flex scroll region, overlapping abs boxes, a floating action button, a modal that owns all input. | ![](../out/gallery/layers.png) |
-| [sensors](sensors/) | Two independent async sources, neither driven by input — proving `UI.on`/`emit`/`setTimer`, not just that boxes can be laid out. | ![](../out/gallery/sensors.png) |
+| [sensors](sensors/) | Every motion signal the host has, three ways: a bubble LEVEL with a tilting horizon, a rolling TRACE of each axis, and the DATA behind them — accel, gyro, temperature, and a magnetometer when one is wired. | ![](../out/gallery/sensors.png) |
 | [input](input/) | Text input, every way in at once: physical keyboard, touch caret placement and drag-scroll, and four virtual keyboard layouts (QWERTY, T9, number pad, STRIP). | ![](../out/gallery/input.png) |
 | [draw](draw/) | Freehand drawing with tools — the `onDraw` capture control in action: per-pointer strokes, live shape preview, point simplification on release. | ![](../out/gallery/draw.png) |
 | [canvas](canvas/) | Draw's little sibling restructured around `sys.canvas`: live strokes preview as ordinary ops, then commit into a canvas source so a hundred strokes cost one blit. | ![](../out/gallery/canvas.png) |

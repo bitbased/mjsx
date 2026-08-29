@@ -48,6 +48,7 @@ globalThis.Modal = core.Modal;
 globalThis.Keyboard = core.Keyboard;
 globalThis.ArcFooter = core.ArcFooter;
 
+globalThis.configStorage = core.configStorage;
 require(path.resolve(exampleFile));
 
 /* Declared BEFORE the first render: an app that focuses a field from

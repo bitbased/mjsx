@@ -234,6 +234,7 @@ function freshCore() {
   globalThis.Modal = core.Modal;
   globalThis.Keyboard = core.Keyboard;
   globalThis.ArcFooter = core.ArcFooter;
+  globalThis.configStorage = core.configStorage;
   /* Every fresh core learns the current font's metrics, so em() spacing and
      fitText widths always match what the backend actually rasterizes. */
   if (safeBands) core.UI.safe = safeBands;
