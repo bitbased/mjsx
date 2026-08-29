@@ -495,7 +495,7 @@ nothing at all and the box lays out as an ordinary column.
 
 ![A scroll zone at the top of its content](/img/layout-scroll-top-lcd35.png)
 
-*Look at the bottom edge: ROW 14 is cut off flat by the viewport rather
+*Look at the bottom edge: ROW 16 is cut off flat by the viewport rather
 than spilling past it.*
 
 ![The same zone scrolled 220px down](/img/layout-scroll-mid-lcd35.png)

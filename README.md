@@ -119,12 +119,14 @@ surface.
 
 ## Docs and examples
 
-- [docs/contract.md](docs/contract.md) — the ten-call native contract
-- [docs/ui.md](docs/ui.md) — the UI object: state, render loop, input
-- [docs/components.md](docs/components.md) — built-in elements and components
-- [docs/devices.md](docs/devices.md) — running on real hardware
-- [docs/hardware-api.md](docs/hardware-api.md) — `sys.gpio` / `sys.i2c` on the ESP32 bridge firmware
+- [docs/README.md](docs/README.md) — **the documentation index**: every
+  page grouped by what you are trying to do, with a picture of each area
+- [docs/getting-started.md](docs/getting-started.md) — clone to a UI on
+  real glass
 - [examples/README.md](examples/README.md) — the example gallery
+
+The index carries the per-page breakdown, so it is the one link to follow
+rather than a second list here that drifts out of date.
 
 ## Project status
 

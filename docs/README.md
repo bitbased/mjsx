@@ -56,18 +56,23 @@ MODAL button raises a panel that takes all input while it is up.*
 
 *The built-in keyboard on round glass. Every row is inset to the chord at
 its own height — the trapezoid — so the outer keys stay on the glass, and
-`auto` measures the chord where the bottom rows sit (~178px across a 240px
+`auto` measures the chord where the bottom rows sit (154px across a 240px
 circle, not 240) before deciding it can only fit T9.*
 
 ```jsx
 h(Keyboard, { layout: kb, position: pos, height: Math.floor(gfx.height() / 2.6) })
 ```
 
+![](./img/ex-draw-lcd35.png)
+
+*`examples/draw` on square glass: the tool row and the palette sit in an
+ordinary footer across the bottom edge.*
+
 ![](./img/ex-draw-round128.png)
 
-*`examples/draw` on the round board: when `UI.isRound()` is true the
-toolbar moves onto the rim, each item pulled in from the boundary by its
-own size and left upright.*
+*The same file on the round board: when `UI.isRound()` is true the toolbar
+moves onto the rim, each item pulled in from the boundary by its own size
+and left upright.*
 
 ```jsx
 {h(ArcFooter, { items: items, spread: 150, inset: 10 })}
@@ -153,7 +158,9 @@ placeholder gone. The engine owns text, caret and horizontal scroll per
 | Page | The question it answers |
 |---|---|
 | [devices.md](devices.md) | The four-board ESP32-S3 fleet: which flag builds which board, first flash over chunked USB, every flash after that over OTA, WiFi provisioning, and the push → screenshot → tap loop. |
+| [Figures and screenshots](shots.md) | How every picture here was made, and how to reproduce or re-render one. |
 | [round.md](round.md) | Round glass: safe insets, the chord a row can actually use, footers that follow the rim, and the extra scroll range at the end of every zone. |
+| [shapes.md](shapes.md) | One screen on every shape in the fleet, side by side: the same focused `examples/input` on round, portrait, narrow-portrait, landscape and large-landscape glass, with what each shape changed. |
 
 ![](./img/round-page-lcd35.png)
 
@@ -191,6 +198,32 @@ var HAVE = typeof sys !== 'undefined' && typeof sys.gpio === 'function';
 *`examples/sensors` — accelerometer, gyro and temperature three ways
 (bubble level, rolling trace, raw data). Simulated here, and the app says
 so on the screen.*
+
+![](./img/ex-screen-lcd35.png)
+
+*`examples/screen` — brightness, render scale, rotation and the sleep
+timeout as ordinary state and taps; the natives do the real work, and the
+footer says `demo mode - no panel to control here` when they are absent.*
+
+![](./img/ex-wifi-lcd35.png)
+
+*`examples/wifi` — the native provisioning page's job done by a script,
+polling the async `net.*` natives on its tick. Same fallback rule: `demo
+mode - no radio here`, with a canned scan list rather than an empty one.*
+
+![](./img/ex-camera-lcd35.png)
+
+*`examples/camera` treats the camera as a canvas source, blitted by the
+UI. No backend in this tree implements `gfx.blit` ([consistency.md](consistency.md)),
+so what the shot shows is the checked fallback — `no camera module here`
+and a crossed placeholder where the preview would be.*
+
+![](./img/ex-canvas-lcd35.png)
+
+*`examples/canvas` — `examples/draw` restructured around `sys.canvas`, so
+a hundred committed strokes cost one blit instead of a hundred ops. The
+palette and CLEAR/DIRECT row is the whole chrome; the field above it is
+the canvas, empty until something is drawn on it.*
 
 ### Reference
 
@@ -260,7 +293,8 @@ two lines.*
 
 *The 3.5" board, 320x480 — the roomy one. Fourteen rows fit and the list
 still runs out before the viewport does; the wrapped paragraph needs two
-lines. 320px is also the width where the keyboard's `auto` picks QWERTY.*
+lines. 320px is comfortably past the 220px where the keyboard's `auto`
+switches to QWERTY.*
 
 ![](./img/ex-layers-lcd147.png)
 

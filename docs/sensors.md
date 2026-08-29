@@ -159,11 +159,12 @@ function pushSample(a) {
 }
 ```
 
-![The sensors example on 280x240 landscape](./img/ex-sensors-lcd169.png)
+![The sensors example's TRACE view on 280x240 landscape](./img/ex-sensors-trace-lcd169.png)
 
 *The TRACE view: the last few seconds of each axis as a sparkline, so a tap
-or a shake reads as a shape instead of three twitching numbers. The history
-it draws is advanced by the patches, not by a poll.*
+or a shake reads as a shape instead of three twitching numbers. x and y are
+the two curves, z is the flat line at rest, and the count under the panel
+(`31 samples`) is the history advancing by the patches, not by a poll.*
 
 ## The shape of a patch
 
@@ -207,11 +208,13 @@ an error — the example prints what is missing instead of hiding it:
   : <text text={p.absent || 'not present'} size={1} color={UI.theme.warn} />}
 ```
 
-![The sensors example on the 172x320 panel](./img/ex-sensors-lcd147.png)
+![The sensors example's DATA view on the 172x320 panel](./img/ex-sensors-data-lcd147.png)
 
 *The DATA view on the 1.47" board — the one board in the fleet with no
-motion sensor at all. "no magnetometer wired" and the simulated-source note
-are the page stating what is absent rather than showing zeros.*
+motion sensor at all. The `mag` row reads `none wired` in warn rather than
+`x0.0 y0.0 z0.0`, and the header says `simulated - no hardware`: both are
+the page stating what is absent rather than showing zeros. (`none wired` is
+the short form; a panel 200px or wider gets `no magnetometer wired`.)*
 
 ## What the fleet actually carries
 

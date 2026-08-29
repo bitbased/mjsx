@@ -50,20 +50,26 @@ implementation is in this repo. "esp32 (shim)" is that native surface as
 re-wrapped by `backends/esp32/tools/device-shim.js` for the out-of-tree
 filament-rfid firmware.
 
+Every matrix on this page reads the same way: **yes** means present and
+behaving as the contract describes, **no** means absent, **partial** means
+present but not equivalent. Anything after the dash in a cell is the
+qualifier that makes the answer true, and `—` means the question does not
+apply to that entry point.
+
 | Call | pure-js | glass | terminal | http/server | http/mirror recorder | sdl | wasm | esp32 (tree) | esp32 (shim) |
 |---|---|---|---|---|---|---|---|---|---|
-| `clear` | ✅ | ✅ | ✅ | ✅ (pure-js) | ✅ fwd | ✅ (pure-js) | ✅ → `mjsxGfx` | ✅ → `Serial.printf` | ✅ fwd |
-| `rect` | ✅ | ✅ | ✅ | ✅ | ✅ fwd | ✅ | ✅ | ✅ log | ✅ fwd |
-| `frect` | ✅ | ✅ | ✅ | ✅ | ✅ fwd | ✅ | ✅ | ✅ log | ✅ fwd |
-| `circle` | ✅ | ✅ | ✅ | ✅ | ✅ fwd | ✅ | ✅ | ✅ log | ✅ fwd |
-| `line` | ✅ | ✅ | ✅ | ✅ | ✅ fwd | ✅ | ✅ | ✅ log | ✅ fwd |
-| `text` | ✅ | ✅ | ✅ | ✅ | ✅ fwd | ✅ | ✅ | ✅ log | ✅ fwd |
-| `clip` | ✅ | ✅ | ✅ | ✅ | ✅ fwd | ✅ | ✅ | ✅ log | ✅ fwd |
-| `unclip` | ✅ | ✅ | ✅ | ✅ | ✅ fwd | ✅ | ✅ | ✅ log | ✅ fwd |
-| `width` | ✅ logical | ✅ logical | ✅ `cols/xSub` | ✅ | ✅ fwd | ✅ | ✅ (240 default) | ✅ hard-coded 240 | ✅ fwd |
-| `height` | ✅ logical | ✅ logical | ✅ sub-pixel rows (≠ `backend.height`) | ✅ | ✅ fwd | ✅ | ✅ (280 default) | ✅ hard-coded 280 | ✅ fwd |
-| `poly` | ✅ | ✅ | ❌ | ✅ | ✅ *if real has it* | ✅ | ❌ | ❌ | ⚠️ **packed string**, else JS fallback |
-| `blit` | ❌ | ❌ | ❌ | ❌ | ❌ **dropped** | ❌ | ❌ | ❌ | ⚠️ conditional passthrough |
+| `clear` | yes | yes | yes | yes (pure-js) | yes — fwd | yes (pure-js) | yes → `mjsxGfx` | yes → `Serial.printf` | yes — fwd |
+| `rect` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
+| `frect` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
+| `circle` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
+| `line` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
+| `text` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
+| `clip` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
+| `unclip` | yes | yes | yes | yes | yes — fwd | yes | yes | yes — log | yes — fwd |
+| `width` | yes — logical | yes — logical | yes — `cols/xSub` | yes | yes — fwd | yes | yes (240 default) | yes — hard-coded 240 | yes — fwd |
+| `height` | yes — logical | yes — logical | yes — sub-pixel rows (≠ `backend.height`) | yes | yes — fwd | yes | yes (280 default) | yes — hard-coded 280 | yes — fwd |
+| `poly` | yes | yes | no | yes | yes — *if real has it* | yes | no | no | partial — **packed string**, else JS fallback |
+| `blit` | no | no | no | no | no — **dropped** | no | no | no | partial — conditional passthrough |
 
 Verified by enumerating the live objects (`typeof … === 'function'` over
 each constructed `gfx`), not by reading declarations:
@@ -84,12 +90,12 @@ real `blit` is assumed by `device-shim.js` l.133
 
 | Call | pure-js | glass | terminal | sdl / http | wasm | esp32 (tree) |
 |---|---|---|---|---|---|---|
-| `millis` | ✅ `Date.now()-start` | ❌ **no `sys` at all** | ✅ `Date.now()-start` | ✅ (pure-js) | ✅ `emscripten_get_now()` | ✅ `(long)millis()` — 32-bit, wraps ~49.7 d |
-| `store` | ✅ in-memory `storeMap` | ❌ | ✅ in-memory (fixed mid-audit) | ✅ (pure-js) | ✅ `localStorage`, **unprefixed** | ⚠️ **no-op stub** |
-| `fetch` | ✅ in-memory | ❌ | ✅ in-memory (fixed mid-audit) | ✅ (pure-js) | ✅ `localStorage`, **unprefixed** | ⚠️ **always `''`**, 1024-byte cap |
-| `beep` | no-op | ❌ | ✅ writes BEL `\x07` | no-op | no-op | no-op |
-| `tone` | no-op | ❌ | no-op | no-op | no-op | no-op |
-| `exit` | no-op | ❌ | no-op | no-op | no-op | no-op |
+| `millis` | yes — `Date.now()-start` | no — **no `sys` at all** | yes — `Date.now()-start` | yes (pure-js) | yes — `emscripten_get_now()` | yes — `(long)millis()` — 32-bit, wraps ~49.7 d |
+| `store` | yes — in-memory `storeMap` | no | yes — in-memory (fixed mid-audit) | yes (pure-js) | yes — `localStorage`, **unprefixed** | partial — **no-op stub** |
+| `fetch` | yes — in-memory | no | yes — in-memory (fixed mid-audit) | yes (pure-js) | yes — `localStorage`, **unprefixed** | partial — **always `''`**, 1024-byte cap |
+| `beep` | no-op | no | yes — writes BEL `\x07` | no-op | no-op | no-op |
+| `tone` | no-op | no | no-op | no-op | no-op | no-op |
+| `exit` | no-op | no | no-op | no-op | no-op | no-op |
 
 `createGlassBackend` returns `{ gfx, raw, w, h }` — **no `sys` key at
 all** (`backends/pure-js/src/backend.js` l.904). It is only ever used as
@@ -104,16 +110,16 @@ on advance/line height; four entry points sync them and two do not.
 
 | Entry point | sets `FONT.advance/lineH` | sets `FONT.pick` | sets `FONT.quantum` | sets `UI.scrollQuantum` |
 |---|---|---|---|---|
-| `backends/terminal/src/run.js` | ✅ | ✅ | ✅ | ✅ |
-| `backends/terminal/src/interactive.js` | ✅ | ✅ | ✅ | ✅ |
-| `backends/terminal/src/launcher.js` | ✅ | ✅ | ✅ | ✅ |
-| `backends/sdl/src/run.js` | ✅ | ✅ | — (default 1) | — (default 1) |
-| `backends/sdl/src/sim.js` (`freshCore`, `rebuild`) | ✅ | ✅ | — | — |
-| `backends/pure-js/src/run.js` | ❌ | ❌ | ❌ | ❌ |
-| `backends/http/src/server.js` | ❌ | ❌ | ❌ | ❌ |
-| `test/load.js` (`fresh`) | ❌ | ❌ | ❌ | ❌ |
-| `backends/wasm/glue.c` | ❌ (host's job; no in-tree host) | ❌ | ❌ | ❌ |
-| `backends/esp32/**` | ❌ (firmware font is 5x7-class) | ❌ | ❌ | ❌ |
+| `backends/terminal/src/run.js` | yes | yes | yes | yes |
+| `backends/terminal/src/interactive.js` | yes | yes | yes | yes |
+| `backends/terminal/src/launcher.js` | yes | yes | yes | yes |
+| `backends/sdl/src/run.js` | yes | yes | — (default 1) | — (default 1) |
+| `backends/sdl/src/sim.js` (`freshCore`, `rebuild`) | yes | yes | — | — |
+| `backends/pure-js/src/run.js` | no | no | no | no |
+| `backends/http/src/server.js` | no | no | no | no |
+| `test/load.js` (`fresh`) | no | no | no | no |
+| `backends/wasm/glue.c` | no (host's job; no in-tree host) | no | no | no |
+| `backends/esp32/**` | no (firmware font is 5x7-class) | no | no | no |
 
 The gap, measured:
 
@@ -222,19 +228,19 @@ Current state (`grep -c globalThis.configStorage`):
 
 | Runner | wires it |
 |---|---|
-| `backends/terminal/src/run.js` | ✅ (added mid-audit) |
-| `backends/terminal/src/interactive.js` | ✅ (added mid-audit) |
-| `backends/terminal/src/launcher.js` | ✅ (added mid-audit) |
-| `backends/pure-js/src/run.js` | ❌ |
-| `backends/http/src/server.js` | ❌ |
-| `backends/sdl/src/run.js` | ❌ |
-| `backends/sdl/src/sim.js` | ❌ |
-| `test/load.js` | ❌ |
+| `backends/terminal/src/run.js` | yes (added mid-audit) |
+| `backends/terminal/src/interactive.js` | yes (added mid-audit) |
+| `backends/terminal/src/launcher.js` | yes (added mid-audit) |
+| `backends/pure-js/src/run.js` | no |
+| `backends/http/src/server.js` | no |
+| `backends/sdl/src/run.js` | no |
+| `backends/sdl/src/sim.js` | no |
+| `test/load.js` | no |
 
 `examples/camera/app.jsx` l.21 names it bare; it survives today only
 because the reference sits inside `if (HAVE_CAM)`, which is false
 wherever `sys.mods` is absent. The sim is the host most likely to be
-handed a device app, and it is on the ❌ list. `docs/ui.md` documents
+handed a device app, and it is on the `no` list. `docs/ui.md` documents
 `configStorage` with no host caveat.
 
 *Remedy: add `globalThis.configStorage = core.configStorage;` to the
@@ -313,15 +319,15 @@ materially different input depending on where it runs:
 
 | Entry point | press/drag/release | multi-touch | wheel → `scrollBy` | key down/press/up | composed text (shift/IME) |
 |---|---|---|---|---|---|
-| `pure-js/run.js` | ❌ one-shot render + optional `demo()` | ❌ | ❌ | ❌ | ❌ |
-| `terminal/run.js` | ❌ render-only (`--frames=N` sweeps, no input) | ❌ | ❌ | ❌ | ❌ |
-| `terminal/interactive.js` | ⚠️ **press+release only** (l.139–140), no drag | ❌ id `0` | ❌ | ✅ all three per byte | ❌ raw bytes |
-| `terminal/launcher.js` | ✅ SGR mouse 0/1/2 (l.218–219) | ❌ one `'mouse'` | ✅ (l.213) | ✅ | ❌ raw bytes |
-| `http/server.js` | ✅ | ✅ real `touch.identifier` | ❌ **no wheel handler at all** | ✅ + hidden OSK | ✅ `beforeinput` |
-| `http/mirror.js` (sim `--http`) | ✅ | ✅ | ✅ (l.218, l.283) | ✅ + OSK | ✅ |
-| `sdl/run.js` | ✅ | ❌ one `'mouse'` | ✅ (l.84) | ✅ | ❌ **`'text'` event ignored** |
-| `sdl/sim.js` | ✅ | ❌ window; ✅ via `web:` ids | ✅ | ✅ | ✅ (l.434–438) |
-| `esp32` (shim) | ✅ via 3-arg → id `0` adapter (l.22–25) | ❌ single contact | — | ✅ via `___key` patch | — |
+| `pure-js/run.js` | no — one-shot render + optional `demo()` | no | no | no | no |
+| `terminal/run.js` | no — render-only (`--frames=N` sweeps, no input) | no | no | no | no |
+| `terminal/interactive.js` | partial — **press+release only** (l.139–140), no drag | no — id `0` | no | yes — all three per byte | no — raw bytes |
+| `terminal/launcher.js` | yes — SGR mouse 0/1/2 (l.218–219) | no — one `'mouse'` | yes (l.213) | yes | no — raw bytes |
+| `http/server.js` | yes | yes — real `touch.identifier` | no — **no wheel handler at all** | yes + hidden OSK | yes — `beforeinput` |
+| `http/mirror.js` (sim `--http`) | yes | yes | yes (l.218, l.283) | yes + OSK | yes |
+| `sdl/run.js` | yes | no — one `'mouse'` | yes (l.84) | yes | no — **`'text'` event ignored** |
+| `sdl/sim.js` | yes | no — window; yes via `web:` ids | yes | yes | yes (l.434–438) |
+| `esp32` (shim) | yes — via 3-arg → id `0` adapter (l.22–25) | no — single contact | — | yes — via `___key` patch | — |
 
 Two concrete gaps: `sdl/run.js` receives SDL `TEXTINPUT` from
 `window.js` l.315 and never handles it, so no capital letter or symbol can

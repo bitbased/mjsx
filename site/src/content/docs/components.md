@@ -76,7 +76,7 @@ Props and behaviour, all from the source:
   The width that decides is the width the keys actually get: on round
   glass that is the chord down where the bottom rows sit, not the
   bounding box (a 240px circle measures 240 across the middle and only
-  ~178 down there).
+  154 down there).
 - **Round glass**: each key row is inset to the chord at its own height,
   so a keyboard is a trapezoid and the outermost keys stay on the glass
   instead of under the bezel. In exclusive mode the mirrored input is

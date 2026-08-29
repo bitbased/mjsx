@@ -1355,7 +1355,7 @@ function Keyboard(p) {
      QWERTY on the glass rather than under the bezel.
      The width that decides is not the bounding box but the width the keys
      actually get: on round glass, the CHORD down where the bottom rows sit
-     (a 240px circle measures 240 across the middle and only ~178 there). */
+     (a 240px circle measures 240 across the middle and only 154 there). */
   var kbW = gfx.width();
   if (UI.isRound()) kbW = kbChordHW(gfx.height() * 0.72, gfx.height() * 0.86) * 2;
   var layout = p.layout || 'auto';

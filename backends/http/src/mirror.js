@@ -26,28 +26,10 @@ function fin(v) {
 }
 function num(v) { return Math.round(fin(v)); }
 
-function createRecorder(real) {
-  var ops = [];
-  return {
-    take: function () { var o = ops; ops = []; return o; },
-    gfx: {
-      clear: function (c) { ops.push(['C', c]); real.clear(c); },
-      rect: function (x, y, w, h, c, r) { ops.push(['r', x, y, w, h, c, r || 0]); real.rect(x, y, w, h, c, r); },
-      frect: function (x, y, w, h, c, r) { ops.push(['f', x, y, w, h, c, r || 0]); real.frect(x, y, w, h, c, r); },
-      circle: function (x, y, rr, c, fill) { ops.push(['c', x, y, rr, c, fill ? 1 : 0]); real.circle(x, y, rr, c, fill); },
-      line: function (x0, y0, x1, y1, c) { ops.push(['l', x0, y0, x1, y1, c]); real.line(x0, y0, x1, y1, c); },
-      text: function (x, y, s, c, str) { ops.push(['t', x, y, s, c, String(str)]); real.text(x, y, s, c, str); },
-      clip: function (x, y, w, h) { ops.push(['x', x, y, w, h]); real.clip(x, y, w, h); },
-      unclip: function () { ops.push(['X']); real.unclip(); },
-      poly: real.poly ? function (polys, c, rule) {
-        ops.push(['p', polys, c, rule]);
-        real.poly(polys, c, rule);
-      } : undefined,
-      width: function () { return real.width(); },
-      height: function () { return real.height(); }
-    }
-  };
-}
+/* The recorder lives in the core now (packages/core/src/oprec.js): the
+   screenshot harness embeds the same op stream in the PNGs it writes, and
+   one format with one implementation is the only way those stay in step. */
+var createRecorder = require('../../../packages/core/src/oprec.js').record;
 
 function createMirror(opts) {
   /* 0 is a real request ("any free port"), not a missing one — the

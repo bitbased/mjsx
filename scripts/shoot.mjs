@@ -52,6 +52,7 @@ const CORE = join(ROOT, 'packages', 'core', 'src', 'mjsx.js');
 const BACKEND = join(ROOT, 'backends', 'pure-js', 'src', 'backend.js');
 const EXAMPLES = join(ROOT, 'examples');
 const req = createRequire(import.meta.url);
+const OPREC = req('../packages/core/src/oprec.js');
 
 /* ---- device profiles -------------------------------------------------
  * Every panel in the fleet (docs/devices.md's board table), plus a desktop
@@ -110,8 +111,23 @@ function pngChunk(type, data) {
   return Buffer.concat([len, body, crc]);
 }
 
-/* Truecolour 8-bit PNG: one filter-0 scanline per row, one deflated IDAT. */
-function rgbToPng(px, w, h) {
+/* A zTXt chunk: a keyword, a null, a zero (deflate), then the deflated
+   text. This is how a figure carries its own SOURCE — the draw ops that
+   produced it — inside the single file you already have. Every viewer
+   ignores an unknown text chunk, so the PNG stays an ordinary PNG, and a
+   reader (node or a browser with DecompressionStream) can pull the ops
+   back out and re-render at any size. */
+function ztxtChunk(keyword, text) {
+  return pngChunk('zTXt', Buffer.concat([
+    Buffer.from(keyword, 'latin1'),
+    Buffer.from([0, 0]),
+    deflateSync(Buffer.from(text, 'utf8'), { level: 9 })
+  ]));
+}
+
+/* Truecolour 8-bit PNG: one filter-0 scanline per row, one deflated IDAT.
+   `meta` is an optional { keyword: text } map embedded as zTXt. */
+function rgbToPng(px, w, h, meta) {
   const stride = w * 3;
   const raw = Buffer.alloc((stride + 1) * h);
   for (let y = 0; y < h; y++) {
@@ -123,12 +139,16 @@ function rgbToPng(px, w, h) {
   ihdr.writeUInt32BE(h, 4);
   ihdr[8] = 8;  // bit depth
   ihdr[9] = 2;  // colour type: truecolour RGB
-  return Buffer.concat([
+  const parts = [
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    pngChunk('IHDR', ihdr),
-    pngChunk('IDAT', deflateSync(raw, { level: 9 })),
-    pngChunk('IEND', Buffer.alloc(0))
-  ]);
+    pngChunk('IHDR', ihdr)
+  ];
+  /* text chunks go BEFORE IDAT so a streaming reader has them without
+     inflating the image data */
+  for (const k of Object.keys(meta || {})) parts.push(ztxtChunk(k, meta[k]));
+  parts.push(pngChunk('IDAT', deflateSync(raw, { level: 9 })));
+  parts.push(pngChunk('IEND', Buffer.alloc(0)));
+  return Buffer.concat(parts);
 }
 
 /* Integer nearest-neighbour zoom: pixel-exact, no interpolation, so a
@@ -302,6 +322,23 @@ function holdAt(t, x, y) {
 }
 
 function runShot(spec) {
+  /* the command that would make this picture again, recorded with it */
+  if (!spec.command) {
+    var bits = ['bun scripts/shoot.mjs', spec.name, spec.profile,
+                spec.file || ('-e ' + JSON.stringify(spec.code || ''))];
+    (spec.actions || []).forEach(function (a) {
+      if (a.op === 'tap') bits.push('--tap ' + a.x + ',' + a.y);
+      else if (a.op === 'hold') bits.push('--hold ' + a.x + ',' + a.y);
+      else if (a.op === 'key') bits.push('--key ' + a.key);
+      else if (a.op === 'type') bits.push('--type ' + JSON.stringify(a.text));
+      else if (a.op === 'advance') bits.push('--advance ' + a.ms);
+      else if (a.op === 'scroll') bits.push('--scroll ' + a.x + ',' + a.y + ',' + a.dy);
+    });
+    if (spec.frames && spec.frames !== 1) bits.push('--frames ' + spec.frames);
+    if (spec.caret) bits.push('--caret ' + spec.caret);
+    if (spec.font) bits.push('--font ' + spec.font);
+    spec.command = bits.join(' ');
+  }
   const prof = PROFILES[spec.profile];
   if (!prof) throw new Error('unknown profile: ' + spec.profile);
   const t = boot(prof, spec);
@@ -348,12 +385,43 @@ function runShot(spec) {
     UI.render();
   }
 
+  /* One more render, recorded: the engine redraws the whole frame every
+     time, so a single captured pass IS the picture. The ops ride along in
+     the PNG so the figure carries its own source — see docs/shots.md. */
+  const rec = OPREC.record(globalThis.gfx);
+  const realGfx = globalThis.gfx;
+  globalThis.gfx = rec.gfx;
+  UI.render();
+  globalThis.gfx = realGfx;
+  const ops = rec.take();
+
   const dpr = spec.dpr || 1;
   const stats = inkStats(t.backend.raw, prof.w * dpr, prof.h * dpr);
   const up = upscale(t.backend.raw, prof.w * dpr, prof.h * dpr, spec.scale || 1);
   const round = spec.round === undefined ? !!prof.round : spec.round;
   if (round) maskRound(up.px, up.w, up.h, dpr * (spec.scale || 1));
-  const png = rgbToPng(up.px, up.w, up.h);
+  /* Two text chunks. `mjsx-ops` is the frame as draw calls, replayable at
+     any scale. `mjsx-shot` is HOW the picture was made — profile, source,
+     the interactions, and any note passed with --note — so a figure can be
+     reproduced a year later without guessing. */
+  const shot = {
+    name: spec.name,
+    profile: spec.profile,
+    size: { w: prof.w, h: prof.h, round: round, dpr: dpr, scale: spec.scale || 1 },
+    source: spec.file || (spec.code ? '-e <inline>' : null),
+    code: spec.file ? undefined : spec.code,
+    actions: spec.actions && spec.actions.length ? spec.actions : undefined,
+    frames: spec.frames || 1,
+    caret: spec.caret,
+    font: spec.font,
+    note: spec.note,
+    command: spec.command,
+    tool: 'scripts/shoot.mjs'
+  };
+  const png = rgbToPng(up.px, up.w, up.h, {
+    'mjsx-ops': JSON.stringify({ w: prof.w, h: prof.h, dpr: dpr, ops: ops }),
+    'mjsx-shot': JSON.stringify(shot, null, 1)
+  });
   mkdirSync(dirname(spec.out), { recursive: true });
   writeFileSync(spec.out, png);
   return { bytes: png.length, w: up.w, h: up.h, colours: stats.colours, ink: stats.ink };
@@ -375,6 +443,9 @@ function parseArgs(argv) {
     else if (a === '--scale') spec.scale = parseInt(next(), 10);
     else if (a === '--frames') spec.frames = parseInt(next(), 10);
     else if (a === '--caret') spec.caret = next();
+    /* free text kept with the picture: why this shot exists, what to look
+       at, anything the recipe cannot say by itself */
+    else if (a === '--note') spec.note = next();
     else if (a === '--round') spec.round = true;
     else if (a === '--square') spec.round = false;
     else if (a === '--allow-blank') spec.allowBlank = true;
@@ -701,7 +772,7 @@ function shotList() {
     wide: 'auto on 480px picks QWERTY with room to spare',
     lcd147: 'auto on 172px picks T9: ten columns do not fit, four do',
     round128: 'auto on round glass measures the CHORD where the bottom rows sit ' +
-              '(~178px across a 240px circle, not 240) and picks T9'
+              '(154px across a 240px circle, not 240) and picks T9'
   };
   for (const p of ['lcd35', 'lcd147']) {
     for (const l of KB_LAYOUTS) {
@@ -958,6 +1029,23 @@ function shotList() {
   }
   add('ex', 'layers', 'wide', null, exampleCaption('layers', 'wide'),
       { file: 'examples/layers/app.jsx' });
+  /* the sensors example's other two views. Every ex-sensors-* shot above
+     is the app's default LEVEL view, so the sparkline and the way absence
+     is printed had no picture at all until these two. */
+  /* the trace needs SAMPLES: its history is fed from the render, so the
+     frozen clock has to step past the driver's 200ms re-arm enough times
+     to draw a curve instead of "move the board to draw" */
+  const TRACE_RUN = [{ op: 'tapLabel', label: 'TRACE' }];
+  for (let i = 0; i < 30; i++) TRACE_RUN.push({ op: 'advance', ms: 200 });
+  add('ex', 'sensors-trace', 'lcd169', null,
+      'examples/sensors with the TRACE tab tapped: the last few seconds of each axis ' +
+      'as a sparkline, advanced by the patches rather than by a poll',
+      { file: 'examples/sensors/app.jsx', actions: TRACE_RUN });
+  add('ex', 'sensors-data', 'lcd147', null,
+      'examples/sensors with the DATA tab tapped: the numbers, and what is absent ' +
+      'stated in words rather than shown as zeros',
+      { file: 'examples/sensors/app.jsx',
+        actions: [{ op: 'tapLabel', label: 'DATA' }] });
   /* a chip pressed on a real example, which is what --tap-label is for */
   add('ex', 'input-chip', 'lcd35', null,
       'examples/input with the T9 chip tapped and a field focused: the selected chip ' +
@@ -1049,6 +1137,7 @@ if (!spec.name || !spec.profile || (!spec.file && !spec.code)) {
   ).join(', '));
   console.error('options : --topic T --out PATH --font 4x6|5x7|6x8|12x16 --dpr N --scale N');
   console.error('          --frames N --caret on|off --round|--square --allow-blank');
+  console.error('          --note "why this shot exists"');
   console.error('actions : --focus ID --tap X,Y --tap-label TEXT --hold X,Y --hold-label TEXT');
   console.error('          --key NAME --type TEXT --scroll X,Y,DY --advance MS --blur');
   console.error('          (applied in the order given, with a render after each)');

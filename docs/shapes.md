@@ -50,7 +50,7 @@ all decided from the room available.
            alt="The input example on a 240 by 240 round display">
       <figcaption>
         <strong>Round, 240×240 (1.28″).</strong> Auto picks T9: the circle
-        measures 240 across the middle but only about 178 where the bottom
+        measures 240 across the middle but only about 154 where the bottom
         rows sit, and ten columns will not fit there. Each row is inset to
         the chord at its own height, so the keyboard is a trapezoid and no
         key hides under the bezel. OK sits in the bottom arc, which the
