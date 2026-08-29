@@ -347,6 +347,14 @@ kids.push(h('box', {
 }, levelNodes(a, cx, cy, R)));
 ```
 
+![The sensors example's LEVEL view on 280x240 landscape](./img/ex-sensors-lcd169.png)
+
+*The LEVEL view, and the mapping made visible: the footer's `tap:-y,-x`
+names the entry currently chosen out of `MAPS` — `MAP_DEFAULT = 7` — so
+the reading that produced the bubble and the tilted horizon can be checked
+against the axes it was drawn from. Tapping the dial advances to the next
+one and writes it to `configStorage`.*
+
 The other trap in that view is a layout one, and it is general: **`abs` is
 page-absolute, not parent-relative.** A dial drawn at box coordinates and
 "centred" with flex spacers lands wherever the page origin happens to be.

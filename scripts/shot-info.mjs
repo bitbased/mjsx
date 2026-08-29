@@ -8,8 +8,9 @@
  *   mjsx-ops    the frame as DRAW CALLS rather than pixels
  *
  * The ops are the interesting half: they are resolution-independent, so
- * `--replay out.png --scale 4` redraws the figure with a 4x font instead
- * of magnifying a small one. The picture and its source travel as one
+ * `--replay out.png --scale 4` rebuilds the backend at dpr 4 and replays
+ * the SAME ops, redrawing text with the HD glyph faces instead of
+ * magnifying a small bitmap. That is the mirror's method. The picture and its source travel as one
  * file, and every image viewer ignores the chunks it does not know.
  *
  *   bun scripts/shot-info.mjs <shot.png>                    # the recipe
@@ -114,12 +115,16 @@ const scale = scaleAt >= 0 ? Number(args[scaleAt + 1]) : 1;
 if (replayAt >= 0) {
   const out = args[replayAt + 1];
   if (!out) { console.error('--replay needs an output path'); process.exit(1); }
+  /* Fidelity is the BACKEND's job: build it at a higher dpr and replay
+     the ops unchanged, exactly as the mirror's HD button does. Scaling the
+     coordinates instead would redraw the layout on a different rounding
+     grid — a different picture that merely looks similar. */
   const rec = JSON.parse(meta['mjsx-ops']);
-  const w = Math.round(rec.w * scale), h = Math.round(rec.h * scale);
-  const backend = req(BACKEND).createPureJsBackend(w, h, {});
-  OPREC.replay(rec.ops, backend.gfx, scale);
+  const backend = req(BACKEND).createPureJsBackend(rec.w, rec.h, { dpr: scale });
+  OPREC.replay(rec.ops, backend.gfx);
+  const w = rec.w * scale, h = rec.h * scale;
   writeFileSync(out, rgbToPng(backend.raw, w, h));
-  console.log('replayed ' + rec.ops.length + ' ops at ' + scale + 'x -> ' + out + '  ' + w + 'x' + h);
+  console.log('replayed ' + rec.ops.length + ' ops at dpr ' + scale + ' -> ' + out + '  ' + w + 'x' + h);
   process.exit(0);
 }
 

@@ -7,4 +7,10 @@
    Bun's iife build defines a CommonJS entry without invoking it, so a
    CJS entry's side effects never run.) */
 import { createPureJsBackend } from '../../pure-js/src/backend.js';
+import oprec from '../../../packages/core/src/oprec.js';
 globalThis.createPureJsBackend = createPureJsBackend;
+/* the mirror page replays with the SHARED implementation rather than its
+   own copy of the switch, so the browser, the CLI and any future viewer
+   cannot drift apart on what an op means */
+globalThis.mjsxReplay = oprec.replay;
+globalThis.mjsxBoxes = oprec.boxes;

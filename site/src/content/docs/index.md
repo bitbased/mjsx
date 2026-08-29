@@ -160,6 +160,7 @@ placeholder gone. The engine owns text, caret and horizontal scroll per
 | Page | The question it answers |
 |---|---|
 | [devices.md](/devices) | The four-board ESP32-S3 fleet: which flag builds which board, first flash over chunked USB, every flash after that over OTA, WiFi provisioning, and the push → screenshot → tap loop. |
+| [Figures and screenshots](/shots) | How every picture here was made, and how to reproduce or re-render one. |
 | [round.md](/round) | Round glass: safe insets, the chord a row can actually use, footers that follow the rim, and the extra scroll range at the end of every zone. |
 | [shapes.md](/shapes) | One screen on every shape in the fleet, side by side: the same focused `examples/input` on round, portrait, narrow-portrait, landscape and large-landscape glass, with what each shape changed. |
 

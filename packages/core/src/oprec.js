@@ -3,9 +3,9 @@
  *
  * The engine is only ten calls wide, so a frame can be captured as the
  * list of those calls instead of the bitmap they happen to produce. That
- * list is resolution-independent: replay it at 4x and the text is drawn
- * with a 4x font rather than a blurry upscale of a small one, which is
- * the whole reason to keep it.
+ * list is resolution-independent: replay it into a backend built at a
+ * higher dpr and the text is drawn with the HD glyph faces rather than a
+ * blurry upscale of a small bitmap, which is the whole reason to keep it.
  *
  * This is not new machinery — the HTTP mirror has recorded ops since it
  * was written, and the browser already replays them sharper than the
@@ -26,8 +26,8 @@
  *   ['X']                                  unclip
  *   ['p', polys, colour, rule]             poly   (optional in a backend)
  *   ['b', id, x, y, w, h, gen]             blit   (optional in a backend)
- * Colours are 0xRRGGBB. Coordinates are in the recorded frame's own pixel
- * space; a replayer scales them.
+ * Colours are 0xRRGGBB. Coordinates are LOGICAL pixels — the frame's own
+ * space — and stay that way through a replay; see opReplay on why.
  */
 
 function opRecord(real) {
@@ -68,44 +68,60 @@ function opRecord(real) {
   };
 }
 
-/* Replay ops into any gfx, optionally scaled. Text is redrawn at
-   size * scale rather than magnified, which is the point of keeping ops
-   instead of pixels. Coordinates round after scaling so a 2x replay lands
-   on whole pixels. */
-function opReplay(ops, gfx, scale) {
-  var s = scale || 1;
-  function S(v) { return Math.round(v * s); }
+/* Replay ops into any gfx.
+ *
+ * ONE-TO-ONE, deliberately. The coordinates are NOT scaled: fidelity is
+ * the backend's business, not the replayer's. Create the backend at a
+ * higher `dpr` and the same op list is rasterised with the HD glyph faces
+ * and sub-pixel geometry the font system already has, which is a real
+ * re-render. Multiplying the coordinates here instead would move the
+ * layout onto a different rounding grid and quietly draw a DIFFERENT
+ * picture — close enough to look right and wrong where it matters.
+ *
+ * This is the mirror's method, which is the one that has been proving
+ * itself against real panels: its HD button re-renders the last frame by
+ * rebuilding the backend at a new dpr and replaying, and HD:OFF is the
+ * same call at dpr 1. That page now calls this function rather than
+ * carrying its own copy of the switch.
+ */
+function opReplay(ops, gfx) {
   for (var i = 0; i < ops.length; i++) {
     var o = ops[i];
     switch (o[0]) {
       case 'C': gfx.clear(o[1]); break;
-      case 'r': gfx.rect(S(o[1]), S(o[2]), S(o[3]), S(o[4]), o[5], S(o[6])); break;
-      case 'f': gfx.frect(S(o[1]), S(o[2]), S(o[3]), S(o[4]), o[5], S(o[6])); break;
-      case 'c': gfx.circle(S(o[1]), S(o[2]), S(o[3]), o[4], !!o[5]); break;
-      case 'l': gfx.line(S(o[1]), S(o[2]), S(o[3]), S(o[4]), o[5]); break;
-      case 't': gfx.text(S(o[1]), S(o[2]), o[3] * s, o[4], o[5]); break;
-      case 'x': gfx.clip(S(o[1]), S(o[2]), S(o[3]), S(o[4])); break;
+      case 'r': gfx.rect(o[1], o[2], o[3], o[4], o[5], o[6]); break;
+      case 'f': gfx.frect(o[1], o[2], o[3], o[4], o[5], o[6]); break;
+      case 'c': gfx.circle(o[1], o[2], o[3], o[4], !!o[5]); break;
+      case 'l': gfx.line(o[1], o[2], o[3], o[4], o[5]); break;
+      case 't': gfx.text(o[1], o[2], o[3], o[4], o[5]); break;
+      case 'x': gfx.clip(o[1], o[2], o[3], o[4]); break;
       case 'X': gfx.unclip(); break;
-      case 'p':
-        if (gfx.poly) {
-          var polys = [];
-          for (var pi = 0; pi < o[1].length; pi++) {
-            var ring = o[1][pi], outRing = [];
-            for (var vi = 0; vi < ring.length; vi++) {
-              outRing.push({ x: ring[vi].x * s, y: ring[vi].y * s });
-            }
-            polys.push(outRing);
-          }
-          gfx.poly(polys, o[2], o[3]);
-        }
-        break;
-      case 'b':
-        if (gfx.blit) gfx.blit(o[1], S(o[2]), S(o[3]), S(o[4]), S(o[5]), o[6]);
-        break;
+      case 'p': if (gfx.poly) gfx.poly(o[1], o[2], o[3]); break;
+      case 'b': if (gfx.blit) gfx.blit(o[1], o[2], o[3], o[4], o[5], o[6]); break;
     }
   }
+  /* a frame that ended inside a clip would leave the next one clipped */
+  gfx.unclip();
+}
+
+/* The rectangles a frame drew, for a debug overlay: every op that has a
+   box, as {x,y,w,h,kind}. The mirror draws these over the picture; a
+   documentation figure can do the same without re-running the app. */
+function opBoxes(ops) {
+  var out = [];
+  for (var i = 0; i < ops.length; i++) {
+    var o = ops[i];
+    if (o[0] === 'r' || o[0] === 'f') {
+      out.push({ x: o[1], y: o[2], w: o[3], h: o[4], kind: o[0] === 'f' ? 'fill' : 'stroke' });
+    } else if (o[0] === 'x') {
+      out.push({ x: o[1], y: o[2], w: o[3], h: o[4], kind: 'clip' });
+    } else if (o[0] === 'c') {
+      out.push({ x: o[1] - o[3], y: o[2] - o[3], w: o[3] * 2, h: o[3] * 2, kind: 'circle' });
+    }
+  }
+  return out;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { record: opRecord, replay: opReplay };
+  module.exports = { record: opRecord, replay: opReplay, boxes: opBoxes };
 }

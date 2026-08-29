@@ -123,19 +123,7 @@ function createMirror(opts) {
     'function paintPB(fs,S){' +
     '  if(!pb||pbW!==W||pbH!==H||pbS!==S){pb=createPureJsBackend(W,H,{dpr:S});pbW=W;pbH=H;pbS=S;}' +
     '  var g=pb.gfx;' +
-    '  for(var i=0;i<OPS.length;i++){var o=OPS[i];' +
-    '    switch(o[0]){' +
-    '    case "C":g.clear(o[1]);break;' +
-    '    case "r":g.rect(o[1],o[2],o[3],o[4],o[5],o[6]);break;' +
-    '    case "f":g.frect(o[1],o[2],o[3],o[4],o[5],o[6]);break;' +
-    '    case "c":g.circle(o[1],o[2],o[3],o[4],!!o[5]);break;' +
-    '    case "l":g.line(o[1],o[2],o[3],o[4],o[5]);break;' +
-    '    case "t":g.text(o[1],o[2],o[3],o[4],o[5]);break;' +
-    '    case "x":g.clip(o[1],o[2],o[3],o[4]);break;' +
-    '    case "X":g.unclip();break;' +
-    '    case "p":if(g.poly)g.poly(o[1],o[2],o[3]);break;' +
-    '    }}' +
-    '  g.unclip();' +
+    '  mjsxReplay(OPS,g);' +
     '  cv.width=W*S;cv.height=H*S;' +
     '  cv.style.width=(W*fs)+"px";cv.style.height=(H*fs)+"px";' +
     '  cv.style.imageRendering=S<fs?"pixelated":"auto";' +
