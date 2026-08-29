@@ -1,0 +1,92 @@
+// @ts-check
+/*
+ * The documentation site.
+ *
+ * docs/*.md stays the CANONICAL source: readable in the repo, readable on
+ * a git host, and the thing contributors edit. This site consumes it --
+ * `bun run docs:sync` copies those files in and adds the frontmatter
+ * Starlight wants, so nothing is written twice and the two can never
+ * drift apart. Everything under src/content/docs/ is generated; edit
+ * ../docs instead.
+ */
+import { defineConfig } from 'astro/config';
+import starlight from '@astrojs/starlight';
+import { existsSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+/* Starlight refuses to build when the sidebar names a page that is not
+   there, so the sidebar is filtered against what docs/ actually holds.
+   A doc added or removed upstream therefore needs no edit here, and a
+   half-written documentation set still builds. */
+const CONTENT = fileURLToPath(new URL('./src/content/docs/', import.meta.url));
+const have = existsSync(CONTENT)
+  ? new Set(readdirSync(CONTENT)
+      .filter((f) => f.endsWith('.md') || f.endsWith('.mdx'))
+      .map((f) => f.replace(/\.mdx?$/, '')))
+  : new Set();
+
+/* `link` rather than `slug`: Starlight validates slugs against the content
+   collection at config time, which a GENERATED collection loses races
+   with. A plain path is resolved at render and needs no such handshake. */
+function group(label, items) {
+  const kept = items
+    .filter((i) => have.has(i.slug))
+    .map((i) => ({ label: i.label, link: i.slug === 'index' ? '/' : '/' + i.slug + '/' }));
+  return kept.length ? [{ label, items: kept }] : [];
+}
+
+/* anything synced but not placed in a group below still gets a home,
+   rather than being silently unreachable */
+function leftovers(placed) {
+  const rest = [...have].filter((s) => s !== 'index' && !placed.has(s)).sort();
+  return rest.length
+    ? [{ label: 'More', items: rest.map((slug) => ({ label: slug, link: '/' + slug + '/' })) }]
+    : [];
+}
+
+export default defineConfig({
+  site: 'https://example.invalid/mjsx',
+  base: '/',
+  outDir: './dist',
+  integrations: [
+    starlight({
+      title: 'mjsx',
+      description:
+        'JSX for microcontrollers, Raspberry Pi, desktop and the browser — one core, several backends.',
+      /* No repo link: this project is not published yet, and a dead
+         "edit this page" link is worse than none. */
+      customCss: ['./src/styles/mjsx.css'],
+      sidebar: [
+        ...group('Start here', [
+          { label: 'Overview', slug: 'index' },
+          { label: 'Getting started', slug: 'getting-started' },
+        ]),
+        ...group('Building a UI', [
+          { label: 'The UI API', slug: 'ui' },
+          { label: 'Layout', slug: 'layout' },
+          { label: 'Fonts and text', slug: 'fonts' },
+          { label: 'Components', slug: 'components' },
+        ]),
+        ...group('Text entry', [
+          { label: 'Keyboards', slug: 'keyboards' },
+          { label: 'Inputs', slug: 'input' },
+        ]),
+        ...group('Devices', [
+          { label: 'Boards and flashing', slug: 'devices' },
+          { label: 'Round displays', slug: 'round' },
+          { label: 'Sensors', slug: 'sensors' },
+          { label: 'Hardware API', slug: 'hardware-api' },
+        ]),
+        ...group('Reference', [
+          { label: 'The backend contract', slug: 'contract' },
+          { label: 'Backend consistency', slug: 'consistency' },
+        ]),
+        ...leftovers(new Set([
+          'index', 'getting-started', 'ui', 'layout', 'fonts', 'components',
+          'keyboards', 'input', 'devices', 'round', 'sensors', 'hardware-api',
+          'contract', 'consistency',
+        ])),
+      ],
+    }),
+  ],
+});

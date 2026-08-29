@@ -18,6 +18,9 @@
     "example:window": "bun backends/sdl/src/run.js examples/counter/app.jsx",
     "sim": "bun backends/sdl/src/sim.js",
     "sim:web": "bun backends/sdl/src/sim.js --http",
-    "gallery": "bun scripts/render-examples.mjs"
+    "gallery": "bun scripts/render-examples.mjs",
+    "docs:sync": "bun scripts/docs-sync.mjs",
+    "docs:dev": "bun scripts/docs-sync.mjs && cd site && bun run dev",
+    "docs:build": "bun scripts/docs-sync.mjs && cd site && bun run build"
   }
 }

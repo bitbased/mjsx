@@ -12,23 +12,31 @@ var U = require('./util.js');
 
 var TOOLS = path.join(U.REPO, 'backends/esp32/tools');
 
+/* The built-in transpiler: no dependency, and it is the same file a
+   browser playground or the device itself would use. tsc stays reachable
+   through MJSX_TSC for anyone who wants to diff the two. */
+var jsx = require(path.join(U.REPO, 'packages/core/src/jsx.js'));
+
 function findTsc() {
-  var cands = [
-    process.env.MJSX_TSC,
-    path.join(U.REPO, 'node_modules/.bin/tsc'),
-    path.join(U.KIT, 'node_modules/.bin/tsc')
-  ];
+  var cands = [process.env.MJSX_TSC];
   for (var i = 0; i < cands.length; i++) {
     if (cands[i] && fs.existsSync(cands[i])) return cands[i];
   }
-  try { execFileSync('tsc', ['--version'], { stdio: 'ignore' }); return 'tsc'; } catch (e) {}
-  U.die('mjsx push: needs tsc (Bun\'s transpiler modernises ES5 into syntax MicroQuickJS rejects) — run `bun add -d typescript`, or point MJSX_TSC at one');
+  return null;   /* the built-in transpiler handles it */
 }
 
-/* tsc, not Bun: tsc never modernises. The apps are written in the ES5
-   subset already, so tsc only has the JSX to transform and prints the
-   rest as it was written. */
+/* The built-in transpiler by default; tsc only when MJSX_TSC points at
+   one. Bun's transpiler is the wrong tool either way -- it MODERNISES the
+   ES5 that MicroQuickJS requires, handing arrow functions and `let` back
+   to an engine that rejects them. */
 function transpile(file, tsc) {
+  if (!tsc) {
+    try {
+      return jsx.transpile(fs.readFileSync(file, 'utf8'));
+    } catch (e) {
+      U.die('mjsx push: could not transform ' + path.basename(file) + ' — ' + U.message(e));
+    }
+  }
   var dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mjsx-tsc-'));
   var src = path.join(dir, 'in.jsx');
   fs.writeFileSync(src, fs.readFileSync(file, 'utf8'));

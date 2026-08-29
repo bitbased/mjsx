@@ -1,0 +1,28 @@
+/* The palette the device UI actually uses, so the documentation looks
+   like the thing it documents: the engine's own theme colours (see
+   UI.theme in packages/core/src/mjsx.js) rather than a stock docs skin. */
+:root {
+  --sl-color-accent-low: #16283f;
+  --sl-color-accent: #2d7fbf;
+  --sl-color-accent-high: #9fc7f0;
+  --sl-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sl-font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+:root[data-theme='dark'] {
+  --sl-color-bg: #14161b;
+  --sl-color-bg-nav: #181b22;
+  --sl-color-bg-sidebar: #161920;
+}
+
+/* Screenshots are of PIXEL displays: never smooth them, and never let a
+   240px-wide device shot be stretched across a 900px column. */
+.sl-markdown-content img {
+  image-rendering: pixelated;
+  background: #0d0f13;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 6px;
+  padding: 6px;
+}
+/* device figures sit inline and keep their true scale-ish size */
+.sl-markdown-content p > img { max-width: 320px; }
+.sl-markdown-content em { color: var(--sl-color-gray-3); }
