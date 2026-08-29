@@ -41,9 +41,9 @@ The core calls **nothing else**. `sys.beep`, `sys.tone`, `sys.exit` are
 never invoked by the core on any path — confirmed by grep over the whole
 file. They exist for apps.
 
-## Matrix: gfx surface
+## The gfx surface
 
-Columns are the realized surfaces. "esp32 (tree)" is
+The surfaces audited. "esp32 (tree)" is
 `backends/esp32/engine/native_api.c` + `glue.c` +
 `firmware/hello-mjsx/hello-mjsx.ino`, the only ESP32 target whose
 implementation is in this repo. "esp32 (shim)" is that native surface as
@@ -118,24 +118,38 @@ the `canvas` node's crossed placeholder (`mjsx.js` l.307–309). The only
 real `blit` is assumed by `device-shim.js` l.133
 (`__NGFX.blit ? … : undefined`) against firmware that is not in this tree.
 
-## Matrix: sys surface
+## The sys surface
 
-| Call | pure-js | glass | terminal | sdl / http | wasm | esp32 (tree) |
-|---|---|---|---|---|---|---|
-| `millis` | yes — `Date.now()-start` | no — **no `sys` at all** | yes — `Date.now()-start` | yes (pure-js) | yes — `emscripten_get_now()` | yes — `(long)millis()` — 32-bit, wraps ~49.7 d |
-| `store` | yes — in-memory `storeMap` | no | yes — in-memory (fixed mid-audit) | yes (pure-js) | yes — `localStorage`, **unprefixed** | partial — **no-op stub** |
-| `fetch` | yes — in-memory | no | yes — in-memory (fixed mid-audit) | yes (pure-js) | yes — `localStorage`, **unprefixed** | partial — **always `''`**, 1024-byte cap |
-| `beep` | no-op | no | yes — writes BEL `\x07` | no-op | no-op | no-op |
-| `tone` | no-op | no | no-op | no-op | no-op | no-op |
-| `exit` | no-op | no | no-op | no-op | no-op | no-op |
+**`glass` has no `sys` at all.** `createGlassBackend` returns
+`{ gfx, raw, w, h }` — no `sys` key (`backends/pure-js/src/backend.js`
+l.904). It is only ever used as a pixel twin behind another backend's
+`sys`, but nothing in the code says so and nothing stops a caller wiring it
+as a whole backend, where the first `sys.millis()` throws. Everything below
+is about the surfaces that do have one.
 
-`createGlassBackend` returns `{ gfx, raw, w, h }` — **no `sys` key at
-all** (`backends/pure-js/src/backend.js` l.904). It is only ever used as
-a pixel twin behind another backend's `sys`, but nothing in the code says
-so and nothing stops a caller wiring it as a whole backend, where the
-first `sys.millis()` throws.
+### Time and storage
 
-## Matrix: FONT metrics wiring (per entry point, not per backend)
+| Surface | `millis` | `store` / `fetch` |
+|---|---|---|
+| `pure-js` | `Date.now() - start` | in-memory `storeMap` |
+| `terminal` | `Date.now() - start` | in-memory (fixed mid-audit) |
+| `sdl`, `http` | via `pure-js` | via `pure-js` |
+| `wasm` | `emscripten_get_now()` | `localStorage`, **unprefixed** |
+| `esp32` (tree) | `(long)millis()` — **32-bit, wraps at ~49.7 days** | partial: `store` is a **no-op stub**, `fetch` **always returns `''`**, 1024-byte cap |
+
+Two things follow. Storage is **per-process and forgotten on exit** on
+every JS host — nothing here writes to disk, so a `configStorage` value set
+in one run is gone in the next. And on `wasm` the keys are unprefixed, so
+two mjsx pages served from the same origin share one namespace and will
+overwrite each other.
+
+### Sound and exit
+
+`beep`, `tone` and `exit` are **no-ops on every surface in this tree**,
+with exactly one exception: `terminal`'s `beep` writes BEL (`\x07`). They
+exist for apps; the core never calls any of them.
+
+## FONT metrics wiring (per entry point, not per backend)
 
 This is the biggest live divergence. The backend and the core must agree
 on advance/line height; four entry points sync them and two do not.
@@ -349,17 +363,33 @@ so layout stops scaling with size.*
 **Severity: Medium.** Nothing is wrong per host, but "the same app" gets
 materially different input depending on where it runs:
 
-| Entry point | press/drag/release | multi-touch | wheel → `scrollBy` | key down/press/up | composed text (shift/IME) |
-|---|---|---|---|---|---|
-| `pure-js/run.js` | no — one-shot render + optional `demo()` | no | no | no | no |
-| `terminal/run.js` | no — render-only (`--frames=N` sweeps, no input) | no | no | no | no |
-| `terminal/interactive.js` | partial — **press+release only** (l.139–140), no drag | no — id `0` | no | yes — all three per byte | no — raw bytes |
-| `terminal/launcher.js` | yes — SGR mouse 0/1/2 (l.218–219) | no — one `'mouse'` | yes (l.213) | yes | no — raw bytes |
-| `http/server.js` | yes | yes — real `touch.identifier` | no — **no wheel handler at all** | yes + hidden OSK | yes — `beforeinput` |
-| `http/mirror.js` (sim `--http`) | yes | yes | yes (l.218, l.283) | yes + OSK | yes |
-| `sdl/run.js` | yes | no — one `'mouse'` | yes (l.84) | yes | no — **`'text'` event ignored** |
-| `sdl/sim.js` | yes | no — window; yes via `web:` ids | yes | yes | yes (l.434–438) |
-| `esp32` (shim) | yes — via 3-arg → id `0` adapter (l.22–25) | no — single contact | — | yes — via `___key` patch | — |
+Two entry points take **no input at all** — `pure-js/run.js` renders once
+(plus an optional `demo()`) and `terminal/run.js` is render-only, sweeping
+with `--frames=N`. They are omitted from both tables below.
+
+**Pointer:**
+
+| Entry point | press / drag / release | multi-touch | wheel → `scrollBy` |
+|---|---|---|---|
+| `terminal/interactive.js` | partial — **press+release only** (l.139–140), no drag | no — id `0` | no |
+| `terminal/launcher.js` | yes — SGR mouse 0/1/2 (l.218–219) | no — one `'mouse'` | yes (l.213) |
+| `http/server.js` | yes | yes — real `touch.identifier` | **no wheel handler at all** |
+| `http/mirror.js` (sim `--http`) | yes | yes | yes (l.218, l.283) |
+| `sdl/run.js` | yes | no — one `'mouse'` | yes (l.84) |
+| `sdl/sim.js` | yes | no in-window; yes via `web:` ids | yes |
+| `esp32` (shim) | yes — 3-arg → id `0` adapter (l.22–25) | no — single contact | — |
+
+**Keys:**
+
+| Entry point | key down / press / up | composed text (shift, IME) |
+|---|---|---|
+| `terminal/interactive.js` | yes — all three per byte | no — raw bytes |
+| `terminal/launcher.js` | yes | no — raw bytes |
+| `http/server.js` | yes, + hidden OSK | yes — `beforeinput` |
+| `http/mirror.js` | yes, + OSK | yes |
+| `sdl/run.js` | yes | no — **`'text'` event ignored** |
+| `sdl/sim.js` | yes | yes (l.434–438) |
+| `esp32` (shim) | yes — via `___key` patch | — |
 
 Two concrete gaps: `sdl/run.js` receives SDL `TEXTINPUT` from
 `window.js` l.315 and never handles it, so no capital letter or symbol can

@@ -165,8 +165,15 @@ html:has(iframe.sim-embed.compact):not(:has(iframe.sim-embed:not(.compact)))
   /* a hairline that shows the box is scrollable without shouting */
   border-radius: 6px;
 }
+/* A NORMAL table wraps and fits, like any other prose block. `max-content`
+   here was applied to every table and made two-column ones with a long
+   cell blow out to 1400px inside a 720px column — turning tables that were
+   fine into tables you had to scroll. Only genuinely wide ones opt in. */
 .table-scroll > table {
   margin: 0;
+  width: 100%;
+}
+.table-scroll.is-wide > table {
   width: max-content;
   min-width: 100%;
 }

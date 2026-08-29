@@ -97,11 +97,16 @@ field, not `flh(1)`. With the ladder installed that is 8px where
 
 Three hand-drawn tables, plus a family of members derived from them.
 
-| name | cell | advance | detail `d` | family | source |
-| --- | --- | --- | --- | --- | --- |
-| `4x6` | 4x6 | 5 | 6 | `4x6` | hand-drawn, the original |
-| `6x8` | 6x8 | 7 | 8 | `6x8` | hand-drawn 5x7 letterforms in a 6x8 cell |
-| `12x16` | 12x16 | 13 | 8 | `6x8` | Scale2x of `6x8` |
+| name | cell | advance | detail `d` | family |
+| --- | --- | --- | --- | --- |
+| `4x6` | 4x6 | 5 | 6 | `4x6` |
+| `6x8` | 6x8 | 7 | 8 | `6x8` |
+| `12x16` | 12x16 | 13 | 8 | `6x8` |
+
+`4x6` is the original, drawn by hand. `6x8` is also hand-drawn — 5x7
+letterforms set in a 6x8 cell — which is why its detail is 8 where `4x6`'s
+is 6. `12x16` is not drawn at all: it is Scale2x of `6x8`, so it inherits
+that family and that detail.
 
 The registry builds the rest of the ladder the same way — `8x12`, `16x24`
 and `32x48` from `4x6`; `24x32` from `12x16`; `12x18` and `18x24` by
@@ -167,15 +172,18 @@ picker returns the sharpest face that fits it:
 function pickFont(size) { ... }
 ```
 
-The candidates are `[4x6, 6x8, 8x12, 12x16, 16x24]` at 1x and 2x. What that
-resolves to:
+The candidates are `[4x6, 6x8, 8x12, 12x16, 16x24]` at 1x and 2x, and the
+target height is `size × 6` — 6, 12, 18, 24. What that resolves to:
 
-| `size` | target | face picked | scale | `fadv` | `flh` | line pitch |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | 6 | `4x6` | 1x | 5 | 6 | 8 |
-| 2 | 12 | `6x8` | 1x | 7 | 8 | 10 |
-| 3 | 18 | `12x16` | 1x | 13 | 16 | 18 |
-| 4 | 24 | `16x24` | 1x | 17 | 24 | 26 |
+| `size` | face picked | `fadv` | `flh` | line pitch |
+| --- | --- | --- | --- | --- |
+| 1 | `4x6` at 1x | 5 | 6 | 8 |
+| 2 | `6x8` at 1x | 7 | 8 | 10 |
+| 3 | `12x16` at 1x | 13 | 16 | 18 |
+| 4 | `16x24` at 1x | 17 | 24 | 26 |
+
+Every one of them lands at 1x, which is the point of the ladder: there is
+always a drawn or Scale2x'd member close enough that nothing needs stamping.
 
 Size 2 is the rule in action: `8x12` at 1x is also 12px tall and also fits,
 but `6x8`'s detail is 8 against `8x12`'s 6, so the crisper hand-drawn face

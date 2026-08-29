@@ -136,6 +136,31 @@ describe('generated docs pages', function () {
     expect(bad).toEqual([]);
   });
 
+  maybe('no table is too wide for the column it is read in', function () {
+    /* A table you scroll sideways is the wrong shape for its content, not
+       a rendering problem: the ten-column gfx matrix was 108 cells
+       carrying about six facts, and it read better as a sentence plus two
+       narrow tables. Six columns is where a table stops fitting a 45rem
+       prose column, so that is the line. If a new one trips this, split
+       the concept rather than widening the page. */
+    var LIMIT = 5;
+    var wide = [];
+    fs.readdirSync(path.join(ROOT, 'docs')).forEach(function (f) {
+      if (!/\.md$/.test(f)) return;
+      var lines = fs.readFileSync(path.join(ROOT, 'docs', f), 'utf8').split('\n');
+      lines.forEach(function (line, i) {
+        var next = lines[i + 1] || '';
+        /* a header row is one followed by the |---|---| separator */
+        if (!/^\s*\|/.test(line) || !/^[\s|:-]+$/.test(next) || next.indexOf('|') < 0) return;
+        var cols = line.split('|').filter(function (c) { return c.trim(); }).length;
+        if (cols > LIMIT) {
+          wide.push('docs/' + f + ':' + (i + 1) + ' has ' + cols + ' columns');
+        }
+      });
+    });
+    expect(wide).toEqual([]);
+  });
+
   maybe('embedded simulators point at the embed mode of a real example', function () {
     var bad = [];
     pages().forEach(function (f) {
