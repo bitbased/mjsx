@@ -26,7 +26,7 @@
   :root {
     --bg:#f7f6f3; --panel:#fff; --ink:#1e2127; --muted:#6b7280;
     --line:#dcd9d2; --accent:#2f6fbf; --accent-soft:#e6eefa; --screen:#0d0f13;
-    --err:#b4232a; --err-soft:#fdeaea; --ok:#1f7a4d;
+    --err:#b4232a; --err-soft:#fdeaea; --ok:#1f7a4d; --warn:#8a5a12;
     --code-bg:#fbfaf8;
   }
   /* Three states, not two: an explicit stamp either way, and the
@@ -37,14 +37,14 @@
     :root:not([data-theme="light"]) {
       --bg:#14161b; --panel:#1b1e25; --ink:#dfe3ea; --muted:#949bab;
       --line:#2b303b; --accent:#6fb3ff; --accent-soft:#16283f; --screen:#0d0f13;
-      --err:#ff8a8a; --err-soft:#3a1d1f; --ok:#69d19b;
+      --err:#ff8a8a; --err-soft:#3a1d1f; --ok:#69d19b; --warn:#e5b567;
       --code-bg:#15181e;
     }
   }
   :root[data-theme="dark"] {
     --bg:#14161b; --panel:#1b1e25; --ink:#dfe3ea; --muted:#949bab;
     --line:#2b303b; --accent:#6fb3ff; --accent-soft:#16283f; --screen:#0d0f13;
-    --err:#ff8a8a; --err-soft:#3a1d1f; --ok:#69d19b;
+    --err:#ff8a8a; --err-soft:#3a1d1f; --ok:#69d19b; --warn:#e5b567;
     --code-bg:#15181e;
   }
   /* The UA paints the canvas behind the page, and it only knows which
@@ -100,17 +100,73 @@
 
   /* the editor: a textarea over a gutter, which is all a page needs to be
      genuinely useful and keeps this file dependency-free */
-  .ed { display:grid; grid-template-columns:auto 1fr; background:var(--code-bg); }
+  /* THE EDITOR IS THREE LAYERS:
+       .gutter    line numbers, scrolled to match
+       pre.hl     the highlighted copy of the text, painted
+       textarea   the real control, transparent text over the top
+     The textarea keeps every native behaviour — selection, undo, IME, the
+     resize handle — and Prism paints underneath. 22 kB, against the 202 kB
+     CodeMirror 5 wants for the same colours.
+
+     ELASTIC SCROLLING IS OFF, and that is the important line here. The
+     painted layer follows the textarea on its scroll event, which costs a
+     frame or two — fine. What is not fine is macOS rubber-banding: past
+     either end the textarea keeps travelling under inertia and the
+     highlight visibly trails it for SECONDS. `overscroll-behavior: none`
+     stops the bounce, so the two layers can never drift further apart than
+     one frame's worth of scrolling.
+
+     NO SOFT WRAP anywhere: a wrapped line takes two visual rows but has
+     one number, which is what put the gutter out of step with the code. */
+  .ed { display:grid; grid-template-columns:auto 1fr; background:var(--code-bg);
+        align-items:stretch; position:relative; }
   .gutter { padding:.75rem .5rem .75rem .75rem; text-align:right; color:var(--muted);
             font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
             user-select:none; border-right:1px solid var(--line); white-space:pre;
-            overflow:hidden; }
-  .ed { align-items:start; }
+            overflow:hidden; overscroll-behavior:none; }
   .gutter b { font-weight:600; color:var(--err); }
-  textarea { width:100%; min-height:30rem; border:0; resize:vertical; padding:.75rem;
-             background:transparent; color:var(--ink); tab-size:2;
-             font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+
+  .code-layers { position:relative; overflow:hidden; min-height:0; height:100%; }
+  pre.hl, textarea {
+    margin:0; border:0; padding:.75rem; tab-size:2;
+    font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    white-space:pre; overflow-wrap:normal; word-break:normal;
+    overscroll-behavior:none;              /* no rubber-band, no drift */
+  }
+  pre.hl {
+    position:absolute; inset:0; overflow:hidden; pointer-events:none;
+    background:transparent; color:var(--ink);
+  }
+  /* block + max-content so the painted layer can travel exactly as far
+     sideways as the textarea; shrink-wrapped inline content stops short */
+  pre.hl code { font:inherit; background:none; padding:0;
+                display:block; width:max-content; min-width:100%; }
+  textarea {
+    position:relative; width:100%; height:100%; min-height:26rem;
+    resize:vertical; background:transparent; overflow:auto;
+    color:transparent; caret-color:var(--ink); -webkit-text-fill-color:transparent;
+  }
+  /* The textarea's glyphs are transparent so the painted layer shows
+     through — so an OPAQUE selection hides the only visible copy of the
+     text, and selecting made the code disappear. Translucent, so the
+     highlighted text still reads through it. */
+  textarea::selection { background:rgba(110,160,255,.32); }
+  :root[data-theme="dark"] textarea::selection { background:rgba(110,160,255,.34); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) textarea::selection { background:rgba(110,160,255,.34); }
+  }
   textarea:focus { outline:none; }
+
+  /* Prism tokens, mapped onto this page's palette rather than importing a
+     theme — one less file, and it follows the light/dark tokens. */
+  .tok-comment, .tok-prolog, .tok-doctype, .tok-cdata { color:var(--muted); font-style:italic; }
+  .tok-punctuation { color:var(--muted); }
+  .tok-tag, .tok-keyword { color:var(--accent); }
+  .tok-attr-name, .tok-property, .tok-constant { color:var(--ok); }
+  .tok-string, .tok-attr-value, .tok-char { color:var(--warn, #c08a2e); }
+  .tok-number, .tok-boolean { color:var(--err); }
+  .tok-function, .tok-class-name { color:var(--ink); font-weight:600; }
+  .tok-operator { color:var(--muted); }
 
   .device { padding:1.25rem; display:flex; flex-direction:column; align-items:center;
             gap:.75rem; }
@@ -140,7 +196,7 @@
      167px, which is not an editor. The editor gets a real floor and the
      device takes what is left; `min()` keeps the floor from causing
      overflow in a narrow frame. */
-  body.embed .cols { gap:.9rem;
+  body.embed .cols { gap:.9rem; align-items:stretch;
     grid-template-columns:minmax(min(100%,22rem),1fr) auto; }
   @media (max-width:660px) { body.embed .cols { grid-template-columns:1fr; } }
   body.embed .device { padding:.75rem; }
@@ -177,8 +233,8 @@
      which beats this stylesheet. */
   body.embed .pane { display:flex; flex-direction:column; }
   body.embed .pane > header, body.embed .status { flex:0 0 auto; }
-  body.embed .ed { flex:1 1 auto; min-height:0; }
-  body.embed textarea { height:100%; min-height:8rem; resize:vertical; }
+  body.embed .ed { flex:1 1 auto; min-height:20rem; }
+  body.embed textarea { height:100%; min-height:0; resize:vertical; }
   .embed-out { display:none; }
   body.embed .embed-out { display:inline; }
   a { color:var(--accent); }
@@ -225,10 +281,13 @@
         <span>app.jsx</span>
         <span class="rt" id="edinfo"></span>
       </header>
-      <div class="ed">
+      <div class="ed" id="ed">
         <div class="gutter" id="gutter">1</div>
-        <textarea id="code" spellcheck="false" autocapitalize="off"
-                  autocorrect="off" aria-label="Example source"></textarea>
+        <div class="code-layers">
+          <pre class="hl" id="hl" aria-hidden="true"><code></code></pre>
+          <textarea id="code" spellcheck="false" autocapitalize="off"
+                    autocorrect="off" aria-label="Example source"></textarea>
+        </div>
       </div>
       <div class="status" id="status">ready</div>
     </section>
@@ -250,6 +309,7 @@
   </p>
 </div>
 
+<script src="/vendor/prism-jsx.js"></script>
 <script src="/mjsx-sim.js"></script>
 <script>
 (function () {
@@ -391,6 +451,7 @@
          fix a typo */
     }
     drawGutter();
+    highlight();
     syncGutter();
     reportHeight();
   }
@@ -411,13 +472,44 @@
     } catch (e) { return 0; }
   }
 
-  /* ---- the gutter ---- */
+  /* ---- the gutter and the highlight ---- */
+  var elHl = $('hl').firstChild;
+
   function drawGutter() {
     var lines = elCode.value.split('\n').length;
     var out = [];
     for (var i = 1; i <= lines; i++) out.push(i === errLine ? '<b>' + i + '</b>' : i);
     elGutter.innerHTML = out.join('\n');
     elEdInfo.textContent = lines + ' lines';
+  }
+
+  /* Prism paints the copy under the textarea. The trailing newline matters:
+     without it a file ending in \n renders one line short and the last line
+     of code sits over the wrong highlight. */
+  function highlight() {
+    var src = elCode.value;
+    if (typeof Prism === 'undefined' || !Prism.languages || !Prism.languages.jsx) {
+      elHl.textContent = src + '\n';       /* no Prism: still readable */
+      return;
+    }
+    /* Prism emits class="token comment"; rewritten to tok-* so a stray
+       .token rule from the docs site's own stylesheet cannot reach in */
+    elHl.innerHTML = Prism.highlight(src + '\n', Prism.languages.jsx, 'jsx')
+      .replace(/class="token ([a-z-]+)/g, 'class="tok-$1')
+      .replace(/class="token"/g, 'class="tok"');
+  }
+
+  /* the painted layer has to track the textarea in BOTH axes, or the
+     colours slide off the characters the moment anything scrolls */
+  /* TRANSLATE the painted layer rather than scrolling it. Two boxes with
+     slightly different content heights cannot reach the same maximum
+     scroll offset, so the last line never quite lined up; a transform has
+     no maximum and tracks exactly. */
+  var hlCode = $('hl').firstChild;
+  function syncScroll() {
+    hlCode.style.transform =
+      'translate(' + (-elCode.scrollLeft) + 'px,' + (-elCode.scrollTop) + 'px)';
+    elGutter.scrollTop = elCode.scrollTop;
   }
 
   /* ---- input: straight into the engine, same calls the mirror makes ---- */
@@ -482,9 +574,7 @@
   /* the gutter is a sibling of the textarea, not inside it, so it has to be
      scrolled to match — otherwise the line numbers slide out of step with
      the code the moment the editor scrolls */
-  elCode.addEventListener('scroll', function () {
-    elGutter.scrollTop = elCode.scrollTop;
-  });
+  elCode.addEventListener('scroll', syncScroll);
   /* The gutter is a grid sibling of the textarea, so its natural height is
      the whole FILE while the textarea's is a fixed box that scrolls. Left
      alone it stretched the row to 34 line numbers against 18 visible
@@ -500,6 +590,7 @@
   window.addEventListener('resize', syncGutter);
   elCode.addEventListener('input', function () {
     drawGutter();
+    highlight();
     clearTimeout(debounce);
     debounce = setTimeout(start, 500);
   });
@@ -513,12 +604,13 @@
       elCode.value = elCode.value.slice(0, s) + '  ' + elCode.value.slice(t);
       elCode.selectionStart = elCode.selectionEnd = s + 2;
       drawGutter();
+      highlight();
     }
   });
   $('run').addEventListener('click', start);
   $('reset').addEventListener('click', function () {
     var ex = current();
-    if (ex) { elCode.value = ex.source; drawGutter(); start(); }
+    if (ex) { elCode.value = ex.source; drawGutter(); highlight(); start(); }
   });
   $('share').addEventListener('click', function () {
     var ex = current();
@@ -570,6 +662,7 @@
       ? 'This example expects a device native the browser does not have, so it draws its labelled fallback.'
       : '';
     drawGutter();
+    highlight();
     start();
   });
   elShape.addEventListener('change', function () {
@@ -629,6 +722,7 @@
       }
     }
     drawGutter();
+    highlight();
     syncPopout();
     start();
   }
