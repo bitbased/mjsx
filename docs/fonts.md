@@ -433,5 +433,6 @@ watch `1EM` in the header change with it.
 
 See also [`layout.md`](layout.md) for how `em()` spacing and text heights
 feed the layout walk, [`ui.md`](ui.md) for the `text` element's place in
-the element list, and [`contract.md`](contract.md) for what a backend owes
+the element list, [`input.md`](input.md) for the field that centres on
+`fink()`, and [`contract.md`](contract.md) for what a backend owes
 `gfx.text`.

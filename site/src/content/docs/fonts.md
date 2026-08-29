@@ -199,6 +199,17 @@ vow` broke into two lines on a word boundary, which is `wrap` and
 *The same character set in the clearer face: real diagonals and curves the
 4x6 grid cannot express. Same repertoire, different letterforms.*
 
+A table is rows of column bitmasks, bit `(w - 1)` being the leftmost
+column, and that one shape serves every face:
+
+```js
+// packages/core/src/font6x8.js — 'A' in a 6x8 cell
+var FONT6x8 = {
+  'A': [28, 34, 34, 62, 34, 34, 34, 0],
+  'B': [60, 34, 34, 60, 34, 34, 60, 0],
+  ...
+```
+
 Two details in the tables themselves:
 
 - **Descenders live below the cell.** The 4x6 glyph arrays are
@@ -367,7 +378,7 @@ function fitText(str, size, availW) {
   var maxChars = Math.floor(availW / fadv(size));
   if (s.length <= maxChars) return s;
   if (maxChars <= 1) return s.substring(0, maxChars);
-  return s.substring(0, maxChars - 1) + '…';
+  return s.substring(0, maxChars - 1) + '\u2026';
 }
 ```
 
@@ -386,10 +397,12 @@ knowing:
   }
   ```
 
-Both are exported for app use — sizing a box to text before laying it out,
-for instance — and both read the *current* metric, so calling them at
-render time is correct and caching their results across a font change is
-not.
+Both are on the core's CommonJS export list alongside `measure` and
+`draw`, so a host or a test can call them directly; note that the runners
+publish only `h`, `UI`, `em` and the ready-made components as ambient
+globals, so they are not reachable by that name from a flat device script.
+Both read the *current* metric, so calling them at render time is correct
+and caching their results across a font change is not.
 
 ![The pinned 12x16 face, scrolled to the repertoire](/img/font-12x16-charset-lcd35.png)
 
@@ -422,5 +435,6 @@ watch `1EM` in the header change with it.
 
 See also [`layout.md`](/layout) for how `em()` spacing and text heights
 feed the layout walk, [`ui.md`](/ui) for the `text` element's place in
-the element list, and [`contract.md`](/contract) for what a backend owes
+the element list, [`input.md`](/input) for the field that centres on
+`fink()`, and [`contract.md`](/contract) for what a backend owes
 `gfx.text`.

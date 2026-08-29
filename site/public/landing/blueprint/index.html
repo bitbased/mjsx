@@ -1130,8 +1130,9 @@ footer{padding:clamp(24px,4vw,52px) clamp(16px,3.2vw,44px) clamp(30px,5vw,56px)}
           </g>
           <path d="M190 200 L190 350" class="cl"/>
 
-          <!-- sweep arc: 30deg to 150deg about bottom -->
-          <path d="M319.9 275 A150 150 0 0 1 60.1 275" class="dl"/>
+          <!-- sweep arc: 30° to 150°, i.e. 120° about the bottom -->
+          <path d="M309.5 269 A138 138 0 0 1 70.5 269" class="dl"
+                stroke-dasharray="6 4" marker-start="url(#ah)" marker-end="url(#ah)"/>
 
           <!-- the four items, upright -->
           <g class="ol">

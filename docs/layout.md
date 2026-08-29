@@ -597,7 +597,9 @@ bottom arc, where a finger cannot reach it and the row is half rim.*
 bottom edge, with no margin, because none is added there.*
 
 `UI.isRound()` reads `configStorage`'s `'round'` key once and caches it —
-the host seeds it, and the answer never changes while running.
+the host seeds it, and the answer never changes while running. For what
+else changes on a circle — `UI.safe.inset`, the chord a row actually has,
+`ArcFooter` — see [`round.md`](round.md).
 
 ## z-order and overlays
 
@@ -720,5 +722,5 @@ Two details on the marks themselves:
 
 See also [`ui.md`](ui.md) for the full element and prop list,
 [`components.md`](components.md) for `Button`, `Modal`, `Keyboard` and
-`ArcFooter`, and [`fonts.md`](fonts.md) for `em()`, text metrics and
-wrapping.
+`ArcFooter`, [`fonts.md`](fonts.md) for `em()`, text metrics and wrapping,
+and [`round.md`](round.md) for laying out on glass with no corners.

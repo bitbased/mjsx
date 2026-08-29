@@ -55,9 +55,9 @@ draw(h(this.root, {}), sfL, sfT, sfW, sfF);
 ```
 
 Full-bleed by default. With `UI.safe.inset` set, `sfL`/`sfT` are the safe
-offsets, `sfW`/`sfH` the safe size, and `sfF` pins the root to the safe
-height so an app's usual `h: gfx.height()` cannot push its bottom row into
-a dead band.
+offsets and `sfW` the safe width; and when there is a top or bottom band,
+`sfF` pins the root to the safe height as well, so an app's usual
+`h: gfx.height()` cannot push its bottom row into a dead band.
 
 Because height comes from content, a page that should fill the screen has
 to say so — `h={gfx.height()}` — and a page that should just be as tall as
@@ -554,16 +554,20 @@ if (p.key && p.far > DRAG_SLOP) {
 ```
 
 On release, a velocity over 2px/frame starts a fling; each tick applies the
-velocity and then decays it by `v * 0.86`, stopping at an end or once a
-frame no longer moves more than 1.2px.
+velocity and then decays it by `v * 0.86`, and the fling ends either when a
+tick fails to change the offset (it has hit a limit) or when the decayed
+velocity drops under 1.2.
 
 **Programmatic movement.** `UI.swipe(x, y, dir)` moves the zone under a
 point one notch, where the notch is `step`:
 `p.step === 'page' ? (boxH - padT - padB) : (p.step || 40)`.
 `UI.scrollBy(x, y, dy)` moves it an exact number of pixels, which is what a
-mouse wheel wants. Both find their target with `_zoneAt`, which takes the
-topmost — last registered — zone under the point, so nested zones resolve
-inner-first.
+mouse wheel wants. Both find their target with `_zoneAt`, which walks `UI._swipes` backwards
+and takes the last one registered under the point. A viewport registers
+itself *after* drawing its children, so where scroll zones are nested the
+**outer** zone is the later entry and wins. A `shield` is the other way
+round — it registers its key-less zone before its children — which is how
+it stops drags from reaching a zone it covers.
 
 `UI.scrollQuantum` rounds every offset before it is stored; a terminal
 backend sets it to its sub-pixels-per-cell so a fling can never park
@@ -595,7 +599,9 @@ bottom arc, where a finger cannot reach it and the row is half rim.*
 bottom edge, with no margin, because none is added there.*
 
 `UI.isRound()` reads `configStorage`'s `'round'` key once and caches it —
-the host seeds it, and the answer never changes while running.
+the host seeds it, and the answer never changes while running. For what
+else changes on a circle — `UI.safe.inset`, the chord a row actually has,
+`ArcFooter` — see [`round.md`](/round).
 
 ## z-order and overlays
 
@@ -703,7 +709,7 @@ Two details on the marks themselves:
 | `pad` | box, row | uniform padding. On a `row` this is the **only** padding prop |
 | `padL` `padR` `padT` `padB` | box | per-side padding; falls back to `pad` only when `undefined` |
 | `gap` | box, row | space between children, default 4; zero-height children take none |
-| `w` | box, row child, abs | box: narrows only, never widens, never re-centres. Row child: fixes that column |
+| `w` | box, row child | box: narrows only, never widens, never re-centres. Row child: fixes that column |
 | `h` | box, row | pins the height; the node reports exactly this, content or not |
 | `flex` | box child | **only** inside a box that has a height. `true` = 1, or a weight |
 | `vcenter` | box | centre content in an outside-given height; ignored if anything flexes |
@@ -718,5 +724,5 @@ Two details on the marks themselves:
 
 See also [`ui.md`](/ui) for the full element and prop list,
 [`components.md`](/components) for `Button`, `Modal`, `Keyboard` and
-`ArcFooter`, and [`fonts.md`](/fonts) for `em()`, text metrics and
-wrapping.
+`ArcFooter`, [`fonts.md`](/fonts) for `em()`, text metrics and wrapping,
+and [`round.md`](/round) for laying out on glass with no corners.

@@ -232,6 +232,10 @@ h1 .sub{ display:block; color:var(--ink-2); font-size:.62em; margin-top:8px; fon
 .device.round .screenwell{ border-radius:50%; overflow:hidden; }
 .device.round{ border-radius:0; }
 .plate{
+  /* width:0 + min-width:100% keeps the label plate out of the bezel's
+     shrink-to-fit width, so the bezel is sized by the SCREEN and a 172px
+     panel stays 172px wide next to a 320px one. */
+  width:0; min-width:100%;
   margin-top:10px; display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center;
   font-size:10px; letter-spacing:.14em; text-transform:uppercase; font-weight:700;
   color:var(--plate-ink); background:var(--plate); border:2px solid var(--edge);
