@@ -31,6 +31,38 @@ Things to know:
 - **The ADC does not reach every pin.** On the ESP32-S3 only GPIO 1..20
   are ADC-capable; op 2 elsewhere reads nothing useful.
 
+<div class="shapes">
+  <input type="radio" name="sw-ex-gpio-0" id="sw-ex-gpio-0-0">
+  <label for="sw-ex-gpio-0-0">
+    <img src="/img/ex-gpio-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-gpio-0" id="sw-ex-gpio-0-1">
+  <label for="sw-ex-gpio-0-1">
+    <img src="/img/ex-gpio-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-gpio-0" id="sw-ex-gpio-0-2" checked>
+  <label for="sw-ex-gpio-0-2">
+    <img src="/img/ex-gpio-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-gpio-round128.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Round, 240×240.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-gpio-lcd147.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-gpio-lcd35.png" alt="examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title).">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/gpio — Direct pin access through sys.gpio(pin, op, value): op 0 reads (the firmware sets INPUT_PULLUP first, so an open pin reads 1) op 1. . . No device natives under the pure-js backend, so the app draws its own labelled fallback (the line under the title). <a class="run-example" href="/play/#ex=gpio&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
+
 ## sys.i2c(addr, reg, value) -> int
 
 One byte of a device on the board's shared I2C bus. `value` omitted or
@@ -45,6 +77,44 @@ more: the 3.5" board's I/O expander, power-management chip, RTC, IMU and
 audio codec all share it. A read is usually harmless (though some devices
 clear interrupt flags on read); a stray register write to the PMU is not.
 Scan first, write only registers you know.
+
+`examples/i2c` is that advice as a program: it walks 0x08..0x77 a few
+addresses per tick so the UI stays live, lists what answered, and peeks
+registers 0..15 of whichever address you tap.
+
+<div class="shapes">
+  <input type="radio" name="sw-ex-i2c-1" id="sw-ex-i2c-1-0">
+  <label for="sw-ex-i2c-1-0">
+    <img src="/img/ex-i2c-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-i2c-1" id="sw-ex-i2c-1-1">
+  <label for="sw-ex-i2c-1-1">
+    <img src="/img/ex-i2c-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-i2c-1" id="sw-ex-i2c-1-2" checked>
+  <label for="sw-ex-i2c-1-2">
+    <img src="/img/ex-i2c-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-i2c-round128.png" alt="examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing.">
+      <figcaption><strong>Round, 240×240.</strong> examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing. <a class="run-example" href="/play/#ex=i2c&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-i2c-lcd147.png" alt="examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing. <a class="run-example" href="/play/#ex=i2c&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-i2c-lcd35.png" alt="examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/i2c — Bus scan and register peek through sys.i2c(addr, reg, value): value &lt; 0 (or omitted) reads one byte of that register, value &gt;= 0 writes. . . The bus is SIMULATED by the harness — three devices at the real addresses this project's own boards use — because with no bus at all the page is two lines of text and documents nothing. <a class="run-example" href="/play/#ex=i2c&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
+
+![](/img/ex-i2c-peek-lcd35.png)
 
 ## Safety rules
 

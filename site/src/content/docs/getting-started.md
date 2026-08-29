@@ -204,8 +204,13 @@ bun packages/cli/bin/mjsx.js run app.jsx --ppm app.ppm --size 320x480
     <img src="/img/ex-hello-lcd147.png" alt="">
     portrait<br>172×320
   </label>
-  <input type="radio" name="sw-ex-hello-2" id="sw-ex-hello-2-2" checked>
+  <input type="radio" name="sw-ex-hello-2" id="sw-ex-hello-2-2">
   <label for="sw-ex-hello-2-2">
+    <img src="/img/ex-hello-lcd169p.png" alt="">
+    portrait<br>240×280
+  </label>
+  <input type="radio" name="sw-ex-hello-2" id="sw-ex-hello-2-3" checked>
+  <label for="sw-ex-hello-2-3">
     <img src="/img/ex-hello-lcd35.png" alt="">
     portrait<br>320×480
   </label>
@@ -217,6 +222,10 @@ bun packages/cli/bin/mjsx.js run app.jsx --ppm app.ppm --size 320x480
     <figure>
       <img src="/img/ex-hello-lcd147.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
       <figcaption><strong>Portrait, 172×320.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd169p.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 240×280.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd169p">▶ Run it</a></figcaption>
     </figure>
     <figure>
       <img src="/img/ex-hello-lcd35.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
@@ -423,6 +432,11 @@ on a board with no console.
   </label>
   <input type="radio" name="sw-ex-hello-6" id="sw-ex-hello-6-2">
   <label for="sw-ex-hello-6-2">
+    <img src="/img/ex-hello-lcd169p.png" alt="">
+    portrait<br>240×280
+  </label>
+  <input type="radio" name="sw-ex-hello-6" id="sw-ex-hello-6-3">
+  <label for="sw-ex-hello-6-3">
     <img src="/img/ex-hello-lcd35.png" alt="">
     portrait<br>320×480
   </label>
@@ -434,6 +448,10 @@ on a board with no console.
     <figure>
       <img src="/img/ex-hello-lcd147.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
       <figcaption><strong>Portrait, 172×320.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd169p.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 240×280.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd169p">▶ Run it</a></figcaption>
     </figure>
     <figure>
       <img src="/img/ex-hello-lcd35.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">

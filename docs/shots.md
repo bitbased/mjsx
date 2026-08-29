@@ -21,15 +21,20 @@ command that would make it again.
 
 ```
 $ bun scripts/shot-info.mjs docs/img/shape-input-round128-round128.png
-  note      the input example with a field focused; look at the trapezoid
-            keyboard and OK in the bottom arc
+  note      the input example with a field focused; look at the keyboard the
+            width bought, and on round glass the trapezoid rows and OK in
+            the bottom arc
   profile   round128  240x240 round
   source    examples/input/app.jsx
   actions   [{"op":"tap","x":120,"y":110}]
-  reproduce bun scripts/shoot.mjs shape-input-round128 round128 \
+  reproduce bun scripts/shoot.mjs input-round128 round128 \
               examples/input/app.jsx --tap 120,110
   ops       100 draw calls
 ```
+
+That is this picture, and the last line is the command that made it:
+
+![](./img/shape-input-round128-round128.png)
 
 Pass `--note` when the shot needs a reason: what to look at, why this
 profile, what was being demonstrated. It costs nothing and it is the part

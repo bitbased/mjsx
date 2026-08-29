@@ -29,6 +29,8 @@ Things to know:
 - **The ADC does not reach every pin.** On the ESP32-S3 only GPIO 1..20
   are ADC-capable; op 2 elsewhere reads nothing useful.
 
+![](./img/ex-gpio-lcd35.png)
+
 ## sys.i2c(addr, reg, value) -> int
 
 One byte of a device on the board's shared I2C bus. `value` omitted or
@@ -43,6 +45,14 @@ more: the 3.5" board's I/O expander, power-management chip, RTC, IMU and
 audio codec all share it. A read is usually harmless (though some devices
 clear interrupt flags on read); a stray register write to the PMU is not.
 Scan first, write only registers you know.
+
+`examples/i2c` is that advice as a program: it walks 0x08..0x77 a few
+addresses per tick so the UI stays live, lists what answered, and peeks
+registers 0..15 of whichever address you tap.
+
+![](./img/ex-i2c-lcd35.png)
+
+![](./img/ex-i2c-peek-lcd35.png)
 
 ## Safety rules
 

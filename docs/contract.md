@@ -43,6 +43,11 @@ ten `gfx` entries and six `sys` entries and nothing else, so the in-tree
 ESP32 target has no `poly` and no `blit`; the device-side ones come from
 the out-of-tree firmware plus `backends/esp32/tools/device-shim.js`.
 
+`examples/shapes` exercises every one of those calls in a single frame, so
+a new backend has one page to compare its output against:
+
+![](./img/ex-shapes-lcd35.png)
+
 For where each backend in this repo actually lands against the surface
 below — including where one does not honour it — see
 [`consistency.md`](consistency.md).

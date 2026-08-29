@@ -24,6 +24,12 @@ board blocks live in `firmware/esp32/filament-rfid-bridge/config.h`.
 | `--b147` | ESP32-S3-Touch-LCD-1.47 | 172x320 JD9853 | AXS5106L |
 | `--b128` | ESP32-S3-Touch-LCD-1.28 (round) | 240x240 GC9A01 | CST816S |
 
+The same app on each of them — `examples/hello`, unchanged, no per-board
+code. Flip between the panels to see what the four rows above actually
+mean:
+
+![](./img/ex-hello-lcd169p.png)
+
 The round 1.28" board is the constrained one, and its quirks are worth
 knowing because each cost real debugging:
 

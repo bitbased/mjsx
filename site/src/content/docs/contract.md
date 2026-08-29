@@ -45,6 +45,50 @@ ten `gfx` entries and six `sys` entries and nothing else, so the in-tree
 ESP32 target has no `poly` and no `blit`; the device-side ones come from
 the out-of-tree firmware plus `backends/esp32/tools/device-shim.js`.
 
+`examples/shapes` exercises every one of those calls in a single frame, so
+a new backend has one page to compare its output against:
+
+<div class="shapes">
+  <input type="radio" name="sw-ex-shapes-0" id="sw-ex-shapes-0-0">
+  <label for="sw-ex-shapes-0-0">
+    <img src="/img/ex-shapes-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-shapes-0" id="sw-ex-shapes-0-1">
+  <label for="sw-ex-shapes-0-1">
+    <img src="/img/ex-shapes-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-shapes-0" id="sw-ex-shapes-0-2">
+  <label for="sw-ex-shapes-0-2">
+    <img src="/img/ex-shapes-lcd169.png" alt="">
+    landscape<br>280×240
+  </label>
+  <input type="radio" name="sw-ex-shapes-0" id="sw-ex-shapes-0-3" checked>
+  <label for="sw-ex-shapes-0-3">
+    <img src="/img/ex-shapes-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-shapes-round128.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Round, 240×240.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-shapes-lcd147.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-shapes-lcd169.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Landscape, 280×240.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-shapes-lcd35.png" alt="examples/shapes — SVG-style filled paths, even-odd rule.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/shapes — SVG-style filled paths, even-odd rule. <a class="run-example" href="/play/#ex=shapes&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
+
 For where each backend in this repo actually lands against the surface
 below — including where one does not honour it — see
 [`consistency.md`](/consistency).

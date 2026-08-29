@@ -948,6 +948,11 @@ app.
   </label>
   <input type="radio" name="sw-ex-hello-20" id="sw-ex-hello-20-2">
   <label for="sw-ex-hello-20-2">
+    <img src="/img/ex-hello-lcd169p.png" alt="">
+    portrait<br>240×280
+  </label>
+  <input type="radio" name="sw-ex-hello-20" id="sw-ex-hello-20-3">
+  <label for="sw-ex-hello-20-3">
     <img src="/img/ex-hello-lcd35.png" alt="">
     portrait<br>320×480
   </label>
@@ -959,6 +964,10 @@ app.
     <figure>
       <img src="/img/ex-hello-lcd147.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
       <figcaption><strong>Portrait, 172×320.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd169p.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 240×280.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd169p">▶ Run it</a></figcaption>
     </figure>
     <figure>
       <img src="/img/ex-hello-lcd35.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">

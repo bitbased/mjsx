@@ -1121,6 +1121,13 @@ function shotList() {
                 'bought, and on round glass the trapezoid rows and OK in the bottom arc' });
   }
 
+  /* docs/devices.md tables four boards; this completes the ex-hello family
+     so the switcher there shows the SAME app on all four panels, which is
+     what makes that table mean something. 240x280 is the only board panel
+     the per-example sweep above does not already cover. */
+  add('ex', 'hello', 'lcd169p', null, exampleCaption('hello', 'lcd169p'),
+      { file: 'examples/hello/app.jsx' });
+
   /* the peek, which is the half of examples/i2c the scan view cannot show */
   add('ex', 'i2c-peek', 'lcd35', null,
       'examples/i2c after tapping the 0x6B row: registers 0..15 of that address, read one ' +

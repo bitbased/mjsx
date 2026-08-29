@@ -26,6 +26,51 @@ board blocks live in `firmware/esp32/filament-rfid-bridge/config.h`.
 | `--b147` | ESP32-S3-Touch-LCD-1.47 | 172x320 JD9853 | AXS5106L |
 | `--b128` | ESP32-S3-Touch-LCD-1.28 (round) | 240x240 GC9A01 | CST816S |
 
+The same app on each of them — `examples/hello`, unchanged, no per-board
+code. Flip between the panels to see what the four rows above actually
+mean:
+
+<div class="shapes">
+  <input type="radio" name="sw-ex-hello-0" id="sw-ex-hello-0-0">
+  <label for="sw-ex-hello-0-0">
+    <img src="/img/ex-hello-round128.png" alt="">
+    round<br>240×240
+  </label>
+  <input type="radio" name="sw-ex-hello-0" id="sw-ex-hello-0-1">
+  <label for="sw-ex-hello-0-1">
+    <img src="/img/ex-hello-lcd147.png" alt="">
+    portrait<br>172×320
+  </label>
+  <input type="radio" name="sw-ex-hello-0" id="sw-ex-hello-0-2" checked>
+  <label for="sw-ex-hello-0-2">
+    <img src="/img/ex-hello-lcd169p.png" alt="">
+    portrait<br>240×280
+  </label>
+  <input type="radio" name="sw-ex-hello-0" id="sw-ex-hello-0-3">
+  <label for="sw-ex-hello-0-3">
+    <img src="/img/ex-hello-lcd35.png" alt="">
+    portrait<br>320×480
+  </label>
+  <div class="shape-panels">
+    <figure>
+      <img src="/img/ex-hello-round128.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Round, 240×240.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=round128">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd147.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 172×320.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd147">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd169p.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 240×280.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd169p">▶ Run it</a></figcaption>
+    </figure>
+    <figure>
+      <img src="/img/ex-hello-lcd35.png" alt="examples/hello — The smallest real mjsx app: a panel, a border, some centred text.">
+      <figcaption><strong>Portrait, 320×480.</strong> examples/hello — The smallest real mjsx app: a panel, a border, some centred text. <a class="run-example" href="/play/#ex=hello&amp;shape=lcd35">▶ Run it</a></figcaption>
+    </figure>
+  </div>
+</div>
+
 The round 1.28" board is the constrained one, and its quirks are worth
 knowing because each cost real debugging:
 
