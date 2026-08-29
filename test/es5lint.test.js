@@ -78,22 +78,9 @@ describe('es5 subset checker', function () {
 
   /* ---- the rule itself ---- */
   describe('everything that ships to a chip is in the subset', function () {
-    var files = [];
-    function walk(dir) {
-      if (!fs.existsSync(dir)) return;
-      fs.readdirSync(dir, { withFileTypes: true }).forEach(function (e) {
-        var full = path.join(dir, e.name);
-        if (e.isDirectory()) { if (e.name !== 'node_modules') walk(full); }
-        else if (/\.(js|jsx)$/.test(e.name)) files.push(full);
-      });
-    }
-    walk(path.join(ROOT, 'packages/core/src'));
-    walk(path.join(ROOT, 'examples'));
-    walk(path.join(ROOT, 'local-examples'));
-    ['device-shim.js', 'device-menu.js'].forEach(function (f) {
-      var p = path.join(ROOT, 'backends/esp32/tools', f);
-      if (fs.existsSync(p)) files.push(p);
-    });
+    /* the same set `bun run lint` checks — one definition, so the CLI
+       cannot pass while CI fails */
+    var files = require('../scripts/device-files.js').deviceFiles(ROOT);
 
     it('found the device code', function () {
       expect(files.length).toBeGreaterThan(10);

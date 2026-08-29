@@ -25,6 +25,8 @@ rather than repeating it.
 
 ![The sensors example on 320x480](/img/ex-sensors-lcd35.png)
 
+<a class="run-example" href="/play/#ex=sensors&shape=lcd35">▶ Run <code>sensors</code> in the simulator</a>
+
 *`examples/sensors` on the 3.5" panel: three views of the same state —
 LEVEL, TRACE, DATA. The line under the title names the part that answered,
 or says plainly that the reading is simulated.*
@@ -245,6 +247,8 @@ so an address hit alone is never taken as a QMI8658.
 
 ![The sensors example on round glass](/img/ex-sensors-round128.png)
 
+<a class="run-example" href="/play/#ex=sensors&shape=round128">▶ Run <code>sensors</code> in the simulator</a>
+
 *The LEVEL view on the round board — gravity as a bubble drifting in rings
 with a horizon line tilting by roll. It is the one view a round display
 renders better than a rectangle, because a circle is already the frame.*
@@ -351,6 +355,8 @@ kids.push(h('box', {
 
 ![The sensors example's LEVEL view on 280x240 landscape](/img/ex-sensors-lcd169.png)
 
+<a class="run-example" href="/play/#ex=sensors">▶ Run <code>sensors</code> in the simulator</a>
+
 *The LEVEL view, and the mapping made visible: the footer's `tap:-y,-x`
 names the entry currently chosen out of `MAPS` — `MAP_DEFAULT = 7` — so
 the reading that produced the bubble and the tilted horizon can be checked
@@ -441,16 +447,22 @@ when you are chasing a sensor:
 
 ![The gpio example on 320x480](/img/ex-gpio-lcd35.png)
 
+<a class="run-example" href="/play/#ex=gpio&shape=lcd35">▶ Run <code>gpio</code> in the simulator</a>
+
 *`examples/gpio`: a pin picker, the three ops, and the firmware's refusals
 shown rather than hidden. Under the pure-js backend there is no native, so
 the app draws a labelled simulated board.*
 
 ![The gpio example on the 172x320 panel](/img/ex-gpio-lcd147.png)
 
+<a class="run-example" href="/play/#ex=gpio&shape=lcd147">▶ Run <code>gpio</code> in the simulator</a>
+
 *The same page on the narrow panel — the simulated board models the 1.69"
 denylist, so the refused pins answer -1 exactly as the firmware does.*
 
 ![The i2c example on 320x480](/img/ex-i2c-lcd35.png)
+
+<a class="run-example" href="/play/#ex=i2c&shape=lcd35">▶ Run <code>i2c</code> in the simulator</a>
 
 *`examples/i2c` with no `sys.i2c` present: the page is its title and one
 honest fallback line. On a board it scans 8..119 a few addresses per tick,
@@ -476,6 +488,8 @@ UI.onTick = function () {
 ```
 
 ![The i2c example on the 172x320 panel](/img/ex-i2c-lcd147.png)
+
+<a class="run-example" href="/play/#ex=i2c&shape=lcd147">▶ Run <code>i2c</code> in the simulator</a>
 
 *The same near-blank fallback frame on the narrow panel. A page that has
 nothing to report says so.*

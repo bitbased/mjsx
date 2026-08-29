@@ -19,10 +19,14 @@
     "sim": "bun backends/sdl/src/sim.js",
     "sim:web": "bun backends/sdl/src/sim.js --http",
     "gallery": "bun scripts/render-examples.mjs",
-    "docs:sync": "bun scripts/build-viewer.mjs && bun scripts/docs-sync.mjs",
-    "docs:dev": "bun scripts/docs-sync.mjs && cd site && bun run dev",
-    "docs:build": "bun scripts/docs-sync.mjs && cd site && bun run build",
+    "site": "bun scripts/site.mjs",
+    "site:preview": "bun scripts/site.mjs --preview",
+    "site:build": "bun run docs:sync && cd site && bun run build",
+    "docs:sync": "bun scripts/build-viewer.mjs && bun scripts/build-play.mjs && bun scripts/docs-sync.mjs",
+    "docs:dev": "bun scripts/site.mjs",
+    "docs:build": "bun run docs:sync && cd site && bun run build",
     "docs:viewer": "bun scripts/build-viewer.mjs",
-    "figures": "bun scripts/shoot.mjs --all --embed-overlay"
+    "figures": "bun scripts/shoot.mjs --all --embed-overlay",
+    "lint": "bun scripts/lint.mjs"
   }
 }

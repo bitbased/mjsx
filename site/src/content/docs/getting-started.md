@@ -26,6 +26,8 @@ bun run examples
 
 ![](/img/ex-layers-lcd35.png)
 
+<a class="run-example" href="/play/#ex=layers&shape=lcd35">▶ Run <code>layers</code> in the simulator</a>
+
 *`examples/layers`, one of the fourteen the picker offers. The header,
 the `badge` over its right end, the floating `+0` and the footer all stay
 put; the list crops between them. Shown here rendered headlessly at
@@ -40,6 +42,8 @@ bun packages/cli/bin/mjsx.js dev counter
 ```
 
 ![](/img/ex-layers-wide.png)
+
+<a class="run-example" href="/play/#ex=layers">▶ Run <code>layers</code> in the simulator</a>
 
 *The same example in a 480x320 desktop window. There is no file watcher:
 the sim re-reads an example from disk each time it loads one, so after an
@@ -102,6 +106,8 @@ bun packages/cli/bin/mjsx.js run app.jsx --ppm app.ppm --size 320x480
 
 ![](/img/ex-hello-lcd35.png)
 
+<a class="run-example" href="/play/#ex=hello&shape=lcd35">▶ Run <code>hello</code> in the simulator</a>
+
 *What that file draws, at 320x480: the outer `box` pads the screen, the
 inner one paints the panel colour with a 2px accent border and an 8px
 radius, and the two `text` lines centre inside it. Nothing is positioned
@@ -135,6 +141,8 @@ UI.mount(App);
 ```
 
 ![](/img/ex-counter-lcd35.png)
+
+<a class="run-example" href="/play/#ex=counter&shape=lcd35">▶ Run <code>counter</code> in the simulator</a>
 
 *`examples/counter` at rest — `COUNT: 0`, and one control. Tapping `+1`
 runs the handler, `UI.set` marks the frame dirty, and the whole screen is
@@ -186,10 +194,14 @@ height, window scale — and passes every `--flag` straight through.)
 
 ![](/img/ex-counter-lcd147.png)
 
+<a class="run-example" href="/play/#ex=counter&shape=lcd147">▶ Run <code>counter</code> in the simulator</a>
+
 *The counter on the 1.47" panel, 172x320 — the narrowest glass in the
 fleet, where `COUNT: 0` at size 3 very nearly fills the width.*
 
 ![](/img/ex-counter-round128.png)
+
+<a class="run-example" href="/play/#ex=counter&shape=round128">▶ Run <code>counter</code> in the simulator</a>
 
 *And on the round 1.28" board, 240x240. It survives, but look at the ends
 of the `+1` bar: a full-width row runs out to where the rim cuts it.
@@ -219,6 +231,8 @@ on a board with no console.
 
 ![](/img/ex-hello-round128.png)
 
+<a class="run-example" href="/play/#ex=hello&shape=round128">▶ Run <code>hello</code> in the simulator</a>
+
 *The file from step 2, unchanged, on the round board — the same thirteen
 lines, with the panel's top corners crossing the rim because it never
 asked.*
@@ -243,6 +257,8 @@ makes on-hardware development bearable, are in
 | Write a backend of your own | [contract.md](/contract), [consistency.md](/consistency) |
 
 ![](/img/ex-input-lcd35.png)
+
+<a class="run-example" href="/play/#ex=input&shape=lcd35">▶ Run <code>input</code> in the simulator</a>
 
 *Where most apps go next: `examples/input`, at rest with nothing focused.
 The chips across the top pick the keyboard layout, and each field below

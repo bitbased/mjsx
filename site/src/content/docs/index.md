@@ -19,6 +19,8 @@ backend, go to [contract.md](/contract).
 
 ![](/img/ex-hello-lcd35.png)
 
+<a class="run-example" href="/play/#ex=hello&shape=lcd35">▶ Run <code>hello</code> in the simulator</a>
+
 *`examples/hello` on the 3.5" panel — a padded box, a bordered panel,
 centred text. Every unit is `em()`, so the same source lays out against
 whatever font the host draws with.*
@@ -32,6 +34,8 @@ whatever font the host draws with.*
 
 ![](/img/ex-counter-lcd35.png)
 
+<a class="run-example" href="/play/#ex=counter&shape=lcd35">▶ Run <code>counter</code> in the simulator</a>
+
 *`examples/counter` — the whole state model in one screen: a tap calls
 `UI.set`, the frame is marked dirty, and the next render redraws
 everything. There is no reconciler to explain.*
@@ -42,6 +46,8 @@ everything. There is no reconciler to explain.*
 ```
 
 ![](/img/ex-layers-lcd35.png)
+
+<a class="run-example" href="/play/#ex=layers&shape=lcd35">▶ Run <code>layers</code> in the simulator</a>
 
 *`examples/layers` — the layering torture test. Look at what does not
 scroll: the header, the `badge` sitting over its right end, the floating
@@ -67,10 +73,14 @@ h(Keyboard, { layout: kb, position: pos, height: Math.floor(gfx.height() / 2.6) 
 
 ![](/img/ex-draw-lcd35.png)
 
+<a class="run-example" href="/play/#ex=draw&shape=lcd35">▶ Run <code>draw</code> in the simulator</a>
+
 *`examples/draw` on square glass: the tool row and the palette sit in an
 ordinary footer across the bottom edge.*
 
 ![](/img/ex-draw-round128.png)
+
+<a class="run-example" href="/play/#ex=draw&shape=round128">▶ Run <code>draw</code> in the simulator</a>
 
 *The same file on the round board: when `UI.isRound()` is true the toolbar
 moves onto the rim, each item pulled in from the boundary by its own size
@@ -90,6 +100,8 @@ and left upright.*
 | [../examples/README.md](../examples/README.md) | The fourteen shipped examples and what each one demonstrates. Every one is a single flat `app.jsx` with no imports and no build step. |
 
 ![](/img/ex-hello-lcd147.png)
+
+<a class="run-example" href="/play/#ex=hello&shape=lcd147">▶ Run <code>hello</code> in the simulator</a>
 
 *The same `examples/hello` source on the 1.47" panel (172x320). Nothing in
 the file changed; the layout is measured against the glass it is given.*
@@ -188,6 +200,8 @@ var round = UI.isRound();
 
 ![](/img/ex-gpio-lcd35.png)
 
+<a class="run-example" href="/play/#ex=gpio&shape=lcd35">▶ Run <code>gpio</code> in the simulator</a>
+
 *`examples/gpio` under a backend with no pin natives. The app checks
 first and draws its own labelled fallback rather than throwing.*
 
@@ -197,11 +211,15 @@ var HAVE = typeof sys !== 'undefined' && typeof sys.gpio === 'function';
 
 ![](/img/ex-sensors-lcd35.png)
 
+<a class="run-example" href="/play/#ex=sensors&shape=lcd35">▶ Run <code>sensors</code> in the simulator</a>
+
 *`examples/sensors` — accelerometer, gyro and temperature three ways
 (bubble level, rolling trace, raw data). Simulated here, and the app says
 so on the screen.*
 
 ![](/img/ex-screen-lcd35.png)
+
+<a class="run-example" href="/play/#ex=screen&shape=lcd35">▶ Run <code>screen</code> in the simulator</a>
 
 *`examples/screen` — brightness, render scale, rotation and the sleep
 timeout as ordinary state and taps; the natives do the real work, and the
@@ -209,11 +227,15 @@ footer says `demo mode - no panel to control here` when they are absent.*
 
 ![](/img/ex-wifi-lcd35.png)
 
+<a class="run-example" href="/play/#ex=wifi&shape=lcd35">▶ Run <code>wifi</code> in the simulator</a>
+
 *`examples/wifi` — the native provisioning page's job done by a script,
 polling the async `net.*` natives on its tick. Same fallback rule: `demo
 mode - no radio here`, with a canned scan list rather than an empty one.*
 
 ![](/img/ex-camera-lcd35.png)
+
+<a class="run-example" href="/play/#ex=camera&shape=lcd35">▶ Run <code>camera</code> in the simulator</a>
 
 *`examples/camera` treats the camera as a canvas source, blitted by the
 UI. No backend in this tree implements `gfx.blit` ([consistency.md](/consistency)),
@@ -221,6 +243,8 @@ so what the shot shows is the checked fallback — `no camera module here`
 and a crossed placeholder where the preview would be.*
 
 ![](/img/ex-canvas-lcd35.png)
+
+<a class="run-example" href="/play/#ex=canvas&shape=lcd35">▶ Run <code>canvas</code> in the simulator</a>
 
 *`examples/canvas` — `examples/draw` restructured around `sys.canvas`, so
 a hundred committed strokes cost one blit instead of a hundred ops. The
@@ -235,6 +259,8 @@ the canvas, empty until something is drawn on it.*
 | [consistency.md](/consistency) | What each backend in this tree *actually* implements, measured against the contract — a call-by-call matrix and fourteen ranked divergences, each read out of the named source file. |
 
 ![](/img/ex-shapes-lcd35.png)
+
+<a class="run-example" href="/play/#ex=shapes&shape=lcd35">▶ Run <code>shapes</code> in the simulator</a>
 
 *`examples/shapes` — SVG-style filled paths under the even-odd rule.
 `gfx.poly` is optional: a backend that has it rasterizes at device
@@ -262,6 +288,8 @@ theme: {
 
 ![](/img/ex-hello-round128.png)
 
+<a class="run-example" href="/play/#ex=hello&shape=round128">▶ Run <code>hello</code> in the simulator</a>
+
 *Adding an example is a directory under `examples/` with an `app.jsx` in
 it — and then every backend renders it unchanged. This is `examples/hello`
 on the round board: nothing in the file knows, which is why the panel's
@@ -287,11 +315,15 @@ no per-board branches — on each of them, plus a desktop window.
 
 ![](/img/ex-layers-lcd169.png)
 
+<a class="run-example" href="/play/#ex=layers">▶ Run <code>layers</code> in the simulator</a>
+
 *The 1.69" board's panel, shown landscape at 280x240. Seven rows fit
 between the header and the footer, and the wrapped paragraph settles on
 two lines.*
 
 ![](/img/ex-layers-lcd35.png)
+
+<a class="run-example" href="/play/#ex=layers&shape=lcd35">▶ Run <code>layers</code> in the simulator</a>
 
 *The 3.5" board, 320x480 — the roomy one. Fourteen rows fit and the list
 still runs out before the viewport does; the wrapped paragraph needs two
@@ -299,6 +331,8 @@ lines. 320px is comfortably past the 220px where the keyboard's `auto`
 switches to QWERTY.*
 
 ![](/img/ex-layers-lcd147.png)
+
+<a class="run-example" href="/play/#ex=layers&shape=lcd147">▶ Run <code>layers</code> in the simulator</a>
 
 *The 1.47" board, 172x320 — the narrow one. Same rows, same strings: the
 wrapped paragraph now needs three lines, and the badge crowds the header
@@ -308,6 +342,8 @@ takes the whole display instead.*
 
 ![](/img/ex-layers-round128.png)
 
+<a class="run-example" href="/play/#ex=layers&shape=round128">▶ Run <code>layers</code> in the simulator</a>
+
 *The round 1.28" board, 240x240 — and the useful failure. `examples/layers`
 is a square-glass app and does not ask; the rows stay full-bleed
 rectangles, so the ends of the header and the corners of every row fall
@@ -316,6 +352,8 @@ past the rim. Round glass is a host-declared fact the layout has to read
 under "Designing for a device" above, and [round.md](/round) is how.*
 
 ![](/img/ex-layers-wide.png)
+
+<a class="run-example" href="/play/#ex=layers">▶ Run <code>layers</code> in the simulator</a>
 
 *And the same file again in a 480x320 desktop window, where development
 actually happens.*

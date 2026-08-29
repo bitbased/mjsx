@@ -233,6 +233,8 @@ var narrow = round || gfx.width() < 200;
 
 ![The sensors page on round glass](/img/ex-sensors-round128.png)
 
+<a class="run-example" href="/play/#ex=sensors&shape=round128">▶ Run <code>sensors</code> in the simulator</a>
+
 *Uniform inset: every panel shares one width, so the stack reads as a
 column. Compare the stepped edges of the keyboard shots above.*
 
@@ -243,6 +245,8 @@ example gates short labels on `round || gfx.width() < 200` rather than on
 shape alone:
 
 ![The same page on the 172x320 panel](/img/ex-sensors-lcd147.png)
+
+<a class="run-example" href="/play/#ex=sensors&shape=lcd147">▶ Run <code>sensors</code> in the simulator</a>
 
 *The narrow rectangle takes the same short labels the circle does — the
 condition that chose them was width, not roundness.*
@@ -457,6 +461,8 @@ that is the point: round is a shape the layout absorbs, not a fork of the
 app.
 
 ![hello on round glass](/img/ex-hello-round128.png)
+
+<a class="run-example" href="/play/#ex=hello&shape=round128">▶ Run <code>hello</code> in the simulator</a>
 
 *The smallest example, unmodified, on the circle — the baseline that
 everything above is protecting.*

@@ -18,6 +18,11 @@
  *   - LINKS: `other.md` becomes `/other` (Starlight routes by slug), and
  *     links that climb out of docs/ (../examples/...) are left alone but
  *     reported, since they cannot resolve on the site.
+ *   - SIMULATOR: a figure named ex-<example>-<profile>.png is a picture of
+ *     an example the site can actually RUN, so each one gets a link under
+ *     it into /play/ with that example and that panel preselected. This is
+ *     generated rather than written by hand because there are dozens of
+ *     them and a hand-written link rots the moment a figure is renamed.
  */
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, copyFileSync, statSync } from 'fs';
 import { join, dirname, basename } from 'path';
@@ -44,6 +49,7 @@ mkdirSync(OUT, { recursive: true });
 const BLURBS = {
   index: 'JSX for microcontrollers, Raspberry Pi, desktop and the browser.',
   'getting-started': 'From an empty directory to a UI on real glass.',
+  simulator: 'Edit an example and run it, on the real engine, in the browser.',
   ui: 'h(), state, memo, scrolling, and the pointer model.',
   layout: 'Boxes, rows, flex, absolute positioning and scroll zones.',
   fonts: 'The bitmap fonts, sizes, metrics and text measurement.',
@@ -58,6 +64,24 @@ const BLURBS = {
   consistency: 'What each backend really implements, and where they differ.',
 };
 
+/* shoot.mjs profile -> the simulator's panel id. Only the panels the
+   simulator offers are mapped; a figure on any other profile still gets a
+   link, just without a preselected shape. */
+const PLAY_SHAPE = {
+  lcd169p: 'lcd169p', lcd147: 'lcd147', lcd147l: 'lcd147l',
+  lcd35: 'lcd35', lcd35l: 'lcd35l', round128: 'round128'
+};
+
+/* only link examples that actually exist, so a renamed or deleted one
+   stops producing a link instead of producing a broken one */
+const EX_DIR = join(ROOT, 'examples');
+const RUNNABLE = new Set(
+  existsSync(EX_DIR)
+    ? readdirSync(EX_DIR).filter((n) => existsSync(join(EX_DIR, n, 'app.jsx')))
+    : []
+);
+
+let playLinks = 0;
 let imgCount = 0;
 if (existsSync(IMG_SRC)) {
   mkdirSync(IMG_OUT, { recursive: true });
@@ -93,6 +117,17 @@ for (const f of readdirSync(DOCS)) {
 
   /* images: ./img/x.png and img/x.png both become /img/x.png */
   md = md.replace(/\]\(\.?\/?img\//g, '](/img/');
+
+  /* a figure OF an example becomes a figure you can run */
+  md = md.replace(/!\[([^\]]*)\]\(\/img\/ex-([a-z0-9]+)-([a-z0-9]+)\.png\)/g,
+    (whole, alt, example, profile) => {
+      if (!RUNNABLE.has(example)) return whole;
+      const shape = PLAY_SHAPE[profile];
+      const hash = 'ex=' + example + (shape ? '&shape=' + shape : '');
+      playLinks++;
+      return whole + '\n\n<a class="run-example" href="/play/#' + hash + '">' +
+             '\u25b6 Run <code>' + example + '</code> in the simulator</a>';
+    });
 
   /* internal links: other.md -> /other , README.md -> / */
   md = md.replace(/\]\((\.\/)?([A-Za-z0-9._-]+)\.md(#[^)]*)?\)/g, (whole, _dot, name, hash) => {
@@ -141,6 +176,7 @@ writeFileSync(join(ROOT, 'site', 'public', 'figures.json'), JSON.stringify(figur
 
 console.log(`synced ${pages} page(s) and ${imgCount} image(s) into site/`);
 console.log(`  ${figures.length} figure(s) carry draw ops (viewer index written)`);
+console.log(`  ${playLinks} example figure(s) linked into the simulator`);
 for (const w of warnings) console.log('  warn: ' + w);
 if (!imgCount) {
   console.log('  note: docs/img/ is empty or missing — run the shot harness to generate figures');

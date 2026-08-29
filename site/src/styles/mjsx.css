@@ -72,3 +72,31 @@
 .shapes > input:nth-of-type(3):checked ~ .shape-panels > figure:nth-of-type(3),
 .shapes > input:nth-of-type(4):checked ~ .shape-panels > figure:nth-of-type(4),
 .shapes > input:nth-of-type(5):checked ~ .shape-panels > figure:nth-of-type(5) { display: block; }
+
+/* "Run in the simulator", generated under every figure of an example by
+   scripts/docs-sync.mjs. It sits directly beneath its image, so it is
+   pulled up tight against it and styled as a caption-weight affordance
+   rather than a button — the figure is the subject, this is a way in. */
+a.run-example {
+  display: inline-flex;
+  align-items: center;
+  gap: .4em;
+  margin: -.4rem 0 .9rem;
+  padding: .2rem .6rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 999px;
+  font-size: .8rem;
+  text-decoration: none;
+  color: var(--sl-color-gray-2);
+  background: var(--sl-color-gray-7);
+}
+a.run-example:hover {
+  border-color: var(--sl-color-accent);
+  color: var(--sl-color-white);
+}
+a.run-example code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: .95em;
+}

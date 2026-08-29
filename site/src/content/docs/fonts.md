@@ -327,6 +327,8 @@ starting one. The pure-js backend takes it as `opts.font`.
 
 ![The fonts example on the 280x240 landscape panel](/img/ex-fonts-lcd169.png)
 
+<a class="run-example" href="/play/#ex=fonts">▶ Run <code>fonts</code> in the simulator</a>
+
 *The same source again, on a third shape. Nothing in the example asks what
 the display is or which font is active — it names sizes and `em()`s, and
 the host decides the rest.*
@@ -358,6 +360,8 @@ var lines = p.wrap ? textLines(p.text, size, availW)
 ```
 
 ![The fonts example on the 172x320 panel](/img/ex-fonts-lcd147.png)
+
+<a class="run-example" href="/play/#ex=fonts&shape=lcd147">▶ Run <code>fonts</code> in the simulator</a>
 
 *The narrowest glass in the fleet. Look at the title — `align="center"` in
 `UI.theme.accent`, centred against a much smaller width without changing —

@@ -418,6 +418,8 @@ var visBot = z.y + z.h < gh ? z.y + z.h : gh;
 
 ![the input example, whole](/img/ex-input-lcd35.png)
 
+<a class="run-example" href="/play/#ex=input&shape=lcd35">▶ Run <code>input</code> in the simulator</a>
+
 *The full example: layout chips, a scrolling form of fields, and the
 keyboard docked below. Tab walks the fields in the order they appear, not
 the order they happen to be on screen.*
@@ -597,13 +599,19 @@ field's `maxLen: 6`.
 
 ![the input example on 172x320](/img/ex-input-lcd147.png)
 
+<a class="run-example" href="/play/#ex=input&shape=lcd147">▶ Run <code>input</code> in the simulator</a>
+
 *The same source on 172x320.*
 
 ![the input example on round glass](/img/ex-input-round128.png)
 
+<a class="run-example" href="/play/#ex=input&shape=round128">▶ Run <code>input</code> in the simulator</a>
+
 *And on 240x240 round glass.*
 
 ![the input example on 280x240](/img/ex-input-lcd169.png)
+
+<a class="run-example" href="/play/#ex=input">▶ Run <code>input</code> in the simulator</a>
 
 *And on a 280x240 landscape panel. One source, four shapes.*
 

@@ -65,6 +65,8 @@ its content says nothing.
 
 ![The hello example on a 320x480 panel](/img/ex-hello-lcd35.png)
 
+<a class="run-example" href="/play/#ex=hello&shape=lcd35">▶ Run <code>hello</code> in the simulator</a>
+
 *Look at the vertical extent: nothing here is given a height, so the outer
 box is exactly its two children plus the padding and the gap, and the rest
 of the panel stays background.*
@@ -87,6 +89,8 @@ of the panel stays background.*
 `gap` (default 4). Any unknown element type renders as a box.
 
 ![The counter example: a padded box holding a text and a button](/img/ex-counter-lcd35.png)
+
+<a class="run-example" href="/play/#ex=counter&shape=lcd35">▶ Run <code>counter</code> in the simulator</a>
 
 *Look at the two gaps — `em(2)` above the label from the box's own padding,
 `em(2)` between label and button from `gap` — and at the button, which is
@@ -611,6 +615,8 @@ overlay is simply a node placed later in the tree.
 
 ![The layers example: badge over the header edge, floating button over the list](/img/ex-layers-lcd35.png)
 
+<a class="run-example" href="/play/#ex=layers&shape=lcd35">▶ Run <code>layers</code> in the simulator</a>
+
 *Look at the badge straddling the header/list boundary and the `+0` button
 sitting over the scrolling list. Both are `abs` nodes written after the
 header and after the scroll box, which is the only reason they paint on top
@@ -672,6 +678,8 @@ difference from `abs`: a mark's coordinates are *offsets from the flow
 position*, not screen coordinates.
 
 ![The shapes example: four filled paths inside one flex box](/img/ex-shapes-lcd35.png)
+
+<a class="run-example" href="/play/#ex=shapes&shape=lcd35">▶ Run <code>shapes</code> in the simulator</a>
 
 *Look at where the shapes sit. All four are children of a single
 `<box flex={1}>` and every point is written relative to that box's top-left

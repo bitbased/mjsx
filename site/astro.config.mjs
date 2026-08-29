@@ -12,6 +12,7 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /* Starlight refuses to build when the sidebar names a page that is not
@@ -44,11 +45,39 @@ function leftovers(placed) {
     : [];
 }
 
+/* A static host resolves /viewer/ to /viewer/index.html; `astro dev`
+   does not, for anything sitting in public/. So the hand-written pages
+   there — the figure viewer and the landing-page candidates — 404 in dev
+   and work once built, which is the worst way round: you test a link,
+   see it fail, and go looking for a bug that is not there.
+
+   This makes dev behave like the host. Dev only; the build output already
+   has the right shape. */
+function publicDirIndexes() {
+  return {
+    name: 'mjsx:public-dir-indexes',
+    hooks: {
+      'astro:server:setup': ({ server }) => {
+        const PUBLIC = fileURLToPath(new URL('./public/', import.meta.url));
+        server.middlewares.use((req, _res, next) => {
+          const [path, rest] = req.url.split(/(?=[?#])/);
+          if (path.endsWith('/') && path !== '/') {
+            const candidate = join(PUBLIC, path, 'index.html');
+            if (existsSync(candidate)) req.url = path + 'index.html' + (rest || '');
+          }
+          next();
+        });
+      },
+    },
+  };
+}
+
 export default defineConfig({
   site: 'https://example.invalid/mjsx',
   base: '/',
   outDir: './dist',
   integrations: [
+    publicDirIndexes(),
     starlight({
       title: 'mjsx',
       description:
@@ -60,6 +89,9 @@ export default defineConfig({
         ...group('Start here', [
           { label: 'Overview', slug: 'index' },
           { label: 'Getting started', slug: 'getting-started' },
+        ]),
+        ...group('Try it', [
+          { label: 'The simulator', slug: 'simulator' },
         ]),
         ...group('Building a UI', [
           { label: 'The UI API', slug: 'ui' },
@@ -82,7 +114,7 @@ export default defineConfig({
           { label: 'Backend consistency', slug: 'consistency' },
         ]),
         ...leftovers(new Set([
-          'index', 'getting-started', 'ui', 'layout', 'fonts', 'components',
+          'index', 'getting-started', 'simulator', 'ui', 'layout', 'fonts', 'components',
           'keyboards', 'input', 'devices', 'round', 'sensors', 'hardware-api',
           'contract', 'consistency',
         ])),

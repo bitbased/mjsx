@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mjsx simulator</title>
+<!--
+  A real mjsx device, in the page.
+
+  This is not a preview or an approximation. /mjsx-sim.js carries the
+  actual engine (packages/core/src/mjsx.js), the actual pure-js rasterizer
+  a screenshot is taken with, and the actual JSX transpiler
+  (packages/core/src/jsx.js) — the same one used when a bundle is pushed to
+  a chip. Editing the code here runs it the way a board would: JSX to h(),
+  a fresh engine, UI.mount, then a render loop with pointer and key events
+  going in through UI.pointer / UI.key.
+
+  Two consequences worth knowing:
+    - every run gets a BRAND-NEW engine, because UI is a singleton and the
+      previous app's state would otherwise leak into the next one.
+    - what the canvas shows is a framebuffer, not DOM. Text is bitmap
+      glyphs; circles are Bresenham. It looks like the panel because it is
+      the panel's rasterizer.
+-->
+<style>
+  :root {
+    --bg:#f7f6f3; --panel:#fff; --ink:#1e2127; --muted:#6b7280;
+    --line:#dcd9d2; --accent:#2f6fbf; --accent-soft:#e6eefa; --screen:#0d0f13;
+    --err:#b4232a; --err-soft:#fdeaea; --ok:#1f7a4d;
+    --code-bg:#fbfaf8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#14161b; --panel:#1b1e25; --ink:#dfe3ea; --muted:#949bab;
+      --line:#2b303b; --accent:#6fb3ff; --accent-soft:#16283f; --screen:#0d0f13;
+      --err:#ff8a8a; --err-soft:#3a1d1f; --ok:#69d19b;
+      --code-bg:#15181e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:78rem; margin:0 auto; padding:1.75rem 1.25rem 4rem; }
+  h1 { font-size:1.5rem; margin:0 0 .3rem; }
+  .sub { color:var(--muted); margin:0 0 1.25rem; max-width:46rem; }
+  .sub code { background:var(--code-bg); border:1px solid var(--line);
+              border-radius:4px; padding:.05em .35em; font-size:.85em; }
+
+  .bar { display:flex; flex-wrap:wrap; gap:1.1rem; align-items:flex-end;
+         margin-bottom:1rem; }
+  .group { display:flex; flex-direction:column; gap:.3rem; }
+  .group > span { font-size:.68rem; text-transform:uppercase; letter-spacing:.09em;
+                  color:var(--muted); }
+  select, .btn {
+    font:inherit; font-size:.85rem; padding:.35rem .6rem; border-radius:8px;
+    border:1px solid var(--line); background:var(--panel); color:var(--ink);
+    cursor:pointer;
+  }
+  .btn:hover, select:hover { border-color:var(--accent); }
+  .btn:focus-visible, select:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn[disabled] { opacity:.5; cursor:default; }
+  .seg { display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { border:0; background:var(--panel); color:var(--muted); cursor:pointer;
+                padding:.35rem .65rem; font:inherit; font-size:.82rem;
+                border-right:1px solid var(--line); }
+  .seg button:last-child { border-right:0; }
+  .seg button[aria-pressed="true"] { background:var(--accent); color:#fff; }
+  .seg button:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+
+  .cols { display:grid; grid-template-columns:1fr minmax(18rem,auto); gap:1.25rem;
+          align-items:start; }
+  @media (max-width:900px) { .cols { grid-template-columns:1fr; } }
+
+  .pane { border:1px solid var(--line); border-radius:10px; background:var(--panel);
+          overflow:hidden; }
+  .pane > header { display:flex; justify-content:space-between; align-items:center;
+                   gap:.75rem; padding:.5rem .75rem; border-bottom:1px solid var(--line);
+                   font-size:.72rem; text-transform:uppercase; letter-spacing:.09em;
+                   color:var(--muted); }
+  .pane > header .rt { text-transform:none; letter-spacing:0; font-size:.75rem; }
+
+  /* the editor: a textarea over a gutter, which is all a page needs to be
+     genuinely useful and keeps this file dependency-free */
+  .ed { display:grid; grid-template-columns:auto 1fr; background:var(--code-bg); }
+  .gutter { padding:.75rem .5rem .75rem .75rem; text-align:right; color:var(--muted);
+            font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+            user-select:none; border-right:1px solid var(--line); white-space:pre; }
+  .gutter b { font-weight:600; color:var(--err); }
+  textarea { width:100%; min-height:30rem; border:0; resize:vertical; padding:.75rem;
+             background:transparent; color:var(--ink); tab-size:2;
+             font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  textarea:focus { outline:none; }
+
+  .device { padding:1.25rem; display:flex; flex-direction:column; align-items:center;
+            gap:.75rem; }
+  .glass { background:var(--screen); line-height:0; box-shadow:0 1px 14px rgba(0,0,0,.28);
+           border:1px solid var(--line); }
+  .glass.round { border-radius:50%; overflow:hidden; }
+  .glass.rect { border-radius:10px; overflow:hidden; }
+  canvas { image-rendering:pixelated; display:block; touch-action:none; }
+  .hint { font-size:.72rem; color:var(--muted); text-align:center; max-width:20rem; }
+
+  .status { padding:.6rem .75rem; font-size:.78rem; border-top:1px solid var(--line);
+            font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .status.ok { color:var(--ok); }
+  .status.err { color:var(--err); background:var(--err-soft); white-space:pre-wrap; }
+  .note { font-size:.75rem; color:var(--muted); margin:.75rem 0 0; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>mjsx simulator</h1>
+  <p class="sub">
+    The real engine, in your browser: <code>packages/core/src/mjsx.js</code> running
+    against the same pure-js rasterizer the documentation screenshots are taken with.
+    Edit the code and it re-runs. Click and drag on the glass — that is a real touch
+    event going into <code>UI.pointer</code>.
+  </p>
+
+  <div class="bar">
+    <label class="group"><span>Example</span>
+      <select id="ex"></select>
+    </label>
+    <label class="group"><span>Panel</span>
+      <select id="shape"></select>
+    </label>
+    <div class="group"><span>Zoom</span>
+      <div class="seg" id="zoom"></div>
+    </div>
+    <div class="group"><span>&nbsp;</span>
+      <div style="display:flex;gap:.4rem">
+        <button class="btn primary" id="run">Run</button>
+        <button class="btn" id="reset">Reset</button>
+        <button class="btn" id="share">Copy link</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <section class="pane">
+      <header>
+        <span>app.jsx</span>
+        <span class="rt" id="edinfo"></span>
+      </header>
+      <div class="ed">
+        <div class="gutter" id="gutter">1</div>
+        <textarea id="code" spellcheck="false" autocapitalize="off"
+                  autocorrect="off" aria-label="Example source"></textarea>
+      </div>
+      <div class="status" id="status">ready</div>
+    </section>
+
+    <section class="pane">
+      <header><span>Panel</span><span class="rt" id="devinfo"></span></header>
+      <div class="device">
+        <div class="glass rect" id="glass"><canvas id="cv" width="240" height="280"></canvas></div>
+        <p class="hint" id="hint"></p>
+      </div>
+    </section>
+  </div>
+
+  <p class="note">
+    Examples that need hardware — <code>sensors</code>, <code>gpio</code>, <code>i2c</code>,
+    <code>camera</code>, <code>wifi</code> — run here too, but a browser has none of those
+    natives, so each draws its own labelled fallback. That fallback is part of the example,
+    not a failure of the simulator.
+  </p>
+</div>
+
+<script src="/mjsx-sim.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ---- the panels this project actually tests against ---- */
+  var SHAPES = [
+    { id: 'lcd169p',  label: '1.69" portrait  240x280',  w: 240, h: 280 },
+    { id: 'lcd147',   label: '1.47" portrait  172x320',  w: 172, h: 320 },
+    { id: 'lcd147l',  label: '1.47" landscape 320x172',  w: 320, h: 172 },
+    { id: 'lcd35',    label: '3.5" portrait   320x480',  w: 320, h: 480 },
+    { id: 'lcd35l',   label: '3.5" landscape  480x320',  w: 480, h: 320 },
+    { id: 'round128', label: '1.28" round     240x240',  w: 240, h: 240, round: true }
+  ];
+  var ZOOMS = [1, 2, 3];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var elEx = $('ex'), elShape = $('shape'), elZoom = $('zoom'), elCode = $('code');
+  var elCv = $('cv'), elGlass = $('glass'), elStatus = $('status'), elGutter = $('gutter');
+  var elDevInfo = $('devinfo'), elEdInfo = $('edinfo'), elHint = $('hint');
+
+  var examples = [];
+  var shape = SHAPES[0], zoom = 2;
+  var backend = null, running = false, raf = 0, errLine = 0;
+  var ctx = elCv.getContext('2d', { alpha: false });
+  var imageData = null;
+
+  /* ---- status ---- */
+  function say(msg, kind) {
+    elStatus.textContent = msg;
+    elStatus.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  /* ---- the canvas ----
+     backend.raw is a tightly packed RGB framebuffer at w*dpr by h*dpr.
+     Canvas wants RGBA, so the copy expands it; at these sizes that is a
+     fraction of a millisecond and it keeps the backend honest — it has no
+     idea a browser is involved. */
+  function blit() {
+    var w = elCv.width, h = elCv.height, src = backend.raw;
+    if (!imageData || imageData.width !== w || imageData.height !== h) {
+      imageData = ctx.createImageData(w, h);
+    }
+    var dst = imageData.data, n = w * h, s = 0, d = 0;
+    for (var i = 0; i < n; i++) {
+      dst[d] = src[s]; dst[d + 1] = src[s + 1]; dst[d + 2] = src[s + 2]; dst[d + 3] = 255;
+      s += 3; d += 4;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  /* ---- the run loop ----
+     UI.ticker() advances timers and momentum and reports whether anything
+     moved; UI.dirty() reports whether state changed. Rendering only when
+     one of them says so is exactly what a device does. */
+  function loop() {
+    raf = requestAnimationFrame(loop);
+    if (!running) return;
+    try {
+      var moved = UI.ticker();
+      if (moved || UI.dirty()) { UI.render(); blit(); }
+    } catch (e) {
+      running = false;
+      fail(e, 'while running');
+    }
+  }
+
+  function fail(e, when) {
+    var msg = (e && e.message) || String(e);
+    var m = /line (\d+)/i.exec(msg) || /:(\d+):/.exec(msg);
+    errLine = m ? parseInt(m[1], 10) : 0;
+    drawGutter();
+    say('error ' + when + ':\n' + msg, 'err');
+  }
+
+  /* ---- start an app ---- */
+  function start() {
+    var src = elCode.value;
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    running = false;
+    errLine = 0;
+
+    var dpr = zoom;
+    elCv.width = shape.w * dpr;
+    elCv.height = shape.h * dpr;
+    elCv.style.width = (shape.w * zoom) + 'px';
+    elCv.style.height = (shape.h * zoom) + 'px';
+    elGlass.className = 'glass ' + (shape.round ? 'round' : 'rect');
+    imageData = null;
+
+    try {
+      /* dpr: the panel stays shape.w x shape.h logically — layout, hit
+         boxes and gfx.width() are unchanged — while the buffer is that
+         many times larger, so zooming is a genuine re-render rather than a
+         magnified bitmap. Same mechanism as the figure viewer. */
+      backend = createPureJsBackend(shape.w, shape.h, { dpr: dpr });
+      mjsxRun(src, backend, { round: !!shape.round });
+      UI.render();
+      blit();
+      running = true;
+      raf = requestAnimationFrame(loop);
+      var ops = countOps();
+      say('running · ' + ops + ' draw call' + (ops === 1 ? '' : 's') +
+          ' · ' + shape.w + 'x' + shape.h + (shape.round ? ' round' : '') +
+          ' at ' + dpr + 'x', 'ok');
+    } catch (e) {
+      fail(e, e && e.mjsxPhase === 'jsx' ? 'in JSX' : 'on load');
+      /* leave the last good frame on screen rather than blanking it: the
+         previous render is more useful than an empty rectangle while you
+         fix a typo */
+    }
+    drawGutter();
+  }
+
+  /* one recorded pass, purely to report the frame's size in draw calls —
+     the same number shown under every documentation figure */
+  function countOps() {
+    try {
+      var rec = mjsxRecord(backend.gfx);
+      var real = globalThis.gfx;
+      globalThis.gfx = rec.gfx;
+      UI.render();
+      globalThis.gfx = real;
+      var n = rec.take().length;
+      UI.render();
+      blit();
+      return n;
+    } catch (e) { return 0; }
+  }
+
+  /* ---- the gutter ---- */
+  function drawGutter() {
+    var lines = elCode.value.split('\n').length;
+    var out = [];
+    for (var i = 1; i <= lines; i++) out.push(i === errLine ? '<b>' + i + '</b>' : i);
+    elGutter.innerHTML = out.join('\n');
+    elEdInfo.textContent = lines + ' lines';
+  }
+
+  /* ---- input: straight into the engine, same calls the mirror makes ---- */
+  function panelPos(e) {
+    var r = elCv.getBoundingClientRect();
+    return {
+      x: Math.round((e.clientX - r.left) / r.width * shape.w),
+      y: Math.round((e.clientY - r.top) / r.height * shape.h)
+    };
+  }
+  function send(id, phase, e) {
+    if (!running) return;
+    var p = panelPos(e);
+    try { UI.pointer(id, phase, p.x, p.y); if (UI.dirty()) { UI.render(); blit(); } }
+    catch (err) { running = false; fail(err, 'in a pointer handler'); }
+  }
+  elCv.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    /* preventScroll is not a nicety. Focusing an element that is not fully
+       in view SCROLLS it into view, and that happens before panelPos reads
+       getBoundingClientRect() — so the rect is post-scroll while the event's
+       clientY is pre-scroll, and the press lands hundreds of pixels from
+       where it was aimed. Measured: a tap meant for y=62 arrived at y=659. */
+    elCv.focus({ preventScroll: true });
+    /* capture is a convenience — it keeps a drag alive when the cursor
+       leaves the glass — but it throws for a pointer id the browser does
+       not consider active, which is exactly what a synthetic event is. It
+       must never take the actual press down with it. */
+    try { elCv.setPointerCapture(e.pointerId); } catch (err) {}
+    send('p' + e.pointerId, 0, e);
+  });
+  elCv.addEventListener('pointermove', function (e) {
+    if (e.buttons || e.pointerType === 'touch') send('p' + e.pointerId, 1, e);
+  });
+  elCv.addEventListener('pointerup', function (e) { send('p' + e.pointerId, 2, e); });
+  elCv.addEventListener('pointercancel', function (e) { send('p' + e.pointerId, 2, e); });
+  elCv.addEventListener('wheel', function (e) {
+    if (!running) return;
+    e.preventDefault();
+    var p = panelPos(e);
+    try { UI.scrollBy(p.x, p.y, e.deltaY > 0 ? 24 : -24); if (UI.dirty()) { UI.render(); blit(); } }
+    catch (err) { running = false; fail(err, 'in a scroll handler'); }
+  }, { passive: false });
+
+  /* keys go to the app only while the glass has focus, so typing in the
+     editor never leaks into the running example */
+  elCv.tabIndex = 0;
+  elCv.addEventListener('keydown', function (e) {
+    if (!running) return;
+    var k = e.key;
+    if (k === 'Tab') return;
+    e.preventDefault();
+    try {
+      if (k.length === 1) UI.type(k);
+      else { UI.key('down', k); UI.key('press', k); UI.key('up', k); }
+      if (UI.dirty()) { UI.render(); blit(); }
+    } catch (err) { running = false; fail(err, 'in a key handler'); }
+  });
+
+  /* ---- controls ---- */
+  var debounce = 0;
+  elCode.addEventListener('input', function () {
+    drawGutter();
+    clearTimeout(debounce);
+    debounce = setTimeout(start, 500);
+  });
+  elCode.addEventListener('keydown', function (e) {
+    /* Tab indents rather than leaving the field — in a code editor that is
+       what the key is for. Shift-Tab and Escape still move focus out, so
+       the page stays keyboard-navigable. */
+    if (e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault();
+      var s = elCode.selectionStart, t = elCode.selectionEnd;
+      elCode.value = elCode.value.slice(0, s) + '  ' + elCode.value.slice(t);
+      elCode.selectionStart = elCode.selectionEnd = s + 2;
+      drawGutter();
+    }
+  });
+  $('run').addEventListener('click', start);
+  $('reset').addEventListener('click', function () {
+    var ex = current();
+    if (ex) { elCode.value = ex.source; drawGutter(); start(); }
+  });
+  $('share').addEventListener('click', function () {
+    var ex = current();
+    var same = ex && ex.source === elCode.value;
+    location.hash = same ? 'ex=' + ex.name : 'code=' + encode(elCode.value);
+    navigator.clipboard && navigator.clipboard.writeText(location.href);
+    say(same ? 'link copied (this example)' : 'link copied (your edited source)', 'ok');
+  });
+
+  function current() {
+    for (var i = 0; i < examples.length; i++) {
+      if (examples[i].name === elEx.value) return examples[i];
+    }
+    return null;
+  }
+
+  elEx.addEventListener('change', function () {
+    var ex = current();
+    if (!ex) return;
+    elCode.value = ex.source;
+    location.hash = 'ex=' + ex.name;
+    elHint.textContent = ex.needsHardware
+      ? 'This example expects a device native the browser does not have, so it draws its labelled fallback.'
+      : '';
+    drawGutter();
+    start();
+  });
+  elShape.addEventListener('change', function () {
+    for (var i = 0; i < SHAPES.length; i++) {
+      if (SHAPES[i].id === elShape.value) shape = SHAPES[i];
+    }
+    elDevInfo.textContent = shape.w + '×' + shape.h + (shape.round ? ' round' : '');
+    start();
+  });
+
+  /* ---- deep links ---- */
+  function encode(s) {
+    return btoa(String.fromCharCode.apply(null, new TextEncoder().encode(s)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function decode(s) {
+    var b = atob(s.replace(/-/g, '+').replace(/_/g, '/'));
+    var u = new Uint8Array(b.length);
+    for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+    return new TextDecoder().decode(u);
+  }
+  function readHash() {
+    var h = location.hash.replace(/^#/, '');
+    var out = {};
+    h.split('&').forEach(function (p) {
+      var i = p.indexOf('=');
+      if (i > 0) out[p.slice(0, i)] = p.slice(i + 1);
+    });
+    return out;
+  }
+
+  function applyHash() {
+    var hash = readHash();
+    if (hash.shape) {
+      for (var i = 0; i < SHAPES.length; i++) {
+        if (SHAPES[i].id === hash.shape) { shape = SHAPES[i]; elShape.value = hash.shape; }
+      }
+      elDevInfo.textContent = shape.w + '\u00d7' + shape.h + (shape.round ? ' round' : '');
+    }
+    var haveCode = false;
+    if (hash.code) {
+      try { elCode.value = decode(hash.code); haveCode = true; } catch (e) {}
+    }
+    if (!haveCode) {
+      var want = hash.ex || 'counter';
+      var found = null;
+      for (var j = 0; j < examples.length; j++) {
+        if (examples[j].name === want) found = examples[j];
+      }
+      if (!found) found = examples[0];
+      if (found) {
+        elEx.value = found.name;
+        elCode.value = found.source;
+        elHint.textContent = found.needsHardware
+          ? 'This example expects a device native the browser does not have, so it draws its labelled fallback.'
+          : '';
+      }
+    }
+    drawGutter();
+    start();
+  }
+
+  /* ---- boot ---- */
+  SHAPES.forEach(function (s) {
+    var o = document.createElement('option');
+    o.value = s.id; o.textContent = s.label;
+    elShape.appendChild(o);
+  });
+  ZOOMS.forEach(function (z) {
+    var b = document.createElement('button');
+    b.textContent = z + '×';
+    b.setAttribute('aria-pressed', String(z === zoom));
+    b.addEventListener('click', function () {
+      zoom = z;
+      Array.prototype.forEach.call(elZoom.children, function (c) {
+        c.setAttribute('aria-pressed', String(c === b));
+      });
+      start();
+    });
+    elZoom.appendChild(b);
+  });
+  elDevInfo.textContent = shape.w + '×' + shape.h;
+
+  say('loading examples…');
+  fetch('/examples.json').then(function (r) { return r.json(); }).then(function (list) {
+    examples = list;
+    list.forEach(function (ex) {
+      var o = document.createElement('option');
+      o.value = ex.name;
+      o.textContent = ex.name + (ex.blurb ? ' — ' + ex.blurb : '');
+      elEx.appendChild(o);
+    });
+
+    applyHash();
+    /* A link into the simulator from a docs page changes only the hash, and
+       a hash change does NOT reload the page. Without this, following
+       "open the keyboard example" while already here would silently do
+       nothing — which is precisely how those links get used. */
+    window.addEventListener('hashchange', applyHash);
+  }).catch(function (e) {
+    say('could not load /examples.json — run `bun run site` so it is generated: ' + e.message, 'err');
+  });
+})();
+</script>
+</body>
+</html>
