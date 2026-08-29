@@ -234,6 +234,34 @@ function jsxToJs(code) {
    hands them to a flat script. Fresh matters: the core is a singleton
    (UI state, module-level keyboard state, the cached isRound answer), so
    one shot's taps must not leak into the next. */
+/* SIMULATED NATIVES.
+   Most no-hardware examples draw a rich labelled fallback, and that
+   fallback is the honest thing to photograph. examples/i2c is the
+   exception: with no bus its whole page is two lines of text, so the
+   figure would document nothing. So the harness can stand in a bus.
+
+   The addresses are the REAL ones from this project's own boards, so the
+   picture teaches something true: 0x15 CST816S touch (1.28in round),
+   0x63 AXS5106L touch (1.47in), 0x6B QMI8658 IMU. Register 0 of the
+   QMI8658 is WHO_AM_I and really does read 0x05; the rest are a
+   deterministic hash, which is what an unknown register peek looks like.
+
+   Any shot that uses this records sim:'i2c' in its mjsx-shot chunk, so a
+   reader is never left guessing whether a figure met real silicon. */
+const SIMS = {
+  i2c: function (sys) {
+    const BUS = { 0x15: 'CST816S', 0x63: 'AXS5106L', 0x6b: 'QMI8658' };
+    sys.i2c = function (addr, reg, value) {
+      if (!(addr in BUS)) return -1;                  /* NACK, as a real bus does */
+      if (value !== undefined && value >= 0) return 0; /* a write is acked */
+      if (addr === 0x6b && reg === 0) return 0x05;    /* QMI8658 WHO_AM_I */
+      return (addr * 131 + reg * 17 + 7) & 0xff;
+    };
+    return 'sys.i2c simulated: ' + Object.keys(BUS).length + ' devices on the bus (' +
+           Object.keys(BUS).map((a) => '0x' + Number(a).toString(16) + ' ' + BUS[a]).join(', ') + ')';
+  }
+};
+
 function boot(prof, opts) {
   const backend = req(BACKEND).createPureJsBackend(prof.w, prof.h, {
     font: opts.font || undefined,
@@ -246,6 +274,12 @@ function boot(prof, opts) {
   /* BEFORE the core loads: UI.isRound() reads configStorage once and
      caches, and a firmware seeds this key at boot for the same reason. */
   if (prof.round) backend.sys.store('round', '1');
+  /* before the app module loads: examples read `typeof sys.x === 'function'`
+     once at load time to decide whether the hardware is there */
+  if (opts.sim) {
+    if (!SIMS[opts.sim]) throw new Error('unknown sim: ' + opts.sim);
+    backend.simNote = SIMS[opts.sim](backend.sys);
+  }
   delete req.cache[req.resolve(CORE)];
   const core = req(CORE);
   globalThis.h = core.h;
@@ -274,7 +308,8 @@ function boot(prof, opts) {
     return realText.call(backend.gfx, x, y, size, color, str);
   };
   backend.gfx.clear = function (c) { labels.length = 0; return realClear.call(backend.gfx, c); };
-  return { backend: backend, core: core, UI: core.UI, clock: clock, labels: labels };
+  return { backend: backend, core: core, UI: core.UI, clock: clock, labels: labels,
+           simNote: backend.simNote };
 }
 
 /* The control under a drawn label — the key that carries this word.
@@ -324,19 +359,42 @@ function holdAt(t, x, y) {
 function runShot(spec) {
   /* the command that would make this picture again, recorded with it */
   if (!spec.command) {
+    /* SHELL quoting, not JSON quoting. JSON.stringify turns a newline
+       into a backslash-n, which a shell inside double quotes hands to the
+       program verbatim — so an inline -e recipe pasted into a terminal
+       used to die on "Unexpected escape sequence" instead of rebuilding
+       its figure. Single quotes pass every byte through untouched; the
+       only character needing care is the single quote itself. */
+    var shq = function (v) { return "'" + String(v).split("'").join("'\\''") + "'"; };
     var bits = ['bun scripts/shoot.mjs', spec.name, spec.profile,
-                spec.file || ('-e ' + JSON.stringify(spec.code || ''))];
+                spec.file || ('-e ' + shq(spec.code || ''))];
+    /* Every op must map to a flag. A recipe that silently drops an action
+       is worse than no recipe: it looks reproducible and rebuilds a
+       DIFFERENT picture — a tapLabel dropped here once turned the i2c
+       register peek back into the plain scan view. So this throws on an
+       op it cannot express, and a new action type fails loudly at the
+       first shot rather than quietly forever after. */
+    var FLAG = {
+      tap:       function (a) { return '--tap ' + a.x + ',' + a.y; },
+      hold:      function (a) { return '--hold ' + a.x + ',' + a.y; },
+      tapLabel:  function (a) { return '--tap-label ' + shq(a.label); },
+      holdLabel: function (a) { return '--hold-label ' + shq(a.label); },
+      focus:     function (a) { return '--focus ' + a.id; },
+      blur:      function ()  { return '--blur'; },
+      key:       function (a) { return '--key ' + a.key; },
+      type:      function (a) { return '--type ' + shq(a.text); },
+      advance:   function (a) { return '--advance ' + a.ms; },
+      scroll:    function (a) { return '--scroll ' + a.x + ',' + a.y + ',' + a.dy; }
+    };
     (spec.actions || []).forEach(function (a) {
-      if (a.op === 'tap') bits.push('--tap ' + a.x + ',' + a.y);
-      else if (a.op === 'hold') bits.push('--hold ' + a.x + ',' + a.y);
-      else if (a.op === 'key') bits.push('--key ' + a.key);
-      else if (a.op === 'type') bits.push('--type ' + JSON.stringify(a.text));
-      else if (a.op === 'advance') bits.push('--advance ' + a.ms);
-      else if (a.op === 'scroll') bits.push('--scroll ' + a.x + ',' + a.y + ',' + a.dy);
+      if (!FLAG[a.op]) throw new Error('no shoot.mjs flag for action ' + a.op +
+                                       ' — the recorded command would be wrong');
+      bits.push(FLAG[a.op](a));
     });
     if (spec.frames && spec.frames !== 1) bits.push('--frames ' + spec.frames);
     if (spec.caret) bits.push('--caret ' + spec.caret);
     if (spec.font) bits.push('--font ' + spec.font);
+    if (spec.sim) bits.push('--sim ' + spec.sim);
     spec.command = bits.join(' ');
   }
   const prof = PROFILES[spec.profile];
@@ -415,13 +473,29 @@ function runShot(spec) {
     caret: spec.caret,
     font: spec.font,
     note: spec.note,
+    sim: spec.sim ? { natives: spec.sim, detail: t.simNote } : undefined,
     command: spec.command,
     tool: 'scripts/shoot.mjs'
   };
-  const png = rgbToPng(up.px, up.w, up.h, {
-    'mjsx-ops': JSON.stringify({ w: prof.w, h: prof.h, dpr: dpr, ops: ops }),
+  /* Two chunks, and deliberately NOT a third of derived boxes: rectangles
+     are a lossy summary — they drop the colour, the text and which shape
+     drew them — while the ops carry all of it and can carry more later.
+     Anything a debug overlay wants to show is already in here.
+     --embed-overlay adds a rendered overlay IMAGE as well, for archive
+     safety: it costs about 30% of the file, and it is the one form that
+     survives even a future where the op list cannot be read at all. */
+  const meta = {
+    'mjsx-ops': JSON.stringify({ v: 1, w: prof.w, h: prof.h, dpr: dpr, ops: ops }),
     'mjsx-shot': JSON.stringify(shot, null, 1)
-  });
+  };
+  if (spec.embedOverlay) {
+    const boxes = OPREC.boxes(ops);
+    const ob = req(BACKEND).createPureJsBackend(prof.w, prof.h, {});
+    ob.gfx.clear(0x000000);
+    for (const b of boxes) ob.gfx.rect(b.x, b.y, b.w, b.h, 0xffffff, 0);
+    meta['mjsx-overlay'] = rgbToPng(ob.raw, prof.w, prof.h).toString('base64');
+  }
+  const png = rgbToPng(up.px, up.w, up.h, meta);
   mkdirSync(dirname(spec.out), { recursive: true });
   writeFileSync(spec.out, png);
   return { bytes: png.length, w: up.w, h: up.h, colours: stats.colours, ink: stats.ink };
@@ -446,6 +520,11 @@ function parseArgs(argv) {
     /* free text kept with the picture: why this shot exists, what to look
        at, anything the recipe cannot say by itself */
     else if (a === '--note') spec.note = next();
+    /* a rendered overlay image inside the file: redundant with the ops
+       and the boxes, and five times their size, but immune to any future
+       change in how either is read */
+    else if (a === '--embed-overlay') spec.embedOverlay = true;
+    else if (a === '--sim') spec.sim = argv[++i];
     else if (a === '--round') spec.round = true;
     else if (a === '--square') spec.round = false;
     else if (a === '--allow-blank') spec.allowBlank = true;
@@ -1004,12 +1083,52 @@ function shotList() {
   const SETTLE = [];
   for (let i = 0; i < 6; i++) SETTLE.push({ op: 'advance', ms: 400 });
   const EX_ACTIONS = { wifi: SETTLE };
+  /* examples that need a stand-in native to show anything at all — see
+     SIMS. The bus scan walks 8 addresses a tick, so it also needs frames
+     to reach the end of the address range. */
+  const EX_SIM = { i2c: 'i2c' };
+  const EX_FRAMES = { i2c: 20 };
+  /* 112 addresses at 8 a tick is 14 ticks; 16 leaves margin */
+  const SCAN_DONE = [];
+  for (let i = 0; i < 16; i++) SCAN_DONE.push({ op: 'advance', ms: 16 });
   for (const n of exNames) {
     for (const p of ['lcd35', 'lcd147', 'round128']) {
       add('ex', n, p, null, exampleCaption(n, p),
-          { file: 'examples/' + n + '/app.jsx', actions: EX_ACTIONS[n] });
+          { file: 'examples/' + n + '/app.jsx', actions: EX_ACTIONS[n],
+            sim: EX_SIM[n], frames: EX_FRAMES[n] });
     }
   }
+  /* ---- the five shapes ----
+     One app, one gesture, photographed on every shape the project claims
+     to support: round glass, tall portrait, narrow portrait, narrow
+     landscape and wide landscape. docs/shapes.md flips between these, so
+     they must stay in step with each other — hence specs here rather than
+     five hand-run commands, which is how they drifted out of the set and
+     missed the embedded overlay every other figure carries. */
+  const SHAPE_TAP = {
+    round128: { x: 120, y: 110 }, lcd169p: { x: 120, y: 110 },
+    lcd147: { x: 86, y: 110 }, lcd147l: { x: 160, y: 60 }, lcd35l: { x: 160, y: 75 }
+  };
+  for (const p of Object.keys(SHAPE_TAP)) {
+    add('shape', 'input-' + p, p, null,
+        'examples/input on ' + shapeWord(p) + ', field focused — one app and one gesture ' +
+        'across all five shapes, so the layout differences are the only thing changing',
+        { file: 'examples/input/app.jsx',
+          actions: [{ op: 'tap', x: SHAPE_TAP[p].x, y: SHAPE_TAP[p].y }],
+          note: 'the input example with a field focused; look at the keyboard the width ' +
+                'bought, and on round glass the trapezoid rows and OK in the bottom arc' });
+  }
+
+  /* the peek, which is the half of examples/i2c the scan view cannot show */
+  add('ex', 'i2c-peek', 'lcd35', null,
+      'examples/i2c after tapping the 0x6B row: registers 0..15 of that address, read one ' +
+      'at a time. Register 0 is WHO_AM_I on a QMI8658 and reads 0x05; the rest are what an ' +
+      'unknown register peek looks like',
+      { file: 'examples/i2c/app.jsx', sim: 'i2c',
+        /* the scan walks 8 addresses per tick, so the bus must be fully
+           walked BEFORE the tap — actions run in order, and frames only
+           run after all of them, which is too late to tap a row */
+        actions: SCAN_DONE.concat([{ op: 'tapLabel', label: '0x6B  (107)' }]) });
   add('ex', 'wifi-join', 'lcd35', null,
       'examples/wifi after tapping a secured network: the password field appears and ' +
       'the keyboard comes up with no layout named — the app asked for "whatever types ' +
@@ -1079,8 +1198,12 @@ function exampleCaption(name, profile) {
   /* These gate on natives a pixel buffer does not have, and each says so
      on its own first line; the shot is that labelled fallback, which is
      itself worth documenting. */
-  const NO_HW = ['camera', 'gpio', 'i2c', 'screen', 'sensors', 'wifi'];
+  const NO_HW = ['camera', 'gpio', 'screen', 'sensors', 'wifi'];
+  const SIMMED = { i2c: '. The bus is SIMULATED by the harness — three devices at the real ' +
+                        'addresses this project\'s own boards use — because with no bus at all ' +
+                        'the page is two lines of text and documents nothing' };
   return 'examples/' + name + ' — ' + text + '. On ' + shapeWord(profile) +
+         (SIMMED[name] || '') +
          (NO_HW.indexOf(name) >= 0
            ? '. No device natives under the pure-js backend, so the app draws its own ' +
              'labelled fallback (the line under the title)'
@@ -1108,9 +1231,13 @@ if (argv[0] === '--list' || argv[0] === '--all') {
     process.exit(0);
   }
   mkdirSync(OUT, { recursive: true });
+  /* the documentation set embeds the overlay image: 25% more bytes for
+     figures that stay debuggable even if the op format moves on */
+  const embed = argv.indexOf('--embed-overlay') >= 0;
   const failed = [];
   const thin = [];
   for (const s of shots) {
+    s.embedOverlay = embed;
     let r = null, err = null;
     try { r = runShot(s); } catch (e) { err = e; }
     if (err) {

@@ -23,6 +23,6 @@
     "docs:dev": "bun scripts/docs-sync.mjs && cd site && bun run dev",
     "docs:build": "bun scripts/docs-sync.mjs && cd site && bun run build",
     "docs:viewer": "bun scripts/build-viewer.mjs",
-    "figures": "bun scripts/shoot.mjs --all"
+    "figures": "bun scripts/shoot.mjs --all --embed-overlay"
   }
 }

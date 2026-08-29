@@ -141,6 +141,7 @@ if (meta['mjsx-shot']) {
               (shot.size.round ? ' round' : '') +
               (shot.size.scale > 1 ? '  scale ' + shot.size.scale : ''));
   if (shot.source) console.log('  source    ' + shot.source);
+  if (shot.sim) console.log('  SIMULATED ' + (shot.sim.detail || shot.sim.natives));
   if (shot.actions) console.log('  actions   ' + JSON.stringify(shot.actions));
   if (shot.frames > 1) console.log('  frames    ' + shot.frames);
   if (shot.command) console.log('  reproduce ' + shot.command);
