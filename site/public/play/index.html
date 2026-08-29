@@ -58,7 +58,12 @@
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
          font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
-  .wrap { max-width:78rem; margin:0 auto; padding:1.75rem 1.25rem 4rem; }
+  /* The standalone page is a TOOL, not an article, so it gets the window
+     rather than a column. It was capped at 78rem with 1.25rem of page
+     padding, which made the full-page simulator NARROWER than the same
+     simulator embedded in a docs page — the one place it should have the
+     most room. Only the prose keeps a reading width. */
+  .wrap { max-width:none; margin:0; padding:1.25rem clamp(.75rem, 1.5vw, 1.5rem) 2rem; }
   h1 { font-size:1.5rem; margin:0 0 .3rem; }
   .sub { color:var(--muted); margin:0 0 1.25rem; max-width:46rem; }
   .sub code { background:var(--code-bg); border:1px solid var(--line);
@@ -77,6 +82,10 @@
   .btn:hover, select:hover { border-color:var(--accent); }
   .btn:focus-visible, select:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
   .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .auto { display:inline-flex; align-items:center; gap:.35rem; font-size:.8rem;
+          color:var(--muted); padding:.35rem .5rem; border:1px solid var(--line);
+          border-radius:8px; cursor:pointer; user-select:none; white-space:nowrap; }
+  .auto input { margin:0; cursor:pointer; }
   .btn[disabled] { opacity:.5; cursor:default; }
   .seg { display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
   .seg button { border:0; background:var(--panel); color:var(--muted); cursor:pointer;
@@ -86,12 +95,14 @@
   .seg button[aria-pressed="true"] { background:var(--accent); color:#fff; }
   .seg button:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
 
-  .cols { display:grid; grid-template-columns:1fr minmax(18rem,auto); gap:1.25rem;
-          align-items:start; }
-  @media (max-width:900px) { .cols { grid-template-columns:1fr; } }
+  .cols { display:grid; grid-template-columns:minmax(min(100%,22rem),1fr) auto;
+          gap:1.25rem; align-items:stretch; }
+  @media (max-width:660px) { .cols { grid-template-columns:1fr; } }
 
   .pane { border:1px solid var(--line); border-radius:10px; background:var(--panel);
-          overflow:hidden; }
+          overflow:hidden; display:flex; flex-direction:column; min-height:0; }
+  .pane > header, .status { flex:0 0 auto; }
+  .ed { flex:1 1 auto; }
   .pane > header { display:flex; justify-content:space-between; align-items:center;
                    gap:.75rem; padding:.5rem .75rem; border-bottom:1px solid var(--line);
                    font-size:.72rem; text-transform:uppercase; letter-spacing:.09em;
@@ -233,7 +244,7 @@
      which beats this stylesheet. */
   body.embed .pane { display:flex; flex-direction:column; }
   body.embed .pane > header, body.embed .status { flex:0 0 auto; }
-  body.embed .ed { flex:1 1 auto; min-height:20rem; }
+  body.embed .ed { flex:1 1 auto; min-height:20rem; }   /* JS raises this from the host window height */
   body.embed textarea { height:100%; min-height:0; resize:vertical; }
   .embed-out { display:none; }
   body.embed .embed-out { display:inline; }
@@ -263,6 +274,8 @@
     <div class="group"><span>&nbsp;</span>
       <div style="display:flex;gap:.4rem">
         <button class="btn primary" id="run">Run</button>
+        <label class="auto" title="Re-run half a second after you stop typing">
+          <input type="checkbox" id="autorun" checked> auto</label>
         <button class="btn" id="reset">Reset</button>
         <button class="btn" id="share">Copy link</button>
         <a class="btn embed-out" id="popout" href="/play/" target="_top">Open full page ↗</a>
@@ -355,6 +368,9 @@
   followHostTheme();
   if (EMBED) {
     try {
+      parent.addEventListener('resize', function () { applyEditorFloor(); reportHeight(); });
+    } catch (e) {}
+    try {
       new MutationObserver(followHostTheme).observe(
         parent.document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     } catch (e) {}
@@ -362,7 +378,8 @@
 
   var examples = [];
   var shape = SHAPES[0], zoom = 2;
-  var backend = null, running = false, raf = 0, errLine = 0;
+  var backend = null, curCore = null, running = false, raf = 0, errLine = 0;
+  var autoRun = true;
   var ctx = elCv.getContext('2d', { alpha: false });
   var imageData = null;
 
@@ -435,7 +452,7 @@
          many times larger, so zooming is a genuine re-render rather than a
          magnified bitmap. Same mechanism as the figure viewer. */
       backend = createPureJsBackend(shape.w, shape.h, { dpr: dpr });
-      mjsxRun(src, backend, { round: !!shape.round });
+      curCore = mjsxRun(src, backend, { round: !!shape.round });
       UI.render();
       blit();
       running = true;
@@ -452,7 +469,47 @@
     }
     drawGutter();
     highlight();
+    applyEditorFloor();
     syncGutter();
+    reportHeight();
+  }
+
+  /* CHANGING THE RENDER SCALE MUST NOT RESTART THE APP.
+     dpr changes the size of the BUFFER, not the layout: gfx.width() and
+     the hit boxes stay logical, so the running app is still correct at the
+     new scale and re-running it only throws away its state — a counter
+     back to zero, a typed field emptied, a menu closed.
+
+     So: build a backend at the new dpr, point the engine's gfx at it, and
+     force one render. `sys` is deliberately NOT swapped — a fresh one
+     restarts millis() from zero, which would jump every animation and
+     timer the app has running. */
+  function rescale() {
+    if (!running || !curCore) { start(); return; }
+    elCv.width = shape.w * zoom;
+    elCv.height = shape.h * zoom;
+    elCv.style.width = (shape.w * zoom) + 'px';
+    elCv.style.height = (shape.h * zoom) + 'px';
+    imageData = null;
+
+    var next = createPureJsBackend(shape.w, shape.h, { dpr: zoom });
+    backend = { gfx: next.gfx, raw: next.raw, sys: backend.sys, font: next.font };
+    globalThis.gfx = next.gfx;
+    /* the face a backend rasterizes with can differ per dpr, and layout
+       measures through FONT — out of step here means text that no longer
+       fits the boxes drawn around it */
+    if (next.font) {
+      curCore.FONT.advance = next.font.advance;
+      curCore.FONT.lineH = next.font.lineH;
+      curCore.FONT.pick = next.font.pick || null;
+    }
+    UI.render();
+    blit();
+    var ops = countOps();
+    say('running · ' + ops + ' draw call' + (ops === 1 ? '' : 's') +
+        ' · ' + shape.w + 'x' + shape.h + (shape.round ? ' round' : '') +
+        ' at ' + zoom + 'x · state kept', 'ok');
+    applyEditorFloor();
     reportHeight();
   }
 
@@ -592,7 +649,15 @@
     drawGutter();
     highlight();
     clearTimeout(debounce);
+    /* With auto off the app keeps running while you edit, which is the
+       point: change several lines, or leave the code briefly broken,
+       without the panel resetting under you. Run applies it. */
+    if (!autoRun) { say('edited — press Run to apply', ''); return; }
     debounce = setTimeout(start, 500);
+  });
+  $('autorun').addEventListener('change', function () {
+    autoRun = this.checked;
+    say(autoRun ? 'auto-run on' : 'auto-run off — press Run to apply changes', '');
   });
   elCode.addEventListener('keydown', function (e) {
     /* Tab indents rather than leaving the field — in a code editor that is
@@ -624,6 +689,24 @@
      viewport but one — too short and the device is cut off, too tall and
      the article has a hole in it. So the frame measures itself and the
      host resizes it (site/astro.config.mjs installs the listener). */
+  /* THE EDITOR'S FLOOR COMES FROM THE BROWSER WINDOW, not the panel.
+     The two panes share a grid row, so the row is as tall as the device —
+     and on a short panel (320x172 landscape is 344px at 2x) that left an
+     editor a few lines high. It cannot be `vh` either: inside a frame that
+     is the FRAME's height, which is computed from this content, so the two
+     would chase each other. The host window's height is independent of
+     both, which is what makes it the right thing to measure. */
+  function editorFloor() {
+    var hostH = 0;
+    try { hostH = (EMBED ? parent.innerHeight : window.innerHeight) || 0; } catch (e) {}
+    if (!hostH) hostH = window.innerHeight || 800;
+    return Math.round(Math.max(260, Math.min(620, hostH * 0.55)));
+  }
+  function applyEditorFloor() {
+    var ed = $('ed');
+    if (ed) ed.style.minHeight = editorFloor() + 'px';
+  }
+
   var lastH = 0;
   function reportHeight() {
     if (!EMBED) return;
@@ -635,7 +718,7 @@
     try { parent.postMessage({ mjsx: 'sim-height', height: h }, '*'); } catch (e) {}
   }
   if (EMBED) {
-    window.addEventListener('resize', reportHeight);
+    window.addEventListener('resize', function () { applyEditorFloor(); reportHeight(); });
     if (window.ResizeObserver) {
       new ResizeObserver(reportHeight).observe(document.querySelector('.wrap'));
     }
@@ -781,7 +864,7 @@
       Array.prototype.forEach.call(elZoom.children, function (c) {
         c.setAttribute('aria-pressed', String(c === b));
       });
-      start();
+      rescale();
     });
     elZoom.appendChild(b);
   });

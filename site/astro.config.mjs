@@ -155,10 +155,19 @@ export default defineConfig({
              which is what it always did. */
           "addEventListener('click',function(e){" +
           "var a=e.target.closest&&e.target.closest('a.run-example');if(!a)return;" +
-          "var f=document.querySelector('iframe.sim-embed');if(!f)return;" +
           "var h=a.getAttribute('href');var i=h.indexOf('#');if(i<0)return;" +
           "e.preventDefault();" +
-          "var base=f.src.split('#')[0];f.src=base+h.slice(i);" +
+          "var f=document.querySelector('iframe.sim-embed');" +
+          /* No simulator on this page yet: put a compact one right where
+             the reader clicked, rather than sending them somewhere else to
+             see a thing they asked to see HERE. Created on demand, so a
+             page nobody runs anything on carries no extra weight. */
+          "if(!f){f=document.createElement('iframe');" +
+          "f.className='sim-embed compact';f.title='mjsx simulator';" +
+          "f.setAttribute('loading','lazy');" +
+          "(a.parentNode||document.body).insertBefore(f,a.nextSibling);}" +
+          "var base=(f.getAttribute('src')||'/play/?embed=1&compact=1').split('#')[0];" +
+          "f.src=base+h.slice(i);" +
           "f.scrollIntoView({block:'center',behavior:'smooth'});});"
       }],
       sidebar: [

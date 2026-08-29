@@ -50,9 +50,9 @@ implementation is in this repo. "esp32 (shim)" is that native surface as
 re-wrapped by `backends/esp32/tools/device-shim.js` for the out-of-tree
 filament-rfid firmware.
 
-Every matrix on this page reads the same way: **yes** means present and
-behaving as the contract describes, **no** means absent, **partial** means
-present but not equivalent.
+Throughout this page, **yes** means present and behaving as the contract
+describes, **no** means absent, and **partial** means present but not
+equivalent.
 
 ### The eight drawing calls
 
