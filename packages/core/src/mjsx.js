@@ -1139,17 +1139,18 @@ function kbBottomRow(kh, availW) {
   return h('row', { gap: gap }, ks);
 }
 
-function kbNumbers(kh) {
+function kbNumbers(kh, okElsewhere) {
   var out = [], grid = ['123', '456', '789'];
   for (var r = 0; r < 3; r++) {
     out.push(h('row', { gap: 2 }, kbCharRow(grid[r], kh)));
   }
-  out.push(h('row', { gap: 2 }, [
+  var util = [
     kbKey('.', function () { kbSend('.'); }, { h: kh, size: 2 }),
     kbKey('0', function () { kbSend('0'); }, { h: kh, size: 2 }),
     kbDelKey(kh)
-  ]));
-  out.push(h('row', { gap: 2 }, [kbOkKey(kh)]));
+  ];
+  if (!okElsewhere) util.push(kbOkKey(kh, kbLabelW('OK')));
+  out.push(h('row', { gap: 2 }, util));
   return out;
 }
 
@@ -1223,14 +1224,19 @@ function kbT9Key(ki, kh) {
     }
   }, lines);
 }
-function kbT9(kh) {
+/* okElsewhere: the caller is placing OK itself (round glass parks it in
+   the bottom arc, which is space the keys could never use anyway), so it
+   must not also eat a row here. */
+function kbT9(kh, okElsewhere) {
   var out = [];
   for (var r = 0; r < 3; r++) {
     var ks = [];
     for (var c = 0; c < 3; c++) ks.push(kbT9Key(r * 3 + c, kh));
     out.push(h('row', { gap: 2 }, ks));
   }
-  out.push(h('row', { gap: 2 }, [
+  /* OK rides the utility row rather than owning a row of its own: a whole
+     row of height spent on one key made every other key shorter. */
+  var util = [
     kbKey(KB.t9s ? 'abc' : (KB.shift ? 'ABC' : 'abc'),
       function () {
         if (KB.t9s) KB.t9s = 0;
@@ -1241,8 +1247,9 @@ function kbT9(kh) {
         onLongPress: function () { KB.t9s = 1; UI._dirty = true; } }),
     kbT9Key(9, kh),
     kbDelKey(kh)
-  ]));
-  out.push(h('row', { gap: 2 }, [kbOkKey(kh)]));
+  ];
+  if (!okElsewhere) util.push(kbOkKey(kh, kbLabelW('OK')));
+  out.push(h('row', { gap: 2 }, util));
   return out;
 }
 
@@ -1359,7 +1366,14 @@ function Keyboard(p) {
   }
   /* height is a HINT for the whole keyboard: keys scale to fit it given
      the layout's row count. keyH sets one key directly instead. */
-  var rowsN = layout === 'strip' ? 2 : (layout === 'qwerty' ? 4 : 5);
+  /* four rows for everything but STRIP: T9 and the number pad used to
+     spend a whole row on the single OK key, which made every other key
+     shorter for nothing. */
+  var rowsN = layout === 'strip' ? 2 : 4;
+  /* Round glass parks OK in the BOTTOM ARC -- the sliver below the keys
+     that the grid can never use, because a full-width row down there
+     would be mostly bezel. It costs the keyboard no height at all. */
+  var okInArc = UI.isRound() && layout !== 'strip';
   var kh;
   if (p.height) kh = Math.floor((p.height - 8 - (rowsN - 1) * 2) / rowsN);
   else kh = p.keyH || (flh(2) + em(1));
@@ -1382,8 +1396,8 @@ function Keyboard(p) {
      bounding box. */
   var rowW = (UI.isRound() ? kbW : gfx.width()) - 8;
   function kbRows() {
-    if (layout === 'numbers') return kbNumbers(kh);
-    if (layout === 't9') return kbT9(kh);
+    if (layout === 'numbers') return kbNumbers(kh, okInArc);
+    if (layout === 't9') return kbT9(kh, okInArc);
     if (layout === 'strip') return kbStrip(kh, rowW);
     return kbQwerty(kh, rowW);
   }
@@ -1438,7 +1452,14 @@ function Keyboard(p) {
        squeezed the space bar to a stub. Give the bottom back some room and
        the last row lands where the glass is still generous. */
     var xBotPad = UI.isRound() ? Math.round(gfx.height() * 0.12) : 0;
-    var xRoom = xScr - 12 - xTopPad - xBotPad - (xlh + xpd * 2) - 6 -
+    /* when OK lives in the arc, that reserved sliver is its home rather
+       than empty margin -- it needs to be tall enough to press */
+    if (okInArc && xBotPad < flh(1) + 10) xBotPad = flh(1) + 10;
+    /* the arc block is the OK key plus the spacer and gap that separate it
+       from the panel; charge the keys for all of it, or the key ends up
+       drawn past the bottom of the display */
+    var xArc = okInArc ? xBotPad + 12 : xBotPad;
+    var xRoom = xScr - 12 - xTopPad - xArc - (xlh + xpd * 2) - 6 -
                 (xHdr ? flh(1) + 2 + 6 : 0);
     var xkh = Math.floor((xRoom - 8 - (rowsN - 1) * 2) / rowsN);
     if (xkh < kh) xkh = kh;
@@ -1455,8 +1476,8 @@ function Keyboard(p) {
       ? kbChordHW(xLastTop, xLastTop + xkh) * 2 - 8
       : gfx.width() - 12 - 8;
     var xrows;
-    if (layout === 'numbers') xrows = kbNumbers(xkh);
-    else if (layout === 't9') xrows = kbT9(xkh);
+    if (layout === 'numbers') xrows = kbNumbers(xkh, okInArc);
+    else if (layout === 't9') xrows = kbT9(xkh, okInArc);
     else if (layout === 'strip') xrows = kbStrip(xkh, xRowW);
     else xrows = kbQwerty(xkh, xRowW);
     var xMirror = h('row', { gap: 4 }, [
@@ -1490,6 +1511,24 @@ function Keyboard(p) {
       h('box', { bg: p.bg === undefined ? UI.theme.panel : p.bg, pad: 4, gap: 2,
                  shield: true }, xrows)
     ];
+    if (okInArc) {
+      /* Centred in the arc under the keys: the widest the circle still is
+         down there, and no row of keys pays for it. */
+      /* size it to the circle where it actually sits: the arc is narrow
+         down there, and a key wider than its own chord has its bottom
+         corners under the bezel */
+      var okH2 = xBotPad - 12;
+      if (okH2 < flh(1) + 6) okH2 = flh(1) + 6;
+      var okTop = gfx.height() - 6 - okH2;
+      var okW2 = Math.min(kbChordHW(okTop, okTop + okH2) * 2, em(10));
+      if (okW2 < kbLabelW('OK')) okW2 = kbLabelW('OK');
+      xkids.push(h('box', { h: 4 }));
+      xkids.push(h('row', {}, [
+        h('box', { flex: 1 }),
+        kbOkKey(okH2, okW2),
+        h('box', { flex: 1 })
+      ]));
+    }
     if (xHdr) {
       xkids.unshift(h('text', { text: xp.label || xp.placeholder,
                                 size: 1, color: UI.theme.muted }));
@@ -1499,7 +1538,10 @@ function Keyboard(p) {
                       w: gfx.width() - (sfXI ? UI.safe.left + UI.safe.right : 0) },
       h('box', { h: gfx.height() - (sfXI ? UI.safe.top + UI.safe.bottom : 0),
                  bg: UI.theme.bg, pad: 6, padT: 6 + xTopPad,
-                 padB: 6 + xBotPad, gap: 6,
+                 /* when OK sits in the arc it IS the bottom content, so the
+                    arc is its height rather than padding under it -- adding
+                    both pushed the key off the display */
+                 padB: 6 + (okInArc ? 0 : xBotPad), gap: 6,
                  shield: true }, xkids));
   }
   if (pos === 'bottom' || pos === 'top') {
