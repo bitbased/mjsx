@@ -76,7 +76,11 @@ const PROFILES = {
   /* the 1.47" turned sideways: the shortest glass in the fleet, and the
      shape that forces the keyboard fullscreen */
   lcd147l:  { w: 320, h: 172,
-              note: 'ESP32-S3-Touch-LCD-1.47, 320x172 JD9853, landscape' }
+              note: 'ESP32-S3-Touch-LCD-1.47, 320x172 JD9853, landscape' },
+  /* the 3.5" turned sideways: the largest glass in the fleet, and the only
+     one wide enough to dock a full QWERTY rather than go fullscreen */
+  lcd35l:   { w: 480, h: 320,
+              note: 'ESP32-S3-Touch-LCD-3.5, 480x320 ST7796, landscape' }
 };
 
 /* ---- RGB -> PNG, pure JS (same technique as render-examples.mjs) ---- */

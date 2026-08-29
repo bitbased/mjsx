@@ -39,6 +39,12 @@ all decided from the room available.
     landscape<br>320×172
   </label>
 
+  <input type="radio" name="shape-input" id="shape-input-large">
+  <label for="shape-input-large">
+    <img src="./img/shape-input-lcd35l-lcd35l.png" alt="">
+    large<br>480×320
+  </label>
+
   <div class="shape-panels">
     <figure>
       <img src="./img/shape-input-round128-round128.png"
@@ -81,6 +87,16 @@ all decided from the room available.
         a finger's height, so the keyboard takes the whole display and
         mirrors the field above itself. The mirror <em>is</em> the field:
         input state is keyed by id, so it carries the same text and caret.
+      </figcaption>
+    </figure>
+    <figure>
+      <img src="./img/shape-input-lcd35l-lcd35l.png"
+           alt="The input example on a 480 by 320 landscape display">
+      <figcaption>
+        <strong>Large landscape, 480×320 (3.5″ sideways).</strong> The
+        biggest glass in the fleet and the only one wide and tall enough to
+        DOCK a full QWERTY rather than go fullscreen: ten columns fit
+        across, and 320px leaves the form readable above them.
       </figcaption>
     </figure>
   </div>

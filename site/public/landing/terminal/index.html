@@ -408,7 +408,6 @@ pre.code {
 .split > * { min-width: 0; }
 @media (min-width: 860px) {
   .split.two { grid-template-columns: 1fr 1fr; align-items: start; }
-  .split.wide { grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); align-items: start; }
 }
 
 .pts { margin: 0; padding: 0; list-style: none; }
@@ -527,12 +526,13 @@ footer.foot {
             <p class="line"><span class="ps1">$</span> <span class="ct">bun run examples</span><span class="cursor" aria-hidden="true"></span></p>
             <div class="outblock">
               <div class="screenwrap" role="img"
-                   aria-label="The mjsx example picker rendered in a 78-column terminal: a blue bitmap heading reading PICK AN EXAMPLE, then a scrolling list of dark rounded rows labelled hello, counter and fonts, all drawn out of half-block characters.">
+                   aria-label="The mjsx example picker rendered in a 78 by 30 terminal: a blue bitmap heading reading PICK AN, elided to fit, above a scrolling list of dark rounded rows labelled camera and canvas — every mark of it built from half-block characters.">
                 <pre class="screen" data-frame="picker" aria-hidden="true"></pre>
               </div>
-              <p class="note"># the picker menu, drawn by mjsx itself. arrow keys move a cursor,
-# enter taps, Esc backs out, q quits — and real mouse clicks work too.
-# every glyph above is one U+2584, two sub-pixels of colour per cell.</p>
+              <p class="note"># the picker, drawn by mjsx itself — the heading elides because the core
+# measured it against 78 columns. arrow keys move a cursor, enter taps,
+# Esc backs out, q quits, and real mouse clicks work too. every mark above
+# is one U+2584: two vertical sub-pixels of colour per character cell.</p>
             </div>
           </div>
 
@@ -690,11 +690,9 @@ Ran 257 tests across 8 files. [21.91s]</p>
         and runs unmodified under any backend.
       </p>
 
-      <div class="split wide">
-        <div>
-          <div class="cmdblk" style="margin-bottom:10px">
-            <p class="line"><span class="ps1">$</span> <span class="ct">sed -n '13,25p' examples/counter/app.jsx</span></p>
-          </div>
+      <div class="cmdblk" style="margin-bottom:10px">
+        <p class="line"><span class="ps1">$</span> <span class="ct">sed -n '13,25p' examples/counter/app.jsx</span></p>
+      </div>
 <pre class="code"><span class="k">function</span> <span class="t">App</span>() {
   <span class="k">var</span> count = UI.state.count || <span class="n">0</span>;
   <span class="k">return</span> (
@@ -707,19 +705,19 @@ Ran 257 tests across 8 files. [21.91s]</p>
 }
 
 UI.<span class="t">mount</span>(App);</pre>
-          <p class="note" style="margin-top:10px; font-size:12.5px">
+      <p class="note" style="margin:10px 0 0; font-size:12.5px">
 # examples/counter/app.jsx, verbatim. tap the button, the count changes,
 # the screen redraws to match. that is the entire state model.</p>
-        </div>
 
-        <div>
-          <ul class="pts">
-            <li><b>State goes one way.</b> <span class="p">UI.set</span> marks the frame dirty; the next frame is drawn from scratch. There is no tree to diff and nothing to keep in sync.</li>
-            <li><b>Text entry is on-device.</b> Four keyboard layouts — QWERTY, T9, a number pad, and a scrolling STRIP for tiny screens — and the layout picks itself from how much room the keys actually get.</li>
-            <li><b>Hardware is just more JavaScript.</b> <span class="p">sys.gpio</span> reads a pin, drives it, or reads the ADC; <span class="p">sys.i2c</span> scans the bus and peeks registers; a motion module supplies acceleration, rotation and temperature.</li>
-            <li><b>Canvas sources</b> let a camera frame, or a hundred committed brush strokes, cost exactly one blit.</li>
-          </ul>
-        </div>
+      <div class="split two" style="margin-top:26px">
+        <ul class="pts">
+          <li><b>State goes one way.</b> <span class="p">UI.set</span> marks the frame dirty; the next frame is drawn from scratch. There is no tree to diff and nothing to keep in sync.</li>
+          <li><b>Text entry is on-device.</b> Four keyboard layouts — QWERTY, T9, a number pad, and a scrolling STRIP for tiny screens — and the layout picks itself from how much room the keys actually get.</li>
+        </ul>
+        <ul class="pts">
+          <li><b>Hardware is just more JavaScript.</b> <span class="p">sys.gpio</span> reads a pin, drives it, or reads the ADC; <span class="p">sys.i2c</span> scans the bus and peeks registers; a motion module supplies acceleration, rotation and temperature.</li>
+          <li><b>Canvas sources</b> let a camera frame, or a hundred committed brush strokes, cost exactly one blit.</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -927,7 +925,7 @@ wasm</p>
      --------------------------------------------------------------------- */
   var ALPHA = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-  var FRAMES = {"picker":{"w":78,"h":24,"pal":["#000000","#4b8bf5","#212530","#ffffff"],"combos":[[0,0,0],[0,1,1],[1,0,1],[1,1,0],[1,2,0],[0,2,2],[1,3,2],[0,3,3],[1,2,3],[1,0,2]],"rows":["a78","a78","a78","a78","a11b1c3d1a3c1b1c1a3d1c3d1a2b1a2d1c1a9d1c3d1a2b1d1a2b1a20","a11b1d3c1a4b1a4b1a6b1d1c1a11b1d3b1a2b1a1c1d1b1a20","a11b1a8b1a4b1a3d1a2b1a1c1d1a10b1a3b1a2b1a3b1a20","a11c1a7c3a4c3a3c1a3c1a9c1a3c1a2c1a3c1a2c1a1c1a1c1a13","a78","a78","a78","a78","a78","a78","a10e2f54e2a10","a9f60a9","a8f17g2f3g2f2g1f2g1f2g2f2g1f1g1f3g2f18a8","a8f16h1f2i1f2g2h1f1h1i2h1f1h1g2h1f1h1i1f1i1f2g2h1f17a8","a8f16i1g2i1f1i1g2h1f1h1f2h1f1i1g3f1h1f4i1g2h1f17a8","a9f60a9","a10j2f54j2a10","a78","a78","a10e2f54e2a10"]},"sensors":{"w":78,"h":22,"pal":["#000000","#4b8bf5","#98a1ae","#1b1e24","#ffffff"],"combos":[[0,0,0],[0,1,1],[1,1,0],[1,0,1],[1,2,0],[1,0,2],[0,2,2],[1,3,0],[0,3,3],[0,4,4],[1,3,4],[1,4,3],[1,4,1],[1,0,3]],"rows":["a78","a78","a78","a78","a18b1c1a1c1b1a2c1d3c1a2d2b1d2a3d1b1d1a3c1d3c1a2b1c1a2b1a20","a18b1a1b1a1b1a2b1a3b1a4b1a6b1a4b1a3b1a2b1a1d1c1b1a20","a18b1a3b1a2b1a3b1a4b1a6b1a4b1a3b1a2b1a3b1a20","a18d1a3d1a3d3a5d1a5d3a4d3a3d1a3d1a20","a78","a78","a10e3a2f1a3e1a2e1a1e1a2e1a1f1g1a4e2a2e1g1e1a3e2a5g1a25","a9f1e2a2f1g1a3g1f2g1a1g1a2g1a2g1a4e2g1a2g1a3g1e2g1a1e1f2g1a6f3a16","a9e3f1a1e1g1e1a2g1a2g1a1f1e2f1a1e1g1e1a2f1e2g1a2f1e2a1f1e3a1f1e2g1a11e1a1e1a11","a78","a78","a10c2b10c2a8h2i10h2a8h2i10h2a10","a9b16a6i16a6i16a9","a8b4j1b13a4i4k1j1k2i10a4i4j1k2l1i10a8","a8b4j1b13a4i5j1i12a4i4j1i2j1i10a8","a8b4j1m3b1m1b1m1b6a4i5j1i3l1i1l1i6a4i4j1l2k1i1l1i1l1i6a8","a9b16a6i16a6i16a9","a10d2b10d2a8n2i10n2a8n2i10n2a10"]}};
+  var FRAMES = {"picker":{"w":78,"h":30,"pal":["#000000","#4b8bf5","#212530","#ffffff"],"combos":[[0,0,0],[0,1,1],[1,0,1],[1,1,0],[1,2,0],[0,2,2],[1,3,2],[0,3,3],[1,2,3],[1,0,2]],"rows":["a78","a78","a78","a78","a11b1c3d1a3c1b1c1a3d1c3d1a2b1a2d1c1a9d1c3d1a2b1d1a2b1a20","a11b1d3c1a4b1a4b1a6b1d1c1a11b1d3b1a2b1a1c1d1b1a20","a11b1a8b1a4b1a3d1a2b1a1c1d1a10b1a3b1a2b1a3b1a20","a11c1a7c3a4c3a3c1a3c1a9c1a3c1a2c1a3c1a2c1a1c1a1c1a13","a78","a78","a78","a78","a78","a78","a10e2f54e2a10","a9f60a9","a8f17g2f3g2f2g1f2g1f2g2f2g1f1g1f3g2f18a8","a8f16h1f2i1f2g2h1f1h1i2h1f1h1g2h1f1h1i1f1i1f2g2h1f17a8","a8f16i1g2i1f1i1g2h1f1h1f2h1f1i1g3f1h1f4i1g2h1f17a8","a9f60a9","a10j2f54j2a10","a78","a78","a10e2f54e2a10","a9f60a9","a8f17g2f3g2f2g1f1g1f2g1f2g1f2g2f3g3f17a8","a8f16h1f2i1f2g2h1f1h1i1f1h1f1h1f2h1f2g2h1f1i1g2f18a8","a8f16i1g2i1f1i1g2h1f1h1f2h1f2i1g1i1f1i1g2h1f1g3i1f17a8","a9f60a9","a10j2f54j2a10"]},"sensors":{"w":78,"h":22,"pal":["#000000","#4b8bf5","#98a1ae","#1b1e24","#ffffff"],"combos":[[0,0,0],[0,1,1],[1,1,0],[1,0,1],[1,2,0],[1,0,2],[0,2,2],[1,3,0],[0,3,3],[0,4,4],[1,3,4],[1,4,3],[1,4,1],[1,0,3]],"rows":["a78","a78","a78","a78","a18b1c1a1c1b1a2c1d3c1a2d2b1d2a3d1b1d1a3c1d3c1a2b1c1a2b1a20","a18b1a1b1a1b1a2b1a3b1a4b1a6b1a4b1a3b1a2b1a1d1c1b1a20","a18b1a3b1a2b1a3b1a4b1a6b1a4b1a3b1a2b1a3b1a20","a18d1a3d1a3d3a5d1a5d3a4d3a3d1a3d1a20","a78","a78","a10e3a2f1a3e1a2e1a1e1a2e1a1f1g1a4e2a2e1g1e1a3e2a5g1a25","a9f1e2a2f1g1a3g1f2g1a1g1a2g1a2g1a4e2g1a2g1a3g1e2g1a1e1f2g1a6f3a16","a9e3f1a1e1g1e1a2g1a2g1a1f1e2f1a1e1g1e1a2f1e2g1a2f1e2a1f1e3a1f1e2g1a11e1a1e1a11","a78","a78","a10c2b10c2a8h2i10h2a8h2i10h2a10","a9b16a6i16a6i16a9","a8b4j1b13a4i4k1j1k2i10a4i4j1k2l1i10a8","a8b4j1b13a4i5j1i12a4i4j1i2j1i10a8","a8b4j1m3b1m1b1m1b6a4i5j1i3l1i1l1i6a4i4j1l2k1i1l1i1l1i6a8","a9b16a6i16a6i16a9","a10d2b10d2a8n2i10n2a8n2i10n2a10"]}};
 
   function rep(ch, n) {
     var s = "";

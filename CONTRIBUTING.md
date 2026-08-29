@@ -42,3 +42,22 @@ smallest working reference.
 
 `bun test`. If you fix a bug in the core, add a test that fails without the
 fix.
+
+## The five shapes
+
+Every display this project runs on stays represented and tested. The set is
+not arbitrary — each shape breaks a different assumption:
+
+| Shape | Board | What it breaks |
+|---|---|---|
+| 240×280 | 1.69″ portrait | nothing; the shape the examples were drawn for |
+| 172×320 | 1.47″ portrait | too narrow for ten keyboard columns |
+| 320×172 | 1.47″ landscape | too short to dock a keyboard at all |
+| 480×320 | 3.5″ landscape | the only glass where everything simply fits |
+| 240×240 | 1.28″ round | has no corners |
+
+A layout that survives all five is portable in the way this project means the
+word. They are the rows of the golden matrix (`test/golden/matrix.js`) and the
+profiles of the screenshot harness (`scripts/shoot.mjs`: `lcd169p`, `lcd147`,
+`lcd147l`, `lcd35l`, `round128`), so a figure in the documentation and a golden
+cell are the same render. Add a shape to both or neither.

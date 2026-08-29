@@ -40,10 +40,22 @@ function exampleNames() {
   }).sort();
 }
 
+/* THE FLEET, and the house rule: every shape here stays represented and
+   tested. Each is a real display this project runs on, and each breaks a
+   different assumption -- the round one has no corners, the 172px one is
+   too narrow for ten columns, the 320x172 one is too SHORT to dock a
+   keyboard, and the 480x320 one is the only glass big enough that
+   everything simply fits. A layout that survives all five is portable in
+   the way this project means the word.
+   Documentation figures use the same five (scripts/shoot.mjs profiles
+   round128, lcd169p, lcd147, lcd147l, lcd35l), so a picture in the docs
+   and a golden cell are the same render. */
 var SHAPES = [
-  { w: 240, h: 280, round: false },
-  { w: 320, h: 172, round: false },
-  { w: 240, h: 240, round: true }
+  { w: 240, h: 280, round: false },   /* 1.69" portrait  */
+  { w: 172, h: 320, round: false },   /* 1.47" portrait  */
+  { w: 320, h: 172, round: false },   /* 1.47" landscape */
+  { w: 480, h: 320, round: false },   /* 3.5"  landscape */
+  { w: 240, h: 240, round: true }     /* 1.28" round     */
 ];
 
 function keyFor(name, shape) {
