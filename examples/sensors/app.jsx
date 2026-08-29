@@ -13,7 +13,7 @@ function App() {
   var a = UI.state.accel || { x: 0, y: 0, z: 0 };
   var presses = UI.state.presses || 0;
   return (
-    <box pad={em(2)} gap={em(1.75)}>
+    <box h={gfx.height()} scroll="sensors" pad={em(2)} gap={em(1.75)}>
       <text text="LIVE SENSORS" size={2} align="center" color={UI.theme.accent} />
 
       <box bg={UI.theme.panel} radius={8} pad={em(1.25)} gap={em(0.5)}>

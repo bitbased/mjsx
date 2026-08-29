@@ -117,7 +117,7 @@ function App() {
   }
 
   return (
-    <box h={gfx.height()} pad={em(0.75)} gap={em(0.7)}>
+    <box h={gfx.height()} scroll="screen" pad={em(0.75)} gap={em(0.7)}>
       <text text="SCREEN" size={2} align="center" color={UI.theme.accent} />
 
       <box bg={UI.theme.panel} radius={6} pad={em(0.75)} gap={em(0.5)}>

@@ -867,6 +867,51 @@ function padB(p) { return p.padB === undefined ? (p.pad || 0) : p.padB; }
 
 /* ---- a couple of ready-made components, not mandatory to use ---- */
 
+/* ArcFooter: controls along the bottom arc of round glass.
+ *
+ * Items stay UPRIGHT — rotated text is neither drawable nor readable —
+ * only their POSITIONS follow the arc, on a ring just inside the rim,
+ * and each item is pulled inward by its own size so it never pokes
+ * past the glass. Put wide items near the middle of the list, where
+ * the chord is generous. On square glass the same items become a plain
+ * centred bottom row: one footer serves every shape.
+ *
+ * items: [{ w, h, node }] — node is any finished element; w/h let the
+ * footer centre each one on its arc point without measuring.
+ * spread: total arc in degrees (default 120). inset: rim margin.
+ */
+function ArcFooter(p) {
+  var items = p.items || [];
+  var n = items.length, i;
+  if (!n) return h('box', {});
+  var W = gfx.width(), H = gfx.height();
+  if (!UI.isRound()) {
+    var total = 0;
+    for (i = 0; i < n; i++) total += items[i].w + 4;
+    total -= 4;
+    var kids = [], bx = Math.round((W - total) / 2);
+    for (i = 0; i < n; i++) {
+      kids.push(h('abs', { x: bx, y: H - (p.inset || 16) - items[i].h }, items[i].node));
+      bx += items[i].w + 4;
+    }
+    return h('box', {}, kids);
+  }
+  var spread = (p.spread || 120) * Math.PI / 180;
+  var a0 = Math.PI / 2 - spread / 2;   /* screen y grows down: 90° = bottom */
+  var out = [];
+  for (i = 0; i < n; i++) {
+    var t = n < 2 ? 0.5 : i / (n - 1);
+    var ang = a0 + spread * t;
+    var big = items[i].w > items[i].h ? items[i].w : items[i].h;
+    var rr = H / 2 - (p.inset || 8) - big / 2;
+    out.push(h('abs', {
+      x: Math.round(W / 2 + Math.cos(ang) * rr - items[i].w / 2),
+      y: Math.round(H / 2 + Math.sin(ang) * rr - items[i].h / 2)
+    }, items[i].node));
+  }
+  return h('box', {}, out);
+}
+
 function Button(p) {
   return h('box', {
     bg: p.bg === undefined ? UI.theme.key : p.bg,

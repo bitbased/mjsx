@@ -102,7 +102,7 @@ function App() {
   if (focused) kids.push(h(Keyboard, { layout: 'qwerty', position: 'bottom',
                                        height: Math.floor(gfx.height() / 2.8) }));
 
-  return h('box', { h: gfx.height(), pad: em(0.75), gap: em(0.6) }, kids);
+  return h('box', { h: gfx.height(), scroll: 'wifi', pad: em(0.75), gap: em(0.6) }, kids);
 }
 
 /* poll the cheap getters while scanning or joining; renders come free */

@@ -115,12 +115,7 @@ function App() {
     </box>
   );
 
-  return (
-    <box h={gfx.height()}>
-      <box bg={0x223048} pad={em(0.5)} h={em(2.6)}>
-        <text text={'DRAW - ' + strokes.length + ' shapes'} size={1} align="center" color={0x8fb8ff} />
-      </box>
-
+  var drawSurface = (
       <box flex={1} bg={0x14161b} clip={true}
            onDraw={function (phase, x, y, id) {
              var st2 = UI.state.strokes || [];
@@ -151,6 +146,54 @@ function App() {
            }}>
         {marks}
       </box>
+  );
+
+  /* ROUND: the canvas takes the whole circle and the palette rides the
+     bottom arc -- round swatches climb the rim (a circle doesn't care
+     what angle it sits at), the tool cycler and CLEAR sit nearest
+     bottom-centre where the chord is widest. No slider, no S/F chips:
+     a watch face gets the fun parts. */
+  if (UI.isRound()) {
+    var items = [];
+    items.push({ w: 38, h: 22, node:
+      <Button label={tool.toUpperCase()} size={1} pad={em(0.25)} h={22} w={38}
+              bg={0x2e4a37} color={0x9fe8b9}
+              onTap={function () {
+                var cur = UI.state.tool || 'pen', ni = 0;
+                for (var k = 0; k < tools.length; k++) if (tools[k] === cur) ni = (k + 1) % tools.length;
+                UI.set({ tool: tools[ni] });
+              }} /> });
+    for (var ri = 0; ri < colors.length; ri++) {
+      items.push({ w: 22, h: 22, node:
+        <box w={22} h={22} bg={colors[ri]} radius={11} hitPad={4}
+             border={colors[ri] === active ? 0xffffff : 0x3a4152}
+             borderW={colors[ri] === active ? 2 : 1}
+             onTap={(function (c) { return function () { var o = {}; o[UI.state.slot || 'sc'] = c; UI.set(o); }; })(colors[ri])} /> });
+    }
+    items.push({ w: 22, h: 22, node:
+      <box w={22} h={22} bg={0x14161b} radius={11} hitPad={4}
+           border={active === null ? 0xffffff : 0x3a4152} borderW={active === null ? 2 : 1}
+           onTap={function () { var o = {}; o[UI.state.slot || 'sc'] = null; UI.set(o); }}>
+        <text text="x" size={1} align="center" color={0xdd6644} />
+      </box> });
+    items.push({ w: 34, h: 22, node:
+      <Button label="CLR" size={1} pad={em(0.25)} h={22} w={34} color={0xdd6644}
+              onTap={function () { UI.set({ strokes: [] }); }} /> });
+    return (
+      <box h={gfx.height()}>
+        {drawSurface}
+        {h(ArcFooter, { items: items, spread: 150, inset: 10 })}
+      </box>
+    );
+  }
+
+  return (
+    <box h={gfx.height()}>
+      <box bg={0x223048} pad={em(0.5)} h={em(2.6)}>
+        <text text={'DRAW - ' + strokes.length + ' shapes'} size={1} align="center" color={0x8fb8ff} />
+      </box>
+
+      {drawSurface}
 
       <box bg={0x223048} pad={em(0.5)} h={em(9)} gap={em(0.4)}>
         <row gap={em(0.4)}>{toolBtns}</row>
