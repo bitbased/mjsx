@@ -297,18 +297,19 @@ the other seven) and to `test/load.js`.*
 
 **Severity: High.** `backends/sdl/src/sim.js` `--circle` / the `SHAPE:CIR`
 toolbar button set a *window mask* (`window.js` l.193) and nothing else;
-`backends/sdl/src/run.js --circle` likewise. Nothing anywhere in
-`backends/` calls `configStorage.set('round', …)` — grep confirms zero
-hits. So the sim shows round glass while `UI.isRound()` returns false, and
-every round adaptation the core has (quarter-screen overscroll,
-`mjsx.js` l.755; the round layout branch at l.896;
-`examples/draw/app.jsx` l.156; `device-menu.js` l.53) stays off in the
-one place built to preview it.
+`backends/sdl/src/run.js --circle` likewise. So the SDL sim shows round
+glass while `UI.isRound()` returns false, and every round adaptation the
+core has (quarter-screen overscroll, `mjsx.js` l.755; the round layout
+branch at l.896; `examples/draw/app.jsx` l.156; `device-menu.js` l.53)
+stays off in the one desktop tool built to preview it.
 
-The mechanism itself works and is now exercised: `test/golden/matrix.js`
-l.89 seeds `t.backend.sys.store('round', '1')` before requiring the
-example, and comments it as "what a firmware seeds". So the golden matrix
-covers round layouts while the *interactive* previewer cannot show them.
+Nothing is wrong with the mechanism, and three other hosts now use it:
+`test/golden/matrix.js` seeds `sys.store('round', '1')` before requiring an
+example, `scripts/shoot.mjs` does the same on a round profile, and the
+browser simulator (`backends/http/src/client-sim.js` l.71) seeds it from
+the panel you pick. So the goldens, every round figure in these docs, and
+the simulator all cover round layouts — while the SDL previewer still
+cannot show them. One line each is all it ever needed.
 
 *Remedy: in `sim.js`'s `freshCore()` and in `sdl/run.js`, call
 `core.configStorage.set('round', mask === 'circle' ? '1' : '0')` before

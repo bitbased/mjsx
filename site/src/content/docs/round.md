@@ -133,11 +133,20 @@ at boot before any script can read it — the round build compiles with
 #endif
 ```
 
-Web, sim and terminal hosts leave the key unset, so `isRound()` is false
-and the default `'0'` does the right thing. The headless shot renderer
-seeds it the same way the firmware does (`backend.sys.store('round', '1')`
-on a round profile), which is why the round pictures on this page are
-produced by the same code path a board runs.
+A host that says nothing leaves the key unset, so `isRound()` is false and
+the default `'0'` does the right thing — which is what the terminal and the
+SDL sim do today (see D4 in [`consistency.md`](/consistency): the sim
+draws a circular *mask* without telling the core, so it previews the shape
+without the behaviour).
+
+Everything that does claim to show round glass seeds the key exactly as the
+firmware does. The headless shot renderer sets
+`backend.sys.store('round', '1')` on a round profile, the golden matrix
+does the same before requiring an example, and the browser
+[simulator](/simulator) sets it from the panel you choose. That is why
+the round pictures on this page come out of the same code path a board
+runs, and why picking round glass in the simulator changes behaviour and
+not just the outline.
 
 ## The safe rect: holding the flow inside the circle
 
