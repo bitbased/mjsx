@@ -80,12 +80,18 @@
   /* A station has a DEFINITE width. It is absolutely positioned on the
      sheet, and a percentage width inside an auto-width absolute box has
      nothing to resolve against — which collapsed every panel to 59px. */
-  .st { position:absolute; width:41rem; border:1px solid var(--edge);
+  /* A card is never wider than the window. It is absolutely positioned on a
+     sheet inside an overflow:hidden table, so a card too wide for the screen
+     does not scroll — it is simply cut off on both edges, which is what a
+     phone got from a fixed 41rem. Height stays automatic throughout. */
+  .st { position:absolute; width:min(41rem, calc(100vw - 1.4rem));
+        border:1px solid var(--edge);
         background:rgba(10,47,82,.86); backdrop-filter:blur(2px); }
   /* the pipeline card follows the window like its contents do */
   /* the source->glass card follows the window — this is the cap that was
      holding the whole pipeline at ~1184px however wide the screen got */
   .st.wide { width:min(96vw, 124rem); }
+  @media (max-width:760px) { .st.wide { width:calc(100vw - 1.4rem); } }
   .st > .tt { display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap;
               padding:.35rem .6rem; border-bottom:1px solid var(--edge);
               font-size:11px; letter-spacing:.14em; }
@@ -97,6 +103,17 @@
 
   /* the double rendering, side by side */
   .pair { display:flex; gap:1rem; align-items:flex-start; }
+  @media (max-width:760px) {
+    /* two renderings side by side on a phone gives each ~150px; stacked they
+       stay legible and the comparison still reads top-to-bottom */
+    .pair { flex-direction:column; align-items:center; gap:1.2rem; }
+    .half { width:100%; max-width:22rem; }
+    .paperframe { max-width:100%; }
+    /* the pan hint sits on top of the content on a small screen */
+    .hint { display:none; }
+    .bar { gap:.3rem .6rem; }
+    .st > .bd { padding:.7rem; }
+  }
   .half { display:flex; flex-direction:column; gap:.4rem; align-items:center;
           flex:1 1 0; min-width:0; }
   .half .cap { font-size:9.5px; letter-spacing:.14em; color:var(--dim);
