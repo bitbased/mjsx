@@ -208,6 +208,7 @@ export default defineConfig({
         ]),
         ...group('Try it', [
           { label: 'The simulator', slug: 'simulator' },
+          { label: 'Logging', slug: 'logging' },
         ]),
         ...group('Building a UI', [
           { label: 'The UI API', slug: 'ui' },
@@ -237,7 +238,7 @@ export default defineConfig({
            filenames next to written labels. A page appearing here is a
            prompt to give it a group, not a resting place. */
         ...leftovers(new Set([
-          'docs', 'getting-started', 'simulator', 'ui', 'layout', 'fonts', 'components',
+          'docs', 'getting-started', 'simulator', 'logging', 'ui', 'layout', 'fonts', 'components',
           'shapes', 'keyboards', 'input', 'devices', 'round', 'sensors', 'hardware-api',
           'contract', 'consistency', 'shots',
         ])),

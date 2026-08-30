@@ -26,12 +26,23 @@
  *   ['X']                                  unclip
  *   ['p', polys, colour, rule]             poly   (optional in a backend)
  *   ['b', id, x, y, w, h, gen]             blit   (optional in a backend)
+ *   ['L', level, text]                     a console line (not a draw call)
  * Colours are 0xRRGGBB. Coordinates are LOGICAL pixels — the frame's own
  * space — and stay that way through a replay; see opReplay on why.
  */
 
+/* The recorders collecting a frame right now, innermost last. A logger needs
+   to put its line into the current frame without being handed a reference
+   through every layer between it and here.
+   A STACK rather than one slot because recorders nest — the pipeline records
+   a frame while a mirror is already recording one — and with a single slot
+   the inner take() left it empty, silently dropping anything the outer
+   recorder logged for the rest of its frame. */
+var recStack = [];
+
 function opRecord(real) {
   var ops = [];
+  var mine = null;          /* this recorder's wrapped gfx, for activeRec */
 
   function wrap(g) {
     var out = {
@@ -51,6 +62,18 @@ function opRecord(real) {
     if (g.poly) {
       out.poly = function (polys, c, rule) { ops.push(['p', polys, c, rule]); g.poly(polys, c, rule); };
     }
+    /* Not a drawing call. A console line rides the same stream so that a
+       mirror showing a board's screen also shows what the board said, in
+       order, without a second channel to keep in sync. Replay skips it —
+       see opReplay — because a surface has nothing to draw for it. */
+    out.log = function (level, text) { ops.push(['L', level, '' + text]); };
+    mine = out;
+    /* Bounded. A recorder that is created and never taken (a caller that
+       abandons a frame) would otherwise pin its entry — and its ops array —
+       for the life of the process. Dropping the oldest is right: the newest
+       recorder is the one collecting the frame a log line belongs to. */
+    recStack.push(out);
+    while (recStack.length > 8) recStack.shift();
     if (g.blit) {
       out.blit = function (id, x, y, w, h, gen) {
         ops.push(['b', id, x, y, w, h, gen]);
@@ -63,7 +86,16 @@ function opRecord(real) {
   return {
     gfx: wrap(real),
     /* the ops since the last take(), and reset */
-    take: function () { var o = ops; ops = []; return o; },
+    /* Only THIS recorder clears the active slot, and only if it still holds
+       it: recorders nest (the pipeline records a frame while a mirror is
+       recording one), and a blanket clear would silence the outer one. */
+    take: function () {
+      var o = ops; ops = [];
+      var at = recStack.length - 1;
+      while (at >= 0 && recStack[at] !== mine) at--;
+      if (at >= 0) recStack.splice(at, 1);
+      return o;
+    },
     peek: function () { return ops; }
   };
 }
@@ -98,6 +130,9 @@ function opReplay(ops, gfx) {
       case 'X': gfx.unclip(); break;
       case 'p': if (gfx.poly) gfx.poly(o[1], o[2], o[3]); break;
       case 'b': if (gfx.blit) gfx.blit(o[1], o[2], o[3], o[4], o[5], o[6]); break;
+      /* a console line: carried by the stream, drawn by nothing. A viewer
+         that wants to show them reads them off the op list itself. */
+      case 'L': if (gfx.log) gfx.log(o[1], o[2]); break;
     }
   }
   /* a frame that ended inside a clip would leave the next one clipped */
@@ -123,5 +158,6 @@ function opBoxes(ops) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { record: opRecord, replay: opReplay, boxes: opBoxes };
+  module.exports = { record: opRecord,
+    active: function () { return recStack.length ? recStack[recStack.length - 1] : null; }, replay: opReplay, boxes: opBoxes };
 }

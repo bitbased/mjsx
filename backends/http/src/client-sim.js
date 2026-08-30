@@ -27,12 +27,14 @@
 import { createPureJsBackend } from '../../pure-js/src/backend.js';
 import oprec from '../../../packages/core/src/oprec.js';
 import jsx from '../../../packages/core/src/jsx.js';
+import mlog from '../../../packages/core/src/log.js';
 
 globalThis.createPureJsBackend = createPureJsBackend;
 globalThis.mjsxTranspile = jsx.transpile;
 globalThis.mjsxRecord = oprec.record;
 globalThis.mjsxReplay = oprec.replay;
 globalThis.mjsxBoxes = oprec.boxes;
+globalThis.mjsxCreateLog = mlog.createLog;
 
 /* A brand-new engine, wired to the given backend. The globals are the
    contract an app is written against: it says `h(...)`, `UI.mount(...)`,
@@ -58,6 +60,34 @@ globalThis.mjsxFreshCore = function (be, opts) {
   globalThis.Keyboard = core.Keyboard;
   globalThis.ArcFooter = core.ArcFooter;
   globalThis.configStorage = core.configStorage;
+
+  /* console, per engine instance.
+     The browser has its own console, but an app running here is device code:
+     it must reach the same sinks the board would use, and the simulator has
+     to be able to SHOW what it said. So each fresh core gets its own logger,
+     and the page reads it back with mjsxLog(). Lines still reach the
+     browser's console too, because losing them in devtools would be a
+     regression for anyone debugging with what they already have. */
+  var host = (typeof console !== 'undefined') ? console : null;
+  var lg = mlog.createLog({
+    sinks: (opts && opts.logSinks) || 'buffer',
+    max: (opts && opts.logMax) || 300,
+    write: function (t) { if (host && host.log) host.log(t.replace(/\n$/, '')); },
+    /* the 'ops' sink: put the line into whichever frame is being recorded,
+       so a mirror replaying that frame sees what the app said alongside what
+       it drew, in order and on one channel */
+    emit: function (level, text) {
+      var rec = oprec.active();
+      if (rec && rec.log) rec.log(level, text);
+    }
+  });
+  /* NOT globalThis.console. Replacing the global swallows the host's own
+     logging — the page's, the test harness's — which is how the first cut of
+     this produced a silent process. The app gets its console as a parameter
+     of the wrapper it is evaluated in (see mjsxRun), so it is scoped to the
+     app exactly the way a device's global console is scoped to the script. */
+  globalThis.mjsxLog = lg;
+  core.log = lg;
 
   /* the font the backend actually rasterizes with, so em() spacing and
      fitText widths agree with the pixels — the same handshake sim.js and
@@ -98,6 +128,9 @@ globalThis.mjsxRun = function (src, be, opts) {
     throw new Error('require(' + JSON.stringify(what) + ') is not available: an mjsx app ' +
                     'runs as one flat script, with h/UI/gfx/sys already global');
   };
-  (0, eval)('(function(module,exports,require){' + js + '\n})')(module, module.exports, require);
+  /* console is a PARAMETER, not a global: the app sees it as an ambient
+     name the way it does on a chip, and the host's own console is untouched. */
+  (0, eval)('(function(module,exports,require,console){' + js + '\n})')(
+    module, module.exports, require, core.log.console);
   return core;
 };

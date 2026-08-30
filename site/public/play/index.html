@@ -253,6 +253,27 @@
   .embed-out { display:none; }
   body.embed .embed-out { display:inline; }
   a { color:var(--accent); }
+
+  /* ---- the console ----
+     An app running here is device code, and on a device there is nowhere for
+     console.log to go that a person can see. The pane is that place. Lines
+     are the app's own, captured per engine instance, so a Reset clears them
+     with the app rather than leaving the last run's output lying around. */
+  .con { border-top:1px solid var(--line); display:flex; flex-direction:column;
+         min-height:6.5rem; max-height:14rem; }
+  .con-bar { display:flex; align-items:center; gap:.55rem; padding:.3rem .6rem;
+             font:11px/1.5 var(--mono); color:var(--dim);
+             border-bottom:1px solid var(--line); }
+  .con-bar .rt { margin-left:auto; }
+  .con-lv { display:flex; align-items:center; gap:.3rem; cursor:pointer; }
+  .con-out { margin:0; padding:.4rem .6rem; overflow:auto; flex:1;
+             font:11.5px/1.55 var(--mono); white-space:pre-wrap;
+             word-break:break-word; }
+  .con-out .l-warn { color:#e5a13a; }
+  .con-out .l-error { color:#f87171; }
+  .con-out .l-debug { color:var(--dim); }
+  .con-out .n { color:var(--dim); }
+  .con-empty { color:var(--dim); font-style:italic; }
 </style>
 </head>
 <body>
@@ -314,6 +335,15 @@
       <div class="device">
         <div class="glass rect" id="glass"><canvas id="cv" width="240" height="280"></canvas></div>
         <p class="hint" id="hint"></p>
+      </div>
+      <div class="con" id="con">
+        <div class="con-bar">
+          <span>Console</span>
+          <label class="con-lv"><input type="checkbox" id="con-ops" > as ops</label>
+          <span class="rt" id="con-count">0</span>
+          <button class="btn" id="con-clear">Clear</button>
+        </div>
+        <pre class="con-out" id="con-out" aria-live="polite"></pre>
       </div>
     </section>
   </div>
@@ -415,12 +445,15 @@
      UI.ticker() advances timers and momentum and reports whether anything
      moved; UI.dirty() reports whether state changed. Rendering only when
      one of them says so is exactly what a device does. */
+  var conAt = 0;
   function loop() {
     raf = requestAnimationFrame(loop);
     if (!running) return;
     try {
       var moved = UI.ticker();
       if (moved || UI.dirty()) { UI.render(); blit(); }
+      var now = Date.now();
+      if (now - conAt > 120) { conAt = now; conRender(); }
     } catch (e) {
       running = false;
       fail(e, 'while running');
@@ -434,6 +467,50 @@
     drawGutter();
     say('error ' + when + ':\n' + msg, 'err');
   }
+
+  /* ---- the console ----
+     Polled rather than pushed: the logger is a plain ring with a sequence
+     number, so the pane asks for whatever is newer than it has already drawn
+     and appends. That keeps a script logging every frame from re-rendering
+     the whole pane sixty times a second. */
+  var conSeen = 0;
+  function conRender() {
+    var out = $('con-out');
+    if (!globalThis.mjsxLog) return;
+    var fresh = mjsxLog.since(conSeen);
+    if (!fresh.length) {
+      if (!conSeen && !out.childNodes.length) {
+        out.innerHTML = '<span class="con-empty">nothing logged yet — ' +
+                        'call console.log() in the code</span>';
+      }
+      return;
+    }
+    if (!conSeen) out.textContent = '';
+    for (var i = 0; i < fresh.length; i++) {
+      var l = fresh[i];
+      var row = document.createElement('div');
+      row.className = 'l-' + l.level;
+      row.textContent = (l.level === 'log' ? '' : l.level + ': ') + l.text;
+      out.appendChild(row);
+      conSeen = l.n;
+    }
+    /* only follow the tail when the reader is already at it */
+    var atEnd = out.scrollTop + out.clientHeight >= out.scrollHeight - 24;
+    if (atEnd) out.scrollTop = out.scrollHeight;
+    $('con-count').textContent = mjsxLog.lines().length + ' line' +
+      (mjsxLog.lines().length === 1 ? '' : 's');
+  }
+
+  $('con-clear').addEventListener('click', function () {
+    if (globalThis.mjsxLog) mjsxLog.clear();
+    conSeen = 0;
+    $('con-out').textContent = '';
+    $('con-count').textContent = '0';
+    conRender();
+  });
+  /* changing the sink set is a property of the running engine, so it takes a
+     restart — same as any other run option on this page */
+  $('con-ops').addEventListener('change', function () { start(); });
 
   /* ---- start an app ---- */
   function start() {
@@ -456,7 +533,15 @@
          many times larger, so zooming is a genuine re-render rather than a
          magnified bitmap. Same mechanism as the figure viewer. */
       backend = createPureJsBackend(shape.w, shape.h, { dpr: dpr });
-      curCore = mjsxRun(src, backend, { round: !!shape.round });
+      /* 'ops' as well as 'buffer' when the box is ticked, so a line shows up
+         in the frame's op list too — the same path a board uses to get its
+         console into whatever is mirroring it. */
+      curCore = mjsxRun(src, backend, {
+        round: !!shape.round,
+        logSinks: $('con-ops').checked ? 'buffer,ops' : 'buffer'
+      });
+      conSeen = 0;
+      conRender();
       UI.render();
       blit();
       running = true;

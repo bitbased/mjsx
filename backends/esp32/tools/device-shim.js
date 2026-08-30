@@ -40,6 +40,37 @@ var EXAMPLES = [];
  * each call -- a shape as ONE compact op. JSON is built HERE, in
  * MicroQuickJS; the firmware only ferries the finished string.
  */
+/* ---- console ----------------------------------------------------------
+ *
+ * MicroQuickJS has no console, so a line of debugging that works on every
+ * desktop host threw "TypeError: not a function" on the one host you cannot
+ * attach a debugger to. createLog (packages/core/src/log.js, bundled just
+ * above this file) is the same implementation the simulator uses, so a line
+ * formats identically wherever it is read.
+ *
+ * All three sinks are reachable from here:
+ *   buffer  the ring inside createLog, read back with `mjsxLog.since(n)`
+ *           through the firmware's eval path — that is `mjsx logs <ip>`
+ *   serial  sys.log, the one destination a script cannot reach itself
+ *   ops     straight into __O, so a console line arrives in the same frame
+ *           as the drawing it describes and the /remote mirror shows both
+ *
+ * The set is read from configStorage at boot, so it is changeable on a
+ * running board without a rebuild, and defaults to buffer alone: a board
+ * with nobody watching should not be paying to format strings onto a wire.
+ */
+var mjsxLog = createLog({
+  sinks: configStorage.get('log', 'buffer'),
+  max: 120,                       /* a ring, on a chip: bounded on purpose */
+  write: function (t) {
+    if (typeof sys !== 'undefined' && typeof sys.log === 'function') sys.log(t);
+  },
+  emit: function (level, text) {
+    if (__REC) __O.push('["L",' + JSON.stringify(level) + ',' + JSON.stringify(text) + ']');
+  }
+});
+var console = mjsxLog.console;
+
 var __NGFX = gfx;
 var __O = [];
 var __REC = false;

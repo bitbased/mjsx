@@ -73,6 +73,8 @@ function need(file, what) {
 
 function coreAndShim() {
   return fs.readFileSync(need(path.join(U.REPO, 'packages/core/src/mjsx.js'), 'mjsx-core'), 'utf8') +
+    /* before the shim: the shim builds `console` out of createLog */
+    '\n' + fs.readFileSync(need(path.join(U.REPO, 'packages/core/src/log.js'), 'the logger'), 'utf8') +
     '\n' + fs.readFileSync(need(path.join(TOOLS, 'device-shim.js'), 'the device shim'), 'utf8') +
     /* the desktop runners give each app a CommonJS `module` for the
        optional demo() export; the engine has no such global. A stub
