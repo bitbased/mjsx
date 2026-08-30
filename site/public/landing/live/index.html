@@ -72,7 +72,12 @@
   .stage.rev { grid-template-columns:auto minmax(0,1fr); }
   @media (max-width:880px) { .stage.rev { grid-template-columns:1fr; } }
 
-  .dev { justify-self:center; }
+  .dev { justify-self:center; min-width:0; max-width:100%; }
+  /* This page has its own Device (it predates landing/device.js) and sets the
+     canvas width in physical pixels, which walks off the side of a phone.
+     Let the glass and the canvas scale down instead. */
+  .glass { max-width:100%; }
+  .glass canvas { max-width:100%; height:auto; }
   .glass { background:var(--screen); border:1px solid #2a3140; border-radius:14px;
            padding:9px; line-height:0; box-shadow:0 14px 44px rgba(0,0,0,.45); }
   .glass.round { border-radius:50%; padding:7px; }
@@ -104,6 +109,7 @@
 
   .fleet { display:flex; flex-wrap:wrap; gap:1.4rem; align-items:flex-end; margin-top:1.4rem; }
   .note { font-size:.9rem; color:var(--dim); }
+  .dim { color:var(--dim); }
   .btns { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1.4rem; }
   .btn { display:inline-block; font:600 13px/1 var(--mono); text-decoration:none;
          border:1px solid var(--accent); color:var(--accent); border-radius:8px;
@@ -118,8 +124,8 @@
   <span>mjsx</span>
   <span class="tag">running, not described</span>
   <span class="sp"></span>
-  <a href="/play/">simulator</a>
-  <a href="/">docs</a>
+  <a href="/play/">simulator</a><a href="https://github.com/bitbased/mjsx" rel="noopener">github</a>
+  <a href="/docs/">docs</a>
 </div></header>
 
 <div class="wrap">
@@ -127,10 +133,11 @@
 <section>
   <h1>Play it. That is the pitch.</h1>
   <p class="lede">
-    Below is <code>examples/asteroids/app.jsx</code> from this repository,
-    running on the engine a microcontroller runs, drawn through ten native
-    calls. <b>Hold and drag</b> — the ship steers toward your finger and how far
-    out you hold is the throttle. Tap to fire. Arrow keys and space work too.
+    That panel is <b>2,527 lines of ES5</b> running a sixty-step-a-second game
+    loop and painting it through <b>ten drawing calls</b>. The same file runs on
+    a $6 microcontroller. Nothing here is a video, a canvas demo, or a
+    re-implementation — <code>/mjsx-sim.js</code> is the engine itself.
+    <span class="dim">Hold and drag to fly; arrows and space also work.</span>
   </p>
 
   <div class="stage rev">
@@ -141,19 +148,17 @@
     </div>
     <div>
       <p>
-        The round board is why the control is a drag and not a pair of arrows.
-        Screen thirds and on-screen buttons are rectangle thinking — they assume
-        corners to put controls in and edges to divide. A circle has an angle
-        everywhere, so <em>pointing</em> is the gesture the shape suggests, and it
-        turns out to be the better one on a rectangle too.
+        <b>There is no virtual DOM and no reconciler.</b> A frame that is dirty
+        redraws its whole tree — no diff, no keys, no fibers. That is why the
+        engine is one file you can read in an afternoon instead of a framework,
+        and it is what the counters beside this panel are counting: a hundred
+        draw calls, laid out and painted, every frame, in under five milliseconds.
       </p>
       <p>
-        Wrapping is the same argument. On a rectangle, leaving the right edge puts
-        you on the left. On a circle the corners <em>do not exist</em>, so a
-        box-wrapped rock vanishes into a region that is not there. Here the
-        boundary is the rim: cross it and you return diametrically opposite,
-        still on glass. That is nine lines, and the only place the file asks
-        <code>UI.isRound()</code>.
+        The app is <b>plain JSX with no build step</b>. Your browser transpiled it
+        on load with <code>packages/core/src/jsx.js</code> — 312 lines, the same
+        transpiler that runs when a bundle is pushed to a board. There is no
+        bundler in this page and none on the chip.
       </p>
       <div class="readout">
         <span class="stat">draw calls · frame <b id="a-ops">—</b></span>
@@ -162,11 +167,12 @@
         <span class="stat">camera <b id="a-cam">—</b></span>
       </div>
       <p class="note" style="margin-top:.9rem">
-        In <span class="m">CENTRED</span> the ship is pinned to the middle and the
-        world moves past it — which on a 240px circle is the only way to see where
-        you are going. The 1px stars exist for exactly that: with the ship fixed,
-        they are the only thing that tells you the world is moving.
+        Written in the ES5 subset MicroQuickJS accepts: no classes, no arrow
+        functions, no template literals. Not nostalgia — that is what the
+        engine on the chip parses, and a linter fails the build if a file
+        drifts out of it.
       </p>
+
     </div>
   </div>
 </section>
@@ -177,17 +183,17 @@
   <div class="stage">
     <div>
       <p>
-        <code>examples/canvas/app.jsx</code>, unmodified. Drag on the panel to
-        draw; the swatches change colour. Every stroke is a
-        <code>UI.pointer</code> stroke handed to an <code>onDraw</code> handler —
-        the same call the ESP32 touch controller makes, and the same one the HTTP
-        mirror forwards from a browser.
+        <b>One input model, every host.</b> Your mouse became
+        <code>UI.pointer(id, phase, x, y)</code> — the identical call an ESP32
+        touch controller makes, an SDL window makes, and a browser mirror
+        forwards over a websocket. The engine has one touch state machine:
+        taps, drags, long-presses, momentum flings and scroll all come out of
+        that one entry point.
       </p>
       <p class="note">
-        The palette sits on an <code>ArcFooter</code>: items are placed where the
-        ray from screen centre meets the boundary. On a rectangle that boundary is
-        the perimeter, so the arc flattens onto the bottom edge. One call, both
-        shapes, no branch.
+        Hit boxes are registered <em>as the frame paints</em>, so the drawn
+        rectangle and the touchable rectangle are the same rectangle by
+        construction. They cannot drift apart, because there is only one of them.
       </p>
     </div>
     <div class="dev">
@@ -209,17 +215,17 @@
     </div>
     <div>
       <p>
-        <code>examples/input/app.jsx</code>. Tap a field and a keyboard appears —
-        drawn as ordinary boxes, sending the same <code>UI.key('press', name)</code>
-        a physical keyboard sends. There is no privileged channel: a custom pad
-        written in app JSX is a keyboard the moment its taps call that.
+        <b>The engine owns the editing state, so your render stays a pure
+        description.</b> Text, caret and scroll live against the field's
+        <code>id</code>; typing never dirties app state and never rebuilds the
+        form. That is what lets a keystroke become a pixel without a round trip
+        through your data.
       </p>
       <p>
-        On this 172-pixel panel the docked keys would come out under a finger's
-        height, so the keyboard takes the whole display instead and mirrors the
-        field above itself. Nobody opted in to that. The field is not copied
-        either — input state is keyed by <code>id</code>, so the mirror
-        <em>is</em> the field.
+        It is also why the full-display keyboard needs no synchronising code. The
+        field it shows is not a copy — state is keyed by <code>id</code>, so a
+        second node with the same id <em>is</em> the same field. Two views, one
+        piece of state, zero lines to keep them in step.
       </p>
       <div class="readout">
         <span class="stat">layout <b id="i-layout">—</b></span>
@@ -233,11 +239,12 @@
   <p class="eyebrow">the whole hardware contract</p>
   <h2>Ten calls, and a clock.</h2>
   <p>
-    A backend gives mjsx <code>clear</code>, <code>rect</code>, <code>frect</code>,
-    <code>circle</code>, <code>line</code>, <code>text</code>, <code>clip</code>,
-    <code>unclip</code>, <code>width</code>, <code>height</code> — and
-    <code>sys.millis()</code>. That is all of it. Below is every call the asteroids
-    panel made for its last frame, in order, as the engine emitted them.
+    <b>This is the entire hardware contract.</b> <code>clear</code>,
+    <code>rect</code>, <code>frect</code>, <code>circle</code>, <code>line</code>,
+    <code>text</code>, <code>clip</code>, <code>unclip</code>, <code>width</code>,
+    <code>height</code>, and <code>sys.millis()</code>. Implement those eleven
+    functions and every app in this repository runs on your hardware. Below is
+    the real op stream from the panel above, as the engine emitted it.
   </p>
   <pre id="ops" style="max-height:17rem; overflow:auto"></pre>
   <p class="note">
@@ -251,11 +258,14 @@
   <p class="eyebrow">one source, five panels, at once</p>
   <h2>No breakpoints. No second code path.</h2>
   <p>
-    Every panel below is running the same asteroids file, live, at a different
-    size. Nothing in it asks what shape it is on except those nine lines of
-    wrapping. Layout is width-in, height-out — a node is told its width and
-    reports its height — which is why one tree fits a 172-pixel column and a
-    480-pixel window.
+    <b>Layout is width-in, height-out:</b> a node is told its width and reports
+    its height. Nothing ever reports a width. That single rule is why the same
+    tree fits a 172-pixel column and a 480-pixel window with no media query, no
+    breakpoint and no second code path — and why porting to a new panel is
+    telling the engine a number, not rewriting a layout.
+  </p>
+  <p class="note">
+    All five below are running at once, from one source string, right now.
   </p>
   <div class="fleet" id="fleet"></div>
 </section>

@@ -80,13 +80,28 @@ function createPureJsBackend(w, h, opts) {
     return [(color24 >> 16) & 0xff, (color24 >> 8) & 0xff, color24 & 0xff];
   }
 
+  /* ---- CANVAS SOURCES ---------------------------------------------
+   *
+   * A canvas source is an offscreen RGB buffer that the app can make the
+   * TARGET of ordinary gfx calls and then composite back with a single
+   * blit. It is what lets a drawing app cost one op per frame instead of
+   * one op per stroke ever drawn: strokes are rasterised into the buffer
+   * once, and the frame is just the blit.
+   *
+   * Every pixel write in this backend already funnels through setPixel,
+   * so redirecting output is a matter of pointing the active target at a
+   * different buffer — none of the raster code below knows or cares.
+   */
+  var canvases = {};                   /* id -> {px, w, h, PW, PH, gen} */
+  var tPx = px, tW = PW, tH = PH;      /* the ACTIVE draw target */
+
   function setPixel(x, y, rgb) {
-    if (x < 0 || y < 0 || x >= PW || y >= PH) return;
+    if (x < 0 || y < 0 || x >= tW || y >= tH) return;
     if (clipRect) {
       if (x < clipRect.x || y < clipRect.y || x >= clipRect.x + clipRect.w || y >= clipRect.y + clipRect.h) return;
     }
-    var i = (y * PW + x) * 3;
-    px[i] = rgb[0]; px[i + 1] = rgb[1]; px[i + 2] = rgb[2];
+    var i = (y * tW + x) * 3;
+    tPx[i] = rgb[0]; tPx[i + 1] = rgb[1]; tPx[i + 2] = rgb[2];
   }
   /* A logical 1px pen is dpr physical pixels wide. */
   function stamp(x, y, rgb) {
@@ -424,7 +439,35 @@ function createPureJsBackend(w, h, opts) {
   /* The gfx facade takes LOGICAL coordinates and scales into the physical
      buffer; at dpr 1 the scaling is all identity arithmetic. */
   var gfx = {
-    clear: function (color) { fillRect(0, 0, PW, PH, toRGB(color)); textOps.length = 0; },
+    /* clears the ACTIVE target — which is the canvas source, if one is
+       bound, and only then the screen */
+    clear: function (color) {
+      fillRect(0, 0, tW, tH, toRGB(color));
+      if (tPx === px) textOps.length = 0;
+    },
+    /* Composite a canvas source onto the active target, nearest-neighbour
+       when the destination rectangle is not the source's own size. `gen`
+       is accepted and ignored: it exists so a remote host can tell whether
+       the pixels it already holds are current, and here the pixels are
+       right there. */
+    blit: function (id, x, y, ww, hh, gen) {
+      var c = canvases[id];
+      if (!c) return;
+      var dw = Math.round((ww === undefined ? c.w : ww) * dpr);
+      var dh = Math.round((hh === undefined ? c.h : hh) * dpr);
+      var dx = Math.round(x * dpr), dy = Math.round(y * dpr);
+      if (dw <= 0 || dh <= 0) return;
+      var rgb = [0, 0, 0];
+      for (var yy = 0; yy < dh; yy++) {
+        var sy = dh === c.PH ? yy : Math.floor(yy * c.PH / dh);
+        for (var xx = 0; xx < dw; xx++) {
+          var sx = dw === c.PW ? xx : Math.floor(xx * c.PW / dw);
+          var si = (sy * c.PW + sx) * 3;
+          rgb[0] = c.px[si]; rgb[1] = c.px[si + 1]; rgb[2] = c.px[si + 2];
+          setPixel(dx + xx, dy + yy, rgb);
+        }
+      }
+    },
     rect: function (x, y, ww, hh, color, radius) {
       var rgb = toRGB(color);
       if (compat) { afRect(x, y, ww, hh, rgb, radius || 0, false); return; }
@@ -593,7 +636,9 @@ function createPureJsBackend(w, h, opts) {
           if (ay > maxY) maxY = ay;
         }
       }
-      for (var sy = Math.max(0, Math.floor(minY)); sy <= Math.min(PH - 1, Math.ceil(maxY)); sy++) {
+      /* tH, not PH: a poly rasterised INTO a canvas source is bounded by
+         that source, and a screen-tall bound would drop its lower rows. */
+      for (var sy = Math.max(0, Math.floor(minY)); sy <= Math.min(tH - 1, Math.ceil(maxY)); sy++) {
         var cy = sy + 0.5, xs = [];
         for (var ei = 0; ei < edges.length; ei++) {
           var ed = edges[ei];
@@ -644,7 +689,42 @@ function createPureJsBackend(w, h, opts) {
     tone: function () { },
     exit: function () { },
     store: function (k, v) { storeMap[k] = v; },
-    fetch: function (k) { return storeMap[k] === undefined ? '' : storeMap[k]; }
+    fetch: function (k) { return storeMap[k] === undefined ? '' : storeMap[k]; },
+
+    /* Allocate (or confirm) canvas source `id` at logical w x h. Returns 1
+       when the source exists at that exact size — an app tests this to
+       decide whether it can commit strokes or has to keep them as paths. */
+    canvas: function (id, ww, hh) {
+      var c = canvases[id];
+      if (c && c.w === ww && c.h === hh) return 1;
+      var cPW = Math.max(1, Math.round(ww * dpr)), cPH = Math.max(1, Math.round(hh * dpr));
+      canvases[id] = { px: new Uint8Array(cPW * cPH * 3), w: ww, h: hh,
+                       PW: cPW, PH: cPH, gen: 0 };
+      return 1;
+    },
+    /* Bind a canvas source as the draw target; -1 restores the screen and
+       bumps the source's generation, which is the signal a remote host
+       uses to re-send the pixels. */
+    canvasTarget: function (id) {
+      if (id === -1 || id === undefined || id === null) {
+        if (tPx !== px) {
+          for (var k in canvases) if (canvases[k].px === tPx) canvases[k].gen++;
+        }
+        tPx = px; tW = PW; tH = PH;
+        return 1;
+      }
+      var c = canvases[id];
+      if (!c) return 0;
+      tPx = c.px; tW = c.PW; tH = c.PH;
+      return 1;
+    },
+    canvasGen: function (id) { return canvases[id] ? canvases[id].gen : 0; },
+    /* the raw RGB of a canvas source, so a second renderer can composite the
+       real pixels instead of guessing at what a blit contained */
+    canvasRaw: function (id) {
+      var c = canvases[id];
+      return c ? { px: c.px, w: c.PW, h: c.PH, gen: c.gen } : null;
+    }
   };
 
   /* Binary PPM (P6): a 3-line ASCII header, then raw RGB bytes. The
@@ -659,7 +739,17 @@ function createPureJsBackend(w, h, opts) {
   var base = fontFor(1);
   /* raw: the live RGB framebuffer itself (w*dpr x h*dpr x 3). Hosts that
      present every frame read it in place instead of paying toPPM's copy. */
-  return { gfx: gfx, sys: sys, toPPM: toPPM, raw: px, width: w, height: h, dpr: dpr, textOps: textOps,
+  /* What gfx.text ACTUALLY uses at a given size. A second renderer that
+     guesses this puts every label at the wrong width; with the auto ladder a
+     size-2 string is not twice a size-1 string, because size 2 may pick a
+     different face entirely. */
+  function textMetrics(size) {
+    var f = fontFor(size);
+    return { adv: (f.w + 1) * f.scale, h: f.h * f.scale, lineH: (f.h + 2) * f.scale };
+  }
+
+  return { gfx: gfx, sys: sys, toPPM: toPPM, raw: px, width: w, height: h, dpr: dpr,
+           textOps: textOps, textMetrics: textMetrics,
            font: { advance: base.advance || (base.w + 1), lineH: (base.h + 2) * (fixed ? 1 : 1),
                    pick: fixed ? null : pickFont } };
 }

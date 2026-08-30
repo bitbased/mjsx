@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mjsx Arcade</title>
+<!--
+  PRESENTATION 1 of 5 — CRT ARCADE.
+  Example-first: the game is playable before a single word of explanation,
+  and every label is a fact about the cabinet in front of you, not a claim
+  about the project. Three cabinets, three programs, nothing after them.
+-->
+<script src="/mjsx-sim.js"></script>
+<script src="/hl.js"></script>
+<link rel="stylesheet" href="/landing/pipe.css">
+<script src="/landing/device.js"></script>
+<style>
+  /* Committed single-theme page: a CRT is dark, and a light-mode CRT is not
+     a thing. Every colour is painted explicitly so it holds on any host. */
+  :root {
+    --void:#07090a; --deep:#0c1112; --grid:#16211f;
+    --p1:#46f2a0;      /* phosphor: everything readable */
+    --p2:#ffb340;      /* amber: the second register */
+    --p3:#ff5f8f;      /* magenta: only ever one thing at a time */
+    --dim:#4d6b62;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing:border-box; }
+  html { color-scheme:dark; }
+  body {
+    margin:0; background:var(--void); color:var(--p1);
+    font:14px/1.6 var(--mono); letter-spacing:.02em;
+    -webkit-text-size-adjust:100%;
+    background-image:
+      radial-gradient(120% 80% at 50% 0%, #0e1a18 0%, var(--void) 70%);
+    min-height:100vh;
+  }
+  /* the scanlines, kept faint enough to read through */
+  body::after {
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:9;
+    background:repeating-linear-gradient(
+      to bottom, rgba(0,0,0,.28) 0 1px, rgba(0,0,0,0) 1px 3px);
+    mix-blend-mode:multiply;
+  }
+  @media (prefers-reduced-motion:reduce) { .blink { animation:none !important; } }
+
+  .wrap { max-width:64rem; margin:0 auto; padding:0 1.1rem; }
+
+  header.top { border-bottom:1px solid var(--grid); }
+  header.top .wrap { display:flex; gap:.6rem 1rem; align-items:center; flex-wrap:wrap;
+                     min-height:3rem; padding-top:.35rem; padding-bottom:.35rem;
+                     font-size:12px; letter-spacing:.18em; }
+  header.top .sp { margin-left:auto; }
+  header.top a { color:var(--dim); text-decoration:none; letter-spacing:.1em; }
+  header.top a:hover, header.top a:focus-visible { color:var(--p2); }
+
+  h1 { font-size:clamp(1.6rem,6vw,3rem); letter-spacing:.16em; margin:2rem 0 .3rem;
+       text-shadow:0 0 18px rgba(70,242,160,.35); text-wrap:balance; }
+  .sub { color:var(--dim); letter-spacing:.14em; font-size:11px; margin:0 0 1.6rem; }
+
+  /* ---- a cabinet ---- */
+  .cab { margin:0 0 3.2rem; }
+  .marquee {
+    display:flex; align-items:baseline; gap:.8rem; flex-wrap:wrap;
+    border:1px solid var(--grid); border-bottom:0;
+    background:linear-gradient(180deg,#101a19,#0a1110);
+    padding:.55rem .85rem;
+  }
+  .marquee .no { color:var(--void); background:var(--p2); font-weight:700;
+                 padding:.1rem .45rem; letter-spacing:.1em; font-size:11px; }
+  .marquee .nm { color:var(--p2); letter-spacing:.22em; font-size:13px; }
+  .marquee .fr { margin-left:auto; color:var(--dim); font-size:10.5px;
+                 letter-spacing:.1em; }
+
+  .cabinet { border:1px solid var(--grid); background:#080d0c;
+             padding:1.4rem 1rem 1rem; display:flex; flex-direction:column;
+             align-items:center; gap:1rem; min-width:0; }
+
+  .glass { background:#000; border:2px solid #1d2a28; border-radius:6px;
+           padding:6px; line-height:0; box-shadow:0 0 42px rgba(70,242,160,.10) inset,
+           0 0 0 1px #000; }
+  .glass.round { border-radius:50%; padding:8px; }
+  .glass canvas { border-radius:2px; image-rendering:pixelated; touch-action:none;
+                  outline:none; }
+  .glass.round canvas { border-radius:50%; }
+  .glass canvas:focus-visible { box-shadow:0 0 0 2px var(--p2); }
+
+  /* the control panel below the screen: what this cabinet accepts */
+  .panelstrip { width:100%; border-top:1px dashed var(--grid); padding-top:.8rem;
+                display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; justify-content:center; }
+  .ctlkey { display:flex; align-items:center; gap:.45rem; font-size:11px;
+            color:var(--dim); letter-spacing:.06em; }
+  .ctlkey b { color:var(--p1); font-weight:400; border:1px solid var(--grid);
+              padding:.05rem .4rem; background:#0d1514; letter-spacing:.08em; }
+
+  .facts { width:100%; display:grid; gap:.3rem 1.2rem; font-size:11px;
+           grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));
+           color:var(--dim); letter-spacing:.04em; }
+  .facts span::before { content:"▸ "; color:var(--p3); }
+
+  .switch { display:flex; flex-wrap:wrap; gap:.4rem; justify-content:center; }
+  .shapebtn { display:flex; align-items:center; gap:.4rem; cursor:pointer;
+              background:#0b1211; color:var(--dim); border:1px solid var(--grid);
+              font:11px var(--mono); letter-spacing:.06em; padding:.3rem .5rem; }
+  .shapebtn .g { background:#1d2a28; display:block; }
+  .shapebtn .g.round { border-radius:50%; }
+  .shapebtn[aria-pressed="true"] { color:var(--p2); border-color:var(--p2); }
+  .shapebtn[aria-pressed="true"] .g { background:var(--p2); }
+  .shapebtn:focus-visible { outline:2px solid var(--p2); outline-offset:1px; }
+
+  .hint { font-size:11px; color:var(--p2); letter-spacing:.12em; text-align:center; }
+  .blink { animation:bl 1.4s steps(2,end) infinite; }
+  @keyframes bl { 50% { opacity:.25; } }
+
+  /* ---- STAGE 04: the loader ----
+     Geometry comes from /landing/pipe.css: the panes are sized in characters
+     and scroll inside themselves, so they stay narrow instead of stretching
+     across the cabinet. Only the colours are set here. */
+  .mp { --mp-font:var(--mono); --mp-fs:12.5px;
+        --mp-gap:.5rem; }
+  .mp-stage { border:1px solid var(--grid); background:#080d0c; }
+  .mp-head { padding:.3rem .55rem; border-bottom:1px solid var(--grid);
+             background:#0d1514; font-size:10.5px; letter-spacing:.14em; }
+  .mp-n { background:var(--p2); color:var(--void); font-weight:700; padding:0 .35rem; }
+  .mp-t { color:var(--p2); }
+  .mp-f { color:var(--dim); font-size:10px; }
+  .mp-panel .mp-body { padding:.8rem; justify-content:center; align-items:center; }
+  .mp-ed pre { color:var(--p1); }
+  .mp-ed textarea { caret-color:var(--p2); }
+  .mp-ed textarea::selection { background:rgba(255,179,64,.3); }
+  pre.mp-ops { color:var(--dim); }
+  .k { color:var(--p3); } .s { color:var(--p2); } .c { color:var(--dim); }
+  .num { color:var(--p1); } .op { color:var(--p2); }
+  .mp-ctl { margin-bottom:.7rem; }
+  .mp-ex, .mp-play { font:11px var(--mono); letter-spacing:.06em; color:var(--p1);
+                     background:#0b1211; border:1px solid var(--grid);
+                     padding:.28rem .5rem; cursor:pointer; }
+  .mp-play[aria-pressed="true"] { color:var(--p2); border-color:var(--p2); }
+  .mp-ex:focus-visible, .mp-play:focus-visible { outline:2px solid var(--p2); }
+  .mp-shapes { display:flex; flex-wrap:wrap; gap:.35rem; }
+  .mp-err { color:var(--p3); font-size:11px; }
+  .overview { border:1px solid var(--grid); background:#080d0c; padding:1rem 1.1rem;
+              margin:0 0 2.2rem; display:grid; gap:.5rem 2rem;
+              grid-template-columns:repeat(auto-fit,minmax(20rem,1fr)); align-items:start; }
+  .overview p { margin:0; color:var(--dim); font-size:12.5px; max-width:42rem; }
+  .overview p b { color:var(--p2); }
+  .overview ul { margin:0; padding:0; list-style:none; font-size:11.5px; color:var(--dim); }
+  .overview li { padding:.12rem 0 .12rem .9rem; position:relative; }
+  .overview li::before { content:"\25B8"; position:absolute; left:0; color:var(--p3); }
+
+  /* ---- USE THE SCREEN ----
+     The examples sit in a deck that fills the window: three across on a wide
+     display, two on a laptop, one on a phone. Each card is a container, so
+     the panel-beside-prose split inside it responds to the CARD's width, not
+     the window's — a narrow column on a wide screen still stacks. */
+  .deck { display:grid; gap:1.4rem; align-items:start;
+          grid-template-columns:repeat(auto-fit, minmax(min(100%, 33rem), 1fr)); }
+  .deck > * { container-type:inline-size; min-width:0; }
+
+  footer { border-top:1px solid var(--grid); padding:1.2rem 0 3rem;
+           font-size:11px; letter-spacing:.1em; color:var(--dim); }
+  footer a { color:var(--dim); }
+  footer a:hover { color:var(--p1); }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <span style="color:var(--p2)">MJSX</span><span style="color:var(--dim)">ARCADE</span>
+  <span class="sp"></span>
+  <a href="/landing/">directions</a><a href="/play/">simulator</a><a href="https://github.com/bitbased/mjsx" rel="noopener">github</a><a href="/docs/">docs</a>
+</div></header>
+
+<div class="wrap">
+  <h1>THREE PROGRAMS</h1>
+  <p class="sub">RUNNING HERE, ON THE SAME ENGINE THAT RUNS ON THE GLASS</p>
+
+  <div class="overview">
+    <p><b>mjsx</b> is a JSX user-interface engine for the small displays on
+    microcontrollers. You write components; it lays them out, hit-tests them,
+    and paints them through ten drawing calls and a clock.</p>
+    <p>It is one file of ES5 — the same core on a 240&times;240 round panel, a
+    480&times;320 screen, an ESP32, a Pi, or this page. The cabinets below are
+    the shipped examples running on it right now.</p>
+    <ul>
+      <li>one ES5 file, no VDOM</li>
+      <li>width-in, height-out layout</li>
+      <li>round glass as geometry, not a special case</li>
+      <li>touch, physical keys and virtual keyboards</li>
+    </ul>
+  </div>
+
+  <div class="deck">
+  <!-- ============ CABINET 1 ============ -->
+  <div class="cab">
+    <div class="marquee">
+      <span class="no">01</span><span class="nm">ASTEROIDS</span>
+      <span class="fr">examples/asteroids · real&#8209;time</span>
+    </div>
+    <div class="cabinet">
+      <div id="host-a"></div>
+      <p class="hint">CLICK THE SCREEN, THEN ARROWS + SPACE</p>
+      <div class="switch" id="shapes-a"></div>
+      <div class="panelstrip">
+        <span class="ctlkey"><b>◀ ▶</b> turn</span>
+        <span class="ctlkey"><b>▲</b> thrust</span>
+        <span class="ctlkey"><b>SPACE</b> fire</span>
+        <span class="ctlkey"><b>HOLD + DRAG</b> steer</span>
+      </div>
+      <div class="facts">
+        <span>fixed 16&nbsp;ms timestep, so it plays the same at 15&nbsp;Hz and 120&nbsp;Hz</span>
+        <span>the world is a torus — and on round glass it wraps at the rim</span>
+        <span>ship-centred mode scrolls the field, not the ship</span>
+        <span>seeded field: the same run every time, on every panel</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CABINET 2 ============ -->
+  <div class="cab">
+    <div class="marquee">
+      <span class="no">02</span><span class="nm">INPUT</span>
+      <span class="fr">examples/input · every way in at once</span>
+    </div>
+    <div class="cabinet">
+      <div id="host-i"></div>
+      <p class="hint">TAP A FIELD, THEN TYPE — YOUR KEYBOARD OR THE ONE ON THE GLASS</p>
+      <div class="switch" id="shapes-i"></div>
+      <div class="panelstrip">
+        <span class="ctlkey"><b>TAP</b> place caret</span>
+        <span class="ctlkey"><b>DRAG</b> scroll text</span>
+        <span class="ctlkey"><b>HOLD + DRAG</b> walk caret</span>
+        <span class="ctlkey"><b>TAB</b> next field</span>
+      </div>
+      <div class="facts">
+        <span>QWERTY, T9, number pad and a one-row STRIP — chosen to fit the glass</span>
+        <span>on the circle each row is inset to its own chord, so no key is under the bezel</span>
+        <span>a custom keyboard is ordinary JSX calling UI.type()</span>
+        <span>physical keys, touch and virtual keys all arrive the same way</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CABINET 3 ============ -->
+  <div class="cab">
+    <div class="marquee">
+      <span class="no">03</span><span class="nm">DRAW</span>
+      <span class="fr">examples/canvas · pixels you keep</span>
+    </div>
+    <div class="cabinet">
+      <div id="host-c"></div>
+      <p class="hint">DRAG TO DRAW</p>
+      <div class="switch" id="shapes-c"></div>
+      <div class="panelstrip">
+        <span class="ctlkey"><b>DRAG</b> stroke</span>
+        <span class="ctlkey"><b>SWATCH</b> colour</span>
+        <span class="ctlkey"><b>DIRECT</b> straight to the bitmap</span>
+        <span class="ctlkey"><b>CLR</b> clear</span>
+      </div>
+      <div class="facts">
+        <span>the live stroke is drawn as ordinary ops, over the bitmap</span>
+        <span>on release it is rasterised into a canvas source and leaves the op stream</span>
+        <span>the frame then composites it with a single blit</span>
+        <span>on round glass the canvas is the whole circle, controls ride the rim</span>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <!-- ============ CABINET 4 ============ -->
+  <div class="cab">
+    <div class="marquee">
+      <span class="no">04</span><span class="nm">SOURCE</span>
+      <span class="fr">edit it · it rebuilds as you type</span>
+    </div>
+    <div class="cabinet">
+      <div id="host-p" style="width:100%"></div>
+      <div class="facts" style="margin-top:.4rem">
+        <span>the real transpiler and the real engine, not a preview</span>
+        <span>the call list is what the frame actually emitted</span>
+        <span>switch the panel and the same source meets different glass</span>
+        <span>load any example into the slot and edit it live</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer><div class="wrap">
+  OTHER PRESENTATIONS ·
+  <a href="/landing/bench/">bench</a> ·
+  <a href="/landing/cyber/">cyber</a> ·
+  <a href="/landing/telemetry/">telemetry</a> ·
+  <a href="/landing/datasheet/">datasheet</a> ·
+  <a href="/landing/firmware/">firmware</a> ·
+  <a href="/">drafting</a> </div></footer>
+
+<script>
+/* A small program to start from — short enough to read whole, and
+   it exercises state, layout, a component and a tap handler. */
+var STARTER =
+  'function App() {\n' +
+  '  var n = UI.state.n || 0;\n' +
+  '  return (\n' +
+  '    <box h={gfx.height()} pad={em(1)} gap={em(1)}>\n' +
+  '      <text text="ARCADE" size={1} align="center"\n' +
+  '            color={UI.theme.accent} />\n' +
+  '      <box bg={UI.theme.panel} radius={8} pad={em(1)}>\n' +
+  '        <text text={"COUNT: " + n} size={2} align="center" />\n' +
+  '      </box>\n' +
+  '      <Button label="+1" size={2}\n' +
+  '              onTap={function () { UI.set({ n: n + 1 }); }} />\n' +
+  '    </box>\n' +
+  '  );\n' +
+  '}\n' +
+  'UI.mount(App);\n';
+
+MJSX.ready(function (ex) {
+  var a = MJSX.panel(document.getElementById('host-a'),
+    { src: ex.asteroids, w: 240, h: 240, round: 1, zoom: 2, label: 'Asteroids, playable' });
+  MJSX.shapeButtons(document.getElementById('shapes-a'), a, { current: '240x240r' });
+
+  var i = MJSX.panel(document.getElementById('host-i'),
+    { src: ex.input, w: 240, h: 280, zoom: 2, label: 'Text input, every method' });
+  MJSX.shapeButtons(document.getElementById('shapes-i'), i, { current: '240x280' });
+
+  var c = MJSX.panel(document.getElementById('host-c'),
+    { src: ex.canvas, w: 240, h: 280, zoom: 2, label: 'Freehand drawing' });
+  MJSX.shapeButtons(document.getElementById('shapes-c'), c, { current: '240x280' });
+
+  /* the cartridge slot: source in, glass out, with the call list on the side */
+  MJSX.pipeline(document.getElementById('host-p'), {
+    src: STARTER, w: 240, h: 280, 
+    stages: ['source', 'panel', 'ops'],
+    labels: { source: 'SOURCE', sourceMeta: 'editable',
+              panel: 'GLASS', ops: 'CALL LIST' },
+    examples: [{ name: '_starter', label: 'a small program (editable)', source: STARTER }]
+      .concat(['asteroids','input','canvas','counter','shapes','layers','fonts']
+        .filter(function (n) { return ex[n]; })
+        .map(function (n) { return { name: n, label: n, source: ex[n] }; })),
+    panelLabel: 'the program you are editing'
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mjsx — JSX to pixels, every stage visible</title>
+<!--
+  DIRECTION: show the whole pipeline at once, with real data.
+
+  Most UI frameworks are opaque between "I wrote this" and "pixels appeared".
+  mjsx is four steps and they all fit on one screen, so the page shows all
+  four for whatever you type: your JSX, the h() calls it becomes, the native
+  op stream that produces, and the framebuffer those ops paint.
+
+  Nothing here is illustrative. The transpiler is packages/core/src/jsx.js,
+  the engine is packages/core/src/mjsx.js, and the recorder is the same
+  oprec.js the HTTP mirror streams a device's screen with.
+-->
+<style>
+  :root {
+    --accent:#4b8bf5; --ok:#4ade80; --warn:#fbbf24; --err:#f87171;
+    --bg:#0b0d11; --panel:#141920; --ink:#e6e9ef; --dim:#98a1ae; --line:#222932;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg:#f6f7f9; --panel:#fff; --ink:#11141a; --dim:#5b6472; --line:#e1e5ea;
+    }
+  }
+  * { box-sizing:border-box; }
+  html { color-scheme: dark light; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 var(--sans); }
+  .wrap { max-width:82rem; margin:0 auto; padding:0 1.5rem; }
+  header { border-bottom:1px solid var(--line); }
+  header .wrap { display:flex; align-items:center; gap:.9rem; height:3.25rem;
+                 font:600 14px/1 var(--mono); }
+  header .tag { color:var(--dim); font-weight:400; font-size:11px;
+                letter-spacing:.07em; text-transform:uppercase; }
+  header .sp { margin-left:auto; }
+  header a { color:var(--dim); text-decoration:none; font-size:12px; }
+  header a:hover { color:var(--accent); }
+
+  h1 { font-size:clamp(1.9rem,4.4vw,2.9rem); line-height:1.07; margin:2.5rem 0 .7rem;
+       letter-spacing:-.025em; text-wrap:balance; }
+  .lede { font-size:1.1rem; color:var(--dim); max-width:48rem; margin:0 0 2rem; }
+  h2 { font-size:1.3rem; margin:0 0 .5rem; letter-spacing:-.015em; }
+  p { max-width:46rem; }
+  code { font-family:var(--mono); font-size:.92em; }
+  a { color:var(--accent); }
+  .note { font-size:.9rem; color:var(--dim); }
+
+  /* the four stages, side by side on a wide screen */
+  .flow { display:grid; gap:1rem; margin:0 0 1.25rem;
+          grid-template-columns:repeat(4, minmax(0,1fr)); align-items:start; }
+  @media (max-width:1150px) { .flow { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:640px)  { .flow { grid-template-columns:1fr; } }
+
+  .stage { border:1px solid var(--line); border-radius:10px; background:var(--panel);
+           display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+  .stage > header { display:flex; align-items:baseline; gap:.5rem; padding:.55rem .75rem;
+                    border-bottom:1px solid var(--line); height:auto; }
+  .stage .n { font:700 10px/1 var(--mono); color:var(--bg); background:var(--accent);
+              border-radius:3px; padding:.25rem .35rem; }
+  .stage .t { font:600 12px/1.2 var(--mono); letter-spacing:.02em; }
+  .stage .src { font:10px/1.2 var(--mono); color:var(--dim); margin-left:auto;
+                white-space:nowrap; }
+  .stage .body { padding:.65rem .75rem; overflow:auto; max-height:24rem; }
+  /* the pre owns its own horizontal scroll: a code block wider than its
+     column must scroll inside itself, never push the page */
+  .stage pre { margin:0; font:11.5px/1.5 var(--mono); white-space:pre;
+               overflow-x:auto; max-width:100%; }
+
+  /* Stage 1 is an EDITOR, and it is coloured by the same tokenizer that
+     colours stage 2 — it used to be the one raw, unhighlighted panel on a
+     page whose whole subject is watching source become pixels.
+     The highlighted copy is painted underneath and the textarea rides on
+     top with transparent glyphs, so the caret and selection stay real.
+     Every metric that affects wrapping MUST match between the layers or
+     the caret drifts away from the letters. */
+  .ed { position:relative; }
+  .ed pre, .ed textarea {
+    margin:0; border:0; font:11.5px/1.5 var(--mono); white-space:pre;
+    padding:.65rem .75rem; overflow:auto; tab-size:2;
+  }
+  .ed pre { position:absolute; inset:0; pointer-events:none; overflow:hidden;
+            color:var(--ink); }
+  .ed textarea { position:relative; width:100%; min-height:20rem; display:block;
+                 background:transparent; color:transparent; caret-color:var(--ink);
+                 resize:vertical; overscroll-behavior:none; }
+  .ed textarea::selection { background:rgba(75,139,245,.32); }
+  textarea:focus { outline:none; }
+
+  .k { color:var(--accent); } .s { color:var(--warn); } .c { color:var(--dim); font-style:italic; }
+  .op { color:var(--ok); } .num { color:var(--err); }
+
+  .screen { background:#000; border-radius:6px; padding:8px; line-height:0;
+            display:flex; justify-content:center; }
+  .screen.round { border-radius:50%; padding:6px; }
+  /* NO CSS CLAMPING HERE. max-width alone squeezed the width while the
+     inline height stayed put, so a 240x240 round panel rendered as an
+     ellipse. One scale is computed in script and both dimensions are set
+     from it; CSS does not get a vote. */
+  canvas { display:block; image-rendering:pixelated; touch-action:none; }
+  .screen.round canvas { border-radius:50%; }
+
+  .bar { display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin:0 0 1rem; }
+
+  /* A SHAPE PICKER, not a list of strings. What is being chosen is a
+     rectangle, so the control shows rectangles at their real proportions —
+     and the round one is round.
+     NOT called .shapes: that class belongs to the documentation's figure
+     switcher, and sharing it made this control inherit that stylesheet and
+     read as an empty switcher to the site auditor. */
+  .shapepick { display:flex; gap:.15rem; align-items:flex-end;
+            border:1px solid var(--line); border-radius:9px; padding:.3rem .35rem;
+            background:var(--panel); }
+  .shapepick button { border:0; background:none; cursor:pointer; padding:.3rem .35rem;
+                   display:flex; flex-direction:column; align-items:center; gap:.35rem;
+                   border-radius:6px; color:var(--dim); font:9.5px/1 var(--mono); }
+  .shapepick button:hover { background:rgba(127,127,127,.14); color:var(--ink); }
+  .shapepick button[aria-pressed="true"] { background:var(--accent); color:#fff; }
+  .shapepick .g { border:1.5px solid currentColor; border-radius:2px; display:block; }
+  .shapepick .g.round { border-radius:50%; }
+  select, .btn { font:inherit; font-size:.82rem; padding:.35rem .6rem; border-radius:8px;
+                 border:1px solid var(--line); background:var(--panel); color:var(--ink);
+                 cursor:pointer; }
+  .btn:hover, select:hover { border-color:var(--accent); }
+  .stat { border:1px solid var(--line); border-radius:999px; padding:.28rem .7rem;
+          font:12px/1.4 var(--mono); color:var(--dim); background:var(--panel); }
+  .stat b { color:var(--ink); font-variant-numeric:tabular-nums; }
+  .err { color:var(--err); font:12px/1.5 var(--mono); }
+
+  section { padding:2.5rem 0; border-top:1px solid var(--line); }
+  .grid { display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));
+          margin-top:1.2rem; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:1rem 1.1rem;
+          background:var(--panel); }
+  .card h3 { margin:0 0 .35rem; font:600 14px/1.3 var(--mono); }
+  .card p { margin:0; font-size:.9rem; color:var(--dim); max-width:none; }
+  footer { padding:2.5rem 0 4rem; }
+</style>
+<script src="/hl.js"></script>
+</head>
+<body>
+
+<header><div class="wrap">
+  <span>mjsx</span><span class="tag">jsx to pixels</span>
+  <span class="sp"></span>
+  <a href="/landing/">other directions</a><a href="/play/">simulator</a><a href="https://github.com/bitbased/mjsx" rel="noopener">github</a><a href="/docs/">docs</a>
+</div></header>
+
+<div class="wrap">
+  <h1>Four steps from your file to the glass. All four, right here.</h1>
+  <p class="lede">
+    Most UI stacks are opaque between “I wrote this” and “pixels appeared”. This
+    one is four steps and they fit on one screen. Edit the source on the left and
+    watch the other three change — the transpiler, the engine and the recorder
+    below are the real ones, not a diagram of them.
+  </p>
+
+  <div class="bar">
+    <select id="ex"></select>
+    <span class="shapepick" id="panel"></span>
+    <button class="btn" id="play" title="run the frame loop">&#9654;&nbsp;play</button>
+    <span class="stat">h() calls <b id="s-nodes">—</b></span>
+    <span class="stat">native calls <b id="s-ops">—</b></span>
+    <span class="stat">layout+paint <b id="s-ms">—</b></span>
+    <span class="stat">fps <b id="s-fps">—</b></span>
+    <span class="err" id="s-err"></span>
+  </div>
+
+  <div class="flow">
+    <div class="stage">
+      <header><span class="n">1</span><span class="t">YOUR SOURCE</span>
+        <span class="src">.jsx</span></header>
+      <div class="ed"><pre id="src-hl" aria-hidden="true"></pre>
+        <textarea id="src" spellcheck="false" aria-label="mjsx source"></textarea></div>
+    </div>
+
+    <div class="stage">
+      <header><span class="n">2</span><span class="t">TRANSPILED</span>
+        <span class="src">core/src/jsx.js · 312 lines</span></header>
+      <div class="body"><pre id="js"></pre></div>
+    </div>
+
+    <div class="stage">
+      <header><span class="n">3</span><span class="t">NATIVE CALLS</span>
+        <span class="src">the whole hardware contract</span></header>
+      <div class="body"><pre id="ops"></pre></div>
+    </div>
+
+    <div class="stage">
+      <header><span class="n">4</span><span class="t">FRAMEBUFFER</span>
+        <span class="src">core/../pure-js</span></header>
+      <div class="body" style="display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <div class="screen" id="screen"><canvas id="cv"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    Stage 2 is JSX to <code>h()</code> and <b>nothing else</b> — no TypeScript, no
+    Babel, no bundler. It deliberately does not touch your object literals, because
+    the engine it feeds parses ES5 and a helpful transform that rewrote
+    <code>{ x: x }</code> to <code>{ x }</code> would produce a file the chip
+    refuses.
+  </p>
+
+  <section>
+    <h2>Why there are only four steps</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>No virtual DOM</h3>
+        <p>Nothing is retained between frames and nothing is diffed. A dirty frame
+           walks the tree and paints it, which is why stage 3 is a flat list and
+           not a mutation log.</p>
+      </div>
+      <div class="card">
+        <h3>No bundler</h3>
+        <p>Stage 2 runs in 312 lines, here in your browser and on the machine that
+           pushes a bundle to a board. Same file, same output.</p>
+      </div>
+      <div class="card">
+        <h3>Eleven functions</h3>
+        <p>Everything in stage 3 is one of ten <code>gfx</code> calls plus a clock.
+           A backend is those eleven; the ESP32 binds them to C, the terminal to
+           half-block cells.</p>
+      </div>
+      <div class="card">
+        <h3>Width in, height out</h3>
+        <p>A node is told its width and reports its height. Change the panel above
+           and the tree does not change — only the number it was told.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The ops are the portable artifact</h2>
+    <p>
+      Stage 3 is not a debug view. That list is what the HTTP mirror streams to put
+      a device's screen in a browser, what every figure in the documentation carries
+      inside its PNG, and what the golden tests hash. Because it is resolution
+      independent, the same recording replays at any scale — text is redrawn with a
+      larger face rather than magnified.
+    </p>
+    <p class="note">
+      Which is also the honest measure of the engine's size: what you see in stage 3
+      is everything mjsx asks a device for. There is no second channel.
+    </p>
+  </section>
+</div>
+
+<footer><div class="wrap note">
+  A hobby project, MIT licensed, pre-publication. This page loads the engine
+  (<code>/mjsx-sim.js</code>) and the example sources
+  (<code>/examples.json</code>) and makes no other request.
+</div></footer>
+
+<script src="/mjsx-sim.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (i) { return document.getElementById(i); };
+  var KEYS = ['h','UI','Button','Swatch','em','Modal','Keyboard','ArcFooter','configStorage'];
+
+  var PANELS = {
+    '240x280': [240,280,false], '172x320': [172,320,false], '320x172': [320,172,false],
+    '240x240r': [240,240,true], '320x480': [320,480,false]
+  };
+
+  /* the live device: built by build(), read by draw()/showOps()/the pointer
+     handlers. Declared here because several of them run before the first
+     successful build. */
+  var dev = null;
+
+  var STARTER =
+    "function App() {\n" +
+    "  var n = UI.state.n || 0;\n" +
+    "  return (\n" +
+    "    <box pad={em(1)} gap={em(0.75)} h={gfx.height()}>\n" +
+    "      <text text=\"PIPELINE\" size={1} align=\"center\"\n" +
+    "            color={UI.theme.accent} />\n" +
+    "      <box bg={UI.theme.panel} radius={8} pad={em(1)}\n" +
+    "           border={UI.theme.accent}>\n" +
+    "        <text text={'TAPS: ' + n} size={2} align=\"center\" />\n" +
+    "      </box>\n" +
+    "      <Button label=\"TAP ME\" size={2}\n" +
+    "              onTap={function () { UI.set({ n: n + 1 }); }} />\n" +
+    "    </box>\n" +
+    "  );\n" +
+    "}\n" +
+    "UI.mount(App);\n";
+
+  /* Highlighting lives in /hl.js now: one tokenizer for every page on the
+     site, instead of a copy per page drifting out of step. */
+  var esc = window.hlEsc, highlight = window.hl;
+
+  /* ---- stage 1: what you typed ----
+     One pass down the page: read the source, transpile it, run it, then show
+     what the run emitted. Every panel is filled by the step that actually
+     produced it, so nothing here is a mock-up. */
+  function build() {
+    var src = $('src').value;
+    var pk = PANELS[chosen] || PANELS['240x280'];
+    $('s-err').textContent = '';
+
+    /* ---- stage 2: the real transpiler ---- */
+    var js;
+    try { js = mjsxTranspile(src); }
+    catch (e) {
+      $('s-err').textContent = 'JSX: ' + e.message;
+      $('js').textContent = '';
+      return;
+    }
+    $('js').innerHTML = highlight(js);
+
+    /* ---- stages 3 and 4: the real engine ---- */
+    var cv = $('cv');
+    var dpr = pk[0] <= 240 ? 2 : 1;
+    cv.width = pk[0] * dpr; cv.height = pk[1] * dpr;
+    var fit = Math.min(300 / pk[0], 330 / pk[1]);
+    cv.style.width = Math.round(pk[0] * fit) + 'px';
+    cv.style.height = Math.round(pk[1] * fit) + 'px';
+    $('screen').className = 'screen' + (pk[2] ? ' round' : '');
+
+    var be, core;
+    try {
+      be = createPureJsBackend(pk[0], pk[1], { dpr: dpr });
+      core = mjsxRun(src, be, { round: pk[2] });
+    } catch (e) {
+      $('s-err').textContent = (e.mjsxPhase === 'jsx' ? 'JSX: ' : 'run: ') + e.message;
+      return;
+    }
+    dev = { be: be, core: core, dpr: dpr, w: pk[0], h: pk[1] };
+    for (var i = 0; i < KEYS.length; i++) globalThis[KEYS[i]] = core[KEYS[i]];
+
+    draw();
+    showOps();
+  }
+
+  function enter() {
+    if (!dev) return;
+    globalThis.gfx = dev.be.gfx; globalThis.sys = dev.be.sys;
+    for (var i = 0; i < KEYS.length; i++) globalThis[KEYS[i]] = dev.core[KEYS[i]];
+  }
+
+  var img = null;
+  function draw() {
+    if (!dev) return;
+    enter();
+    var t0 = performance.now();
+    dev.core.UI.render();
+    $('s-ms').textContent = (performance.now() - t0).toFixed(2) + ' ms';
+    var cv = $('cv'), ctx = cv.getContext('2d', { alpha: false });
+    var cw = cv.width, ch = cv.height, src = dev.be.raw;
+    if (!img || img.width !== cw) img = ctx.createImageData(cw, ch);
+    var d = img.data, n = cw * ch, s = 0, o = 0;
+    for (var i = 0; i < n; i++) {
+      d[o] = src[s]; d[o+1] = src[s+1]; d[o+2] = src[s+2]; d[o+3] = 255;
+      s += 3; o += 4;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  var NAME = { C:'clear', r:'rect', f:'frect', c:'circle', l:'line',
+               t:'text', x:'clip', X:'unclip', p:'poly', b:'blit' };
+  function showOps() {
+    if (!dev) return;
+    enter();
+    var rec = mjsxRecord(dev.be.gfx), real = globalThis.gfx;
+    globalThis.gfx = rec.gfx;
+    dev.core.UI.render();
+    globalThis.gfx = real;
+    var list = rec.take();
+    dev.core.UI.render();
+    draw();
+
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var o = list[i];
+      var args = o.slice(1).map(function (v) {
+        if (typeof v === 'string') return '<span class="s">' + esc(JSON.stringify(v)) + '</span>';
+        /* poly carries point arrays; "[object Object]" tells a reader
+           nothing, and the point count is the interesting part anyway */
+        if (v && typeof v === 'object') {
+          var n = v.length === undefined ? Object.keys(v).length : v.length;
+          return '<span class="c">&lt;' + n + ' pts&gt;</span>';
+        }
+        if (typeof v === 'number' && v > 4096) return '<span class="num">0x' + v.toString(16) + '</span>';
+        if (typeof v === 'number' && v % 1 !== 0) return '<span class="num">' + v.toFixed(1) + '</span>';
+        return '<span class="num">' + v + '</span>';
+      }).join(', ');
+      out.push(('   ' + (i + 1)).slice(-4) + '  <span class="op">' +
+               (NAME[o[0]] || o[0]) + '</span>(' + args + ')');
+    }
+    $('ops').innerHTML = out.join('\n');
+    $('s-ops').textContent = list.length;
+    /* h() calls: count them in the transpiled source, which is exactly what
+       the engine will execute */
+    var m = mjsxTranspile($('src').value).match(/\bh\(/g);
+    $('s-nodes').textContent = m ? m.length : 0;
+  }
+
+  /* the panel takes real pointer events, because stage 4 is a real device */
+  (function () {
+    var cv = $('cv');
+    function at(e) {
+      var r = cv.getBoundingClientRect();
+      return { x: Math.round((e.clientX - r.left) / r.width * dev.w),
+               y: Math.round((e.clientY - r.top) / r.height * dev.h) };
+    }
+    function send(phase, e) {
+      if (!dev) return;
+      enter();
+      var p = at(e);
+      dev.core.UI.pointer('p', phase, p.x, p.y);
+      if (dev.core.UI.dirty()) showOps();
+    }
+    cv.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+      send(0, e);
+    });
+    cv.addEventListener('pointermove', function (e) { if (e.buttons) send(1, e); });
+    cv.addEventListener('pointerup', function (e) { send(2, e); });
+  })();
+
+  /* ---- the shape picker ------------------------------------------------
+   * Each button is its panel, drawn to scale, because what is being chosen
+   * is a rectangle — a dropdown of strings made you read five sizes to
+   * find the shape you wanted.
+   */
+  var PANEL_LIST = [
+    ['240x280', 240, 280, 0, '1.69"'],
+    ['172x320', 172, 320, 0, '1.47"'],
+    ['320x172', 320, 172, 0, 'land'],
+    ['240x240r', 240, 240, 1, 'round'],
+    ['320x480', 320, 480, 0, '3.5"']
+  ];
+  var chosen = '240x280';
+  PANEL_LIST.forEach(function (p) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(p[0] === chosen));
+    b.title = p[1] + ' \u00d7 ' + p[2] + (p[3] ? ' round' : '');
+    var g = document.createElement('span');
+    g.className = 'g' + (p[3] ? ' round' : '');
+    var k = 22 / Math.max(p[1], p[2]);
+    g.style.width = Math.round(p[1] * k) + 'px';
+    g.style.height = Math.round(p[2] * k) + 'px';
+    var t = document.createElement('span');
+    t.textContent = p[4];
+    b.appendChild(g); b.appendChild(t);
+    b.addEventListener('click', function () {
+      chosen = p[0];
+      Array.prototype.forEach.call($('panel').children, function (c) {
+        c.setAttribute('aria-pressed', String(c === b));
+      });
+      build();
+    });
+    $('panel').appendChild(b);
+  });
+
+  /* ---- the clock -------------------------------------------------------
+   * Stage 4 is a real device and a real device has a frame loop. Without
+   * one, anything driven by UI.onTick sits frozen at frame one and the
+   * page looks like it cannot run those at all.
+   *
+   * Off by default, because stages 2 and 3 are far easier to read when they
+   * are not being rewritten sixty times a second. While it runs the op list
+   * refreshes a few times a second, which is the rate a person can read.
+   */
+  var playing = false, lastOps = 0, fpsT = 0, fpsN = 0;
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!playing || !dev) return;
+    enter();
+    if (dev.core.UI.ticker() || dev.core.UI.dirty()) draw();
+    fpsN++;
+    if (now - fpsT >= 500) {
+      $('s-fps').textContent = Math.round(fpsN * 1000 / (now - fpsT));
+      fpsT = now; fpsN = 0;
+    }
+    if (now - lastOps >= 400) { lastOps = now; showOps(); }
+  }
+  requestAnimationFrame(frame);
+
+  $('play').addEventListener('click', function () {
+    playing = !playing;
+    this.innerHTML = playing ? '&#10073;&#10073;&nbsp;pause' : '&#9654;&nbsp;play';
+    if (!playing) { $('s-fps').textContent = '\u2014'; showOps(); }
+  });
+
+  /* the highlighted layer under the textarea; repaintSrc() re-paints it
+     after any programmatic change to .value, which fires no input event */
+  var repaintSrc = hlAttach($('src'), $('src-hl'));
+  function setSrc(v) { $('src').value = v; repaintSrc(); }
+
+  var debounce = 0;
+  $('src').addEventListener('input', function () {
+    clearTimeout(debounce);
+    debounce = setTimeout(build, 400);
+  });
+
+  $('ex').addEventListener('change', function () {
+    var v = this.value;
+    if (v === '_starter') { setSrc(STARTER); build(); return; }
+    for (var i = 0; i < examples.length; i++) {
+      if (examples[i].name === v) {
+        setSrc(examples[i].source);
+        build();
+        /* an example with a ticker is not worth showing frozen */
+        if (/UI\.onTick/.test(examples[i].source) && !playing) $('play').click();
+        return;
+      }
+    }
+  });
+
+  setSrc(STARTER);
+  var o0 = document.createElement('option');
+  o0.value = '_starter'; o0.textContent = 'a small page (editable)';
+  $('ex').appendChild(o0);
+
+  fetch('/examples.json').then(function (r) { return r.json(); }).then(function (list) {
+    examples = list.filter(function (e) { return !e.synthetic; });
+    examples.forEach(function (e) {
+      var o = document.createElement('option');
+      o.value = e.name;
+      o.textContent = 'examples/' + e.name;
+      $('ex').appendChild(o);
+    });
+    build();
+  }).catch(build);
+})();
+</script>
+</body>
+</html>

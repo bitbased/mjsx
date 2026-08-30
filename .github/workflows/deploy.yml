@@ -1,0 +1,90 @@
+# Build the docs site and publish it to GitHub Pages.
+#
+# There is no gh-pages branch and no committed build output: the workflow
+# uploads the built directory straight to Pages as an artifact. `main` stays
+# the only branch, and `site/dist/` stays untracked.
+#
+# One-time setup in the repository, which cannot be done from here:
+#   Settings -> Pages -> Build and deployment -> Source: GitHub Actions
+#   Settings -> Pages -> Custom domain: mjsx.bitbased.net
+# and a DNS record: CNAME  mjsx -> bitbased.github.io
+#
+# The domain also lives in site/public/CNAME so it survives a rebuild —
+# public/ is copied verbatim into the output.
+
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    # Documentation, examples and the site all feed the build; the engine does
+    # too, because docs:sync bundles it into the browser player and re-renders
+    # every figure. Anything outside these paths cannot change the output.
+    paths:
+      - 'docs/**'
+      - 'examples/**'
+      - 'packages/**'
+      - 'backends/**'
+      - 'scripts/**'
+      - 'site/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+# Pages deployments need these; nothing else does.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time. In-flight runs are allowed to finish rather than
+# being cancelled, so a half-published site is never left live.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # The repository root has no dependencies at all — the engine, the
+      # backends and the build scripts are plain files. Only the site has a
+      # package.json, and it is the only thing to install.
+      - name: Install site dependencies
+        working-directory: site
+        run: bun install --frozen-lockfile
+
+      # `site:build` runs docs:sync first: it bundles the browser engine,
+      # writes examples.json, and syncs docs/ into the Starlight content
+      # directory. Then Astro builds.
+      - name: Build
+        run: bun run site:build
+
+      # The custom domain has to reach the output. It is in site/public/ so
+      # Astro copies it, but a missing CNAME silently unsets the domain in
+      # Pages settings — worth failing loudly instead.
+      - name: Verify CNAME survived the build
+        run: |
+          test -f site/dist/CNAME || { echo "::error::site/dist/CNAME missing"; exit 1; }
+          echo "CNAME: $(cat site/dist/CNAME)"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

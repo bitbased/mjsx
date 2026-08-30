@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mjsx Drafting Table</title>
+<meta name="description" content="An infinite drafting sheet: every mjsx example rendered twice at once — real panel pixels and a hand-drawn blueprint of the same op stream.">
+<!--
+  PRESENTATION — DRAFTING TABLE.
+
+  The point of this one is the double rendering. The engine does not draw
+  pixels; it emits ten calls, and a BACKEND decides what they look like. So
+  every station here shows the same running program twice at the same instant:
+  the panel on the left, and on the right a Canvas2D renderer that draws the
+  identical call list with a wobbling pen.
+
+  Nothing is simulated twice. The recorder forwards each call to the panel as
+  it captures it, so the blueprint is literally the frame beside it.
+
+  The sheet itself is infinite: drag anywhere to pan, or use the index.
+-->
+<script src="/mjsx-sim.js"></script>
+<script src="/hl.js"></script>
+<link rel="stylesheet" href="/landing/pipe.css">
+<script src="/landing/sketch.js"></script>
+<script src="/landing/device.js"></script>
+<style>
+  :root {
+    --blue:#0d3b66; --blue2:#0a2f52; --grid:rgba(226,238,248,.10);
+    --grid2:rgba(226,238,248,.20);
+    --chalk:#e2eef8; --dim:#8fb4d4; --hot:#ffd166; --edge:rgba(226,238,248,.28);
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  html { color-scheme:dark; }
+  body { margin:0; background:var(--blue); color:var(--chalk);
+         font:13px/1.55 var(--mono); overflow:hidden; overscroll-behavior:none;
+         -webkit-text-size-adjust:100%; }
+
+  /* ---- the table ----
+     The grid lives on the viewport and its background-position is panned, so
+     the sheet is genuinely endless rather than a big rectangle you can fall
+     off the edge of. */
+  #table {
+    position:fixed; inset:0; cursor:grab; touch-action:none;
+    /* The table CLIPS its sheet. That is true of a drafting table and it is
+       true here: stations live off-screen until you pan to them, and saying
+       so lets a reader (and the site auditor) tell deliberate off-canvas
+       content apart from a layout that has burst its container. */
+    overflow:hidden;
+    /* dragging a drafting sheet is panning, not selecting: without this
+       every pan smeared a blue highlight across whatever text it passed */
+    user-select:none; -webkit-user-select:none;
+    background-color:var(--blue);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      linear-gradient(var(--grid2) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid2) 1px, transparent 1px);
+    background-size:26px 26px, 26px 26px, 130px 130px, 130px 130px;
+  }
+  #table.drag { cursor:grabbing; }
+  /* The grab hand belongs to the SHEET. Over a panel you are pointing at a
+     running program, and over the editor you are pointing at text — showing
+     a hand there tells the wrong story about what a click will do. */
+  #table canvas { cursor:default; }
+  #table .mp-ed, #table .mp-src, #table textarea { cursor:text; }
+  #table button, #table select, #table a { cursor:pointer; }
+  #sheet { position:absolute; left:0; top:0; width:0; height:0;
+           will-change:transform; }
+
+  svg.wires { position:absolute; left:0; top:0; overflow:visible; pointer-events:none; }
+  svg.wires path { fill:none; stroke:var(--edge); stroke-width:1;
+                   stroke-dasharray:7 5; }
+  svg.wires circle { fill:var(--hot); }
+  svg.wires text { fill:var(--dim); font:10px var(--mono); letter-spacing:.1em; }
+
+  /* ---- a station ---- */
+  /* A station has a DEFINITE width. It is absolutely positioned on the
+     sheet, and a percentage width inside an auto-width absolute box has
+     nothing to resolve against — which collapsed every panel to 59px. */
+  .st { position:absolute; width:41rem; border:1px solid var(--edge);
+        background:rgba(10,47,82,.86); backdrop-filter:blur(2px); }
+  /* the pipeline card follows the window like its contents do */
+  /* the source->glass card follows the window — this is the cap that was
+     holding the whole pipeline at ~1184px however wide the screen got */
+  .st.wide { width:min(96vw, 124rem); }
+  .st > .tt { display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap;
+              padding:.35rem .6rem; border-bottom:1px solid var(--edge);
+              font-size:11px; letter-spacing:.14em; }
+  .st > .tt .no { color:var(--blue); background:var(--hot); font-weight:700;
+                  padding:0 .35rem; }
+  .st > .tt .nm { color:var(--chalk); font-weight:700; }
+  .st > .tt .fp { margin-left:auto; color:var(--dim); font-size:10px; }
+  .st > .bd { padding:.9rem; }
+
+  /* the double rendering, side by side */
+  .pair { display:flex; gap:1rem; align-items:flex-start; }
+  .half { display:flex; flex-direction:column; gap:.4rem; align-items:center;
+          flex:1 1 0; min-width:0; }
+  .half .cap { font-size:9.5px; letter-spacing:.14em; color:var(--dim);
+               text-transform:uppercase; text-align:center; }
+  .half .cap b { color:var(--hot); font-weight:400; }
+  .glass { background:#000; border:1px solid var(--edge); padding:5px; line-height:0; }
+  .glass.round { border-radius:50%; padding:7px; }
+  .glass canvas { image-rendering:pixelated; touch-action:none; outline:none; }
+  .glass.round canvas { border-radius:50%; }
+  .glass canvas:focus-visible { box-shadow:0 0 0 2px var(--hot); }
+  /* .half centres its children, which makes them shrink-to-fit — the glass
+     escapes that with an explicit width, so the pen frame needs one too or
+     the two renderings sit at different sizes. */
+  .paperframe { border:1px solid var(--edge); padding:5px; line-height:0;
+                background:#0d3b66; width:100%; max-width:332px; }
+  .paperframe canvas { display:block; }
+
+  /* Only the code editor is selectable. Everywhere else a drag is a PAN —
+     selecting the caption text is never what someone dragging a drafting
+     sheet meant to do. */
+  .mp-src, #table textarea { user-select:text; -webkit-user-select:text; }
+
+  .notes { margin:.8rem 0 0; padding:0; list-style:none; font-size:11.5px;
+           color:var(--dim); max-width:34rem; }
+  .notes li { padding:.16rem 0 .16rem 1rem; position:relative; }
+  .notes li::before { content:"\2014"; position:absolute; left:0; color:var(--hot); }
+  .notes b { color:var(--chalk); font-weight:700; }
+
+  .switch { display:flex; flex-wrap:wrap; gap:.28rem; justify-content:center;
+            margin-top:.5rem; }
+  .shapebtn { display:flex; align-items:center; gap:.28rem; cursor:pointer;
+              background:transparent; color:var(--dim); border:1px solid var(--edge);
+              font:10px var(--mono); padding:.18rem .38rem; }
+  .shapebtn .g { background:var(--dim); display:block; }
+  .shapebtn .g.round { border-radius:50%; }
+  .shapebtn[aria-pressed="true"] { color:var(--hot); border-color:var(--hot); }
+  .shapebtn[aria-pressed="true"] .g { background:var(--hot); }
+  .shapebtn:focus-visible { outline:2px solid var(--hot); outline-offset:1px; }
+
+  /* ---- pipeline: this page's colours over pipe.css geometry ----
+     Without this block the stage headers, borders, editor caret and token
+     colours were all browser defaults, which is why it looked like loose
+     text dumped on the sheet. */
+  .mp { --mp-font:var(--mono); --mp-fs:12.5px;
+        --mp-gap:.6rem; --mp-caret:var(--hot); }
+  .mp-stage { border:1px solid var(--edge); background:rgba(13,59,102,.55); }
+  .mp-head { padding:.28rem .5rem; border-bottom:1px solid var(--edge);
+             font-size:10px; letter-spacing:.14em; text-transform:uppercase; }
+  .mp-n { color:var(--blue); background:var(--hot); font-weight:700; padding:0 .3rem; }
+  .mp-t { color:var(--chalk); font-weight:700; }
+  .mp-f { color:var(--dim); font-size:9.5px; }
+  .mp-panel .mp-body { padding:.7rem; justify-content:center; align-items:center; }
+  .mp-ed pre { color:var(--chalk); }
+  .mp-ed textarea::selection { background:rgba(255,209,102,.3); }
+  .k { color:var(--hot); } .s { color:#9fe0c0; } .c { color:#6d94b4; font-style:italic; }
+  .num { color:#ffb3c8; } .op { color:var(--chalk); }
+  .mp-ctl { margin-bottom:.7rem; }
+  .mp-ex, .mp-play { font:10.5px var(--mono); color:var(--chalk); background:rgba(13,59,102,.7);
+                     border:1px solid var(--edge); padding:.24rem .45rem; cursor:pointer; }
+  .mp-play[aria-pressed="true"] { color:var(--hot); border-color:var(--hot); }
+  .mp-ex:focus-visible, .mp-play:focus-visible { outline:2px solid var(--hot); }
+  .mp-err { color:#ffb3c8; font-size:10.5px; }
+
+  /* ---- fixed chrome ---- */
+  .bar { position:fixed; left:0; right:0; top:0; z-index:20;
+         display:flex; align-items:center; gap:.9rem; flex-wrap:wrap;
+         padding:.4rem .8rem; background:rgba(10,47,82,.94);
+         border-bottom:1px solid var(--edge); font-size:11.5px; letter-spacing:.1em; }
+  .bar .id { color:var(--hot); font-weight:700; }
+  .bar .sp { margin-left:auto; }
+  .bar a { color:var(--dim); text-decoration:none; margin-left:.7rem; }
+  .bar nav { display:flex; flex-wrap:wrap; gap:.3rem; }
+  .barbtn { cursor:pointer; background:transparent; border:1px solid transparent;
+            color:var(--dim); font:11.5px var(--mono); letter-spacing:.08em;
+            padding:.12rem .45rem; text-transform:uppercase; }
+  .barbtn:hover, .barbtn:focus-visible { color:var(--hot); border-color:var(--edge);
+                                         outline:none; }
+  .bar a:hover, .bar a:focus-visible { color:var(--chalk); }
+
+  /* The index is a SHEET CARD, not a floating panel: it is the first thing
+     drawn on the drafting table, and you leave it behind as you pan. */
+  .idx { padding:.9rem 1rem 1rem; }
+  .idx h1 { margin:0 0 .5rem; font-size:1.25rem; letter-spacing:.04em; color:var(--chalk); }
+  .idx h1 b { color:var(--hot); font-weight:700; }
+  .idx p { margin:0 0 .6rem; font-size:12.5px; color:var(--dim); line-height:1.6;
+           max-width:36rem; }
+  .idx p b { color:var(--chalk); }
+  .idx ul { margin:.2rem 0 .9rem; padding:0; list-style:none; font-size:11.5px;
+            color:var(--dim); }
+  .idx li { padding:.1rem 0 .1rem .95rem; position:relative; }
+  .idx li::before { content:"\2014"; position:absolute; left:0; color:var(--hot); }
+  .idx .jump { display:flex; flex-wrap:wrap; gap:.4rem; border-top:1px solid var(--edge);
+               padding-top:.7rem; }
+  .idx .jump button { cursor:pointer; background:rgba(13,59,102,.7);
+                      border:1px solid var(--edge); color:var(--chalk);
+                      font:11px var(--mono); padding:.3rem .55rem; letter-spacing:.06em; }
+  .idx .jump button:hover, .idx .jump button:focus-visible { color:var(--hot);
+                      border-color:var(--hot); outline:none; }
+  .idx .jump button span { color:var(--dim); margin-right:.35rem; }
+
+  /* prev / next on every station */
+  .nav { display:flex; align-items:center; gap:.6rem; margin-top:.9rem;
+         border-top:1px solid var(--edge); padding-top:.6rem; }
+  .nav button { cursor:pointer; background:rgba(13,59,102,.7); border:1px solid var(--edge);
+                color:var(--chalk); font:11px var(--mono); padding:.28rem .6rem;
+                letter-spacing:.08em; }
+  .nav button:hover, .nav button:focus-visible { color:var(--hot); border-color:var(--hot);
+                                                 outline:none; }
+  .nav .pos { margin-left:auto; color:var(--dim); font-size:10.5px; letter-spacing:.14em; }
+  .hint { position:fixed; right:.8rem; bottom:.7rem; z-index:20; color:var(--dim);
+          font-size:10.5px; letter-spacing:.1em; text-align:right;
+          background:rgba(10,47,82,.9); padding:.3rem .55rem;
+          border:1px solid var(--edge); }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="id">MJSX</span>
+  <nav id="bar-stations" aria-label="Stations"></nav>
+  <span class="sp"></span>
+  <a href="/docs/">docs</a><a href="/play/">simulator</a><a href="https://github.com/bitbased/mjsx" rel="noopener">github</a>
+</div>
+
+<div id="table" role="application" aria-label="Drafting sheet, drag to pan">
+  <div id="sheet"></div>
+</div>
+
+<div class="hint">DRAG THE SHEET TO PAN · ARROWS TO NUDGE</div>
+
+<script>
+MJSX.ready(function (ex) {
+  var sheet = document.getElementById('sheet');
+  var table = document.getElementById('table');
+
+  /* ---- stations, laid out on a big sheet ---- */
+  var STATIONS = [
+    { key:'a', no:'01', nm:'ASTEROIDS', fp:'examples/asteroids/app.jsx',
+      x: 120, y: 640, src: ex.asteroids, w:240, h:240, round:1,
+      notes:[
+        ['One clock, no frame counter.','The loop advances the world in fixed 16 ms steps read from <em>sys.millis()</em>, catching up at most four per frame — so it plays the same on a board pushing ~15 fps and a browser at 120.'],
+        ['Nine of the ten calls, and no more.','Ship and rocks are closed polylines built from <em>line</em>; the stars are single-pixel <em>frect</em>. There is no sprite system to be missing.'],
+        ['The round board is the 1.28" GC9A01.','A torus wrap serves every panel; on the circle it wraps at the rim, and rocks are only ever born at an edge.']
+      ],
+      keys:'click it, then arrows + space' },
+    { key:'i', no:'02', nm:'INPUT', fp:'examples/input/app.jsx',
+      x: 900, y: 120, src: ex.input, w:240, h:280,
+      notes:[
+        ['The keyboards ship with the engine.','QWERTY where ten columns fit, T9 where four do, a number pad, and a one-row scrolling strip for panels too small for a grid. On the boards these are what a capacitive touch controller drives — CST816T, FT6336, AXS5106L, CST816S.'],
+        ['A chord, not a scaled-down square.','On the 240×240 round board every keyboard row is inset to the circle\'s chord at its own height, so the bottom row is narrowest and no key lands under the bezel.'],
+        ['One pointer path.','A physical key, a tap on the glass and a tap on a virtual key all arrive through the same <em>UI.type()</em> / <em>UI.key()</em> entry points. The PIN pad is ordinary JSX using them.']
+      ],
+      keys:'tap a field, then type' },
+    { key:'c', no:'03', nm:'DRAWING', fp:'examples/canvas/app.jsx',
+      x: 900, y: 940, src: ex.canvas, w:240, h:280,
+      notes:[
+        ['A canvas source is device memory.','The live stroke is ordinary ops; on release it is rasterised into an offscreen buffer and leaves the call list entirely. A hundred strokes then cost one <em>blit</em> per frame instead of a hundred paths — which is the difference between usable and not on a chip.'],
+        ['The same trick carries the camera.','On the 3.5" board the camera module drops frames into a canvas source and the UI just blits it, so a live preview stays one op.'],
+        ['Both renderers show it.','The pen backend fetches the source\'s real pixels and re-inks them, rather than drawing a placeholder where your drawing should be.']
+      ],
+      keys:'drag to draw' }
+  ];
+
+  /* ---- the index, as the first card on the sheet ---- */
+  var built = [];
+  var idxEl = document.createElement('section');
+  idxEl.className = 'st';
+  idxEl.style.left = '120px'; idxEl.style.top = '110px';
+  idxEl.innerHTML =
+    '<div class="tt"><span class="no">00</span><span class="nm">SHEET INDEX</span>' +
+    '<span class="fp">drag anywhere to pan</span></div>' +
+    '<div class="bd idx">' +
+    '<h1><b>mjsx</b> — a JSX UI engine that runs on the microcontroller</h1>' +
+    '<p>Not a design tool and not a cross-compiler. <b>packages/core/src/mjsx.js</b> ' +
+    'is 2,526 lines of ES5 in the MicroQuickJS subset, and the same file runs ' +
+    'unmodified on a chip\'s embedded interpreter and in this browser tab. It ' +
+    'came out of a working ESP32 firmware and was generalised until nothing in ' +
+    'it assumed a board.</p>' +
+    '<p>It assumes <b>ten native calls exist</b> — clear, rect, frect, circle, ' +
+    'line, text, clip, unclip, width, height — plus <b>sys.millis()</b>. That is ' +
+    'the entire native API. A <b>backend</b> is whatever realises those ten: a ' +
+    'panel driver on the board, ANSI half-blocks in a terminal, a browser ' +
+    'canvas, or compact ops on a wire. Nothing above that line changes.</p>' +
+    '<p>Which is what this sheet shows. Every station runs one program and draws ' +
+    'it <b>twice from the same frame</b>: the panel on the left, and on the right ' +
+    'a second backend — forty lines of Canvas2D with a wobbling pen — replaying ' +
+    'the identical call list. The recorder hands each call to both, so nothing is ' +
+    'simulated twice. The real boards do the same thing to mirror their screen ' +
+    'into a browser over <b>/remote</b>.</p>' +
+    '<ul>' +
+    '<li><b>Runs on:</b> four Waveshare ESP32-S3 touch-LCD boards — 240×280 ' +
+    'ST7789V2, 320×480 ST7796, 172×320 JD9853, and a round 240×240 GC9A01</li>' +
+    '<li><b>Deploys as:</b> plain JS pushed over TCP. No reflash; the firmware ' +
+    'updates itself over OTA and the CLI fans out to the whole fleet</li>' +
+    '<li><b>Layout:</b> width-in, height-out, one pass. No virtual DOM, no ' +
+    'reconciler — a dirty frame simply redraws</li>' +
+    '<li><b>Round glass:</b> geometry, not a special case — rows inset to their ' +
+    'own chord, safe bands where the touch layer misses the rim</li>' +
+    '<li><b>Input on device:</b> capacitive touch, QWERTY / T9 / number pad and a ' +
+    'one-row strip for panels with no room for a grid</li>' +
+    '<li><b>JSX is optional sugar:</b> 312 lines of transpiler; ' +
+    '&lt;box pad={8}/&gt; is h(\'box\', { pad: 8 })</li>' +
+    '</ul>' +
+    '<div class="jump" id="idx-list"></div>' +
+    '</div>';
+  sheet.appendChild(idxEl);
+  built.push({ no: '00', nm: 'SHEET INDEX', x: 120, y: 110, el: idxEl });
+
+  /* The first station sits BELOW the index, measured rather than guessed —
+     the card's height depends on how the prose wraps at this width, and a
+     hard-coded y buried it under the card. */
+  STATIONS[0].y = Math.round(110 + idxEl.getBoundingClientRect().height + 120);
+  STATIONS.forEach(function (s) {
+    var el = document.createElement('section');
+    el.className = 'st';
+    el.style.left = s.x + 'px';
+    el.style.top = s.y + 'px';
+
+    var tt = document.createElement('div');
+    tt.className = 'tt';
+    tt.innerHTML = '<span class="no">' + s.no + '</span><span class="nm">' + s.nm +
+                   '</span><span class="fp">' + s.fp + '</span>';
+    el.appendChild(tt);
+
+    var bd = document.createElement('div');
+    bd.className = 'bd';
+    var pair = document.createElement('div');
+    pair.className = 'pair';
+
+    var left = document.createElement('div');
+    left.className = 'half';
+    var host = document.createElement('div');
+    left.appendChild(host);
+    var lc = document.createElement('div');
+    lc.className = 'cap';
+    lc.innerHTML = 'BACKEND 1 &middot; <b>rasteriser \u2192 pixels</b>';
+    left.appendChild(lc);
+    var sw = document.createElement('div');
+    sw.className = 'switch';
+    left.appendChild(sw);
+
+    var right = document.createElement('div');
+    right.className = 'half';
+    var frame = document.createElement('div');
+    frame.className = 'paperframe';
+    var mcv = document.createElement('canvas');
+    frame.appendChild(mcv);
+    right.appendChild(frame);
+    var rc = document.createElement('div');
+    rc.className = 'cap';
+    rc.innerHTML = 'BACKEND 2 &middot; <b>same frame, Canvas2D pen</b>';
+    right.appendChild(rc);
+
+    pair.appendChild(left); pair.appendChild(right);
+    bd.appendChild(pair);
+
+    var ul = document.createElement('ul');
+    ul.className = 'notes';
+    s.notes.forEach(function (n) {
+      var li = document.createElement('li');
+      li.innerHTML = '<b>' + n[0] + '</b> ' + n[1];
+      ul.appendChild(li);
+    });
+    var li = document.createElement('li');
+    li.innerHTML = '<b>Try it.</b> ' + s.keys + '.';
+    ul.appendChild(li);
+    bd.appendChild(ul);
+
+    var nav = document.createElement('div');
+    nav.className = 'nav';
+    nav.innerHTML = '<button type="button" data-go="-1">\u2039 PREV</button>' +
+                    '<button type="button" data-go="1">NEXT \u203A</button>' +
+                    '<span class="pos"></span>';
+    bd.appendChild(nav);
+
+    el.appendChild(bd);
+    sheet.appendChild(el);
+
+    var dev = MJSX.panel(host, { src: s.src, w: s.w, h: s.h, round: s.round,
+                                 zoom: 1.6, maxW: 320, maxH: 360,
+                                 label: s.nm + ', running' });
+    MJSX.sketchMirror(dev, mcv, { theme: 'blueprint', fps: 16 });
+    MJSX.shapeButtons(sw, dev, {
+      current: s.round ? '240x240r' : s.w + 'x' + s.h, chip: 14
+    });
+    s.el = el;
+    built.push(s);
+  });
+
+  /* ---- the fourth station: source to glass ---- */
+  var STARTER =
+    'function App() {\n' +
+    '  var n = UI.state.n || 0;\n' +
+    '  return (\n' +
+    '    <box h={gfx.height()} pad={em(1)} gap={em(1)}>\n' +
+    '      <text text="SHEET 04" size={1} align="center"\n' +
+    '            color={UI.theme.accent} />\n' +
+    '      <box bg={UI.theme.panel} radius={8} pad={em(1)}>\n' +
+    '        <text text={"COUNT: " + n} size={2} align="center" />\n' +
+    '      </box>\n' +
+    '      <Button label="+1" size={2}\n' +
+    '              onTap={function () { UI.set({ n: n + 1 }); }} />\n' +
+    '    </box>\n' +
+    '  );\n' +
+    '}\n' +
+    'UI.mount(App);\n';
+
+  var pel = document.createElement('section');
+  pel.className = 'st wide';
+  pel.style.left = '1700px'; pel.style.top = '520px';
+  pel.innerHTML = '<div class="tt"><span class="no">04</span>' +
+    '<span class="nm">SOURCE &rarr; GLASS</span>' +
+    '<span class="fp">the real transpiler and the real engine</span></div>';
+  var pbd = document.createElement('div');
+  pbd.className = 'bd';
+  pel.appendChild(pbd);
+  sheet.appendChild(pel);
+  MJSX.pipeline(pbd, {
+    src: STARTER, w: 240, h: 280, chip: 14,
+    stages: ['source', 'panel'],
+    labels: { source: 'source', sourceMeta: '.jsx', panel: 'glass' },
+    examples: [{ name: '_starter', label: 'a small program (editable)', source: STARTER }]
+      .concat(['asteroids','input','canvas','counter','shapes','layers','fonts']
+        .filter(function (n) { return ex[n]; })
+        .map(function (n) { return { name: n, label: n, source: ex[n] }; })),
+    panelLabel: 'the program you are editing'
+  });
+  var pnav = document.createElement('div');
+  pnav.className = 'nav';
+  pnav.innerHTML = '<button type="button" data-go="-1">\u2039 PREV</button>' +
+                   '<button type="button" data-go="1">NEXT \u203A</button>' +
+                   '<span class="pos"></span>';
+  pbd.appendChild(pnav);
+  built.push({ no:'04', nm:'SOURCE \u2192 GLASS', x:1700, y:520, el:pel });
+
+  /* ---- leader lines between the stations, drafting style ----
+     Right-angle elbows, drawn after layout so they connect real edges. */
+  var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'wires');
+  svg.setAttribute('width', '1'); svg.setAttribute('height', '1');
+  sheet.insertBefore(svg, sheet.firstChild);
+
+  function wires() {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    for (var i = 1; i < built.length; i++) {
+      var a = built[i - 1].el.getBoundingClientRect();
+      var b = built[i].el.getBoundingClientRect();
+      var ax = built[i - 1].x + a.width / 2, ay = built[i - 1].y + a.height;
+      var bx = built[i].x + b.width / 2, by = built[i].y;
+      var my = (ay + by) / 2;
+      var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', 'M' + ax + ' ' + ay + ' L' + ax + ' ' + my +
+                          ' L' + bx + ' ' + my + ' L' + bx + ' ' + by);
+      svg.appendChild(p);
+      [[ax, ay], [bx, by]].forEach(function (pt) {
+        var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', pt[0]); c.setAttribute('cy', pt[1]); c.setAttribute('r', 2.5);
+        svg.appendChild(c);
+      });
+      var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', (ax + bx) / 2); t.setAttribute('y', my - 6);
+      t.setAttribute('text-anchor', 'middle');
+      t.textContent = 'ONE CORE \u00B7 TEN CALLS';
+      svg.appendChild(t);
+    }
+  }
+  setTimeout(wires, 60);
+  window.addEventListener('resize', wires);
+
+  /* ---- panning ----
+     Drag anywhere on the sheet. A drag that starts on a canvas belongs to the
+     program, not the table — those panels take real pointer input. */
+  var px = 0, py = 0, drag = null, anim = null;
+  function apply() { sheet.style.transform = 'translate(' + px + 'px,' + py + 'px)'; grid(); }
+  function grid() {
+    table.style.backgroundPosition =
+      px + 'px ' + py + 'px, ' + px + 'px ' + py + 'px, ' +
+      px + 'px ' + py + 'px, ' + px + 'px ' + py + 'px';
+  }
+  function panTo(tx, ty, animate) {
+    if (anim) cancelAnimationFrame(anim);
+    if (!animate) { px = tx; py = ty; apply(); return; }
+    var sx = px, sy = py, t0 = performance.now(), dur = 520;
+    (function step(now) {
+      var t = Math.min(1, ((now || performance.now()) - t0) / dur);
+      var e = 1 - Math.pow(1 - t, 3);
+      px = sx + (tx - sx) * e; py = sy + (ty - sy) * e;
+      apply();
+      if (t < 1) anim = requestAnimationFrame(step); else anim = null;
+    })(t0);
+  }
+
+  table.addEventListener('pointerdown', function (e) {
+    if (e.target.tagName === 'CANVAS' ||
+        e.target.closest('button, select, textarea, a')) return;
+    drag = { x: e.clientX, y: e.clientY, px: px, py: py, id: e.pointerId };
+    table.classList.add('drag');
+    try { table.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  table.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    px = drag.px + (e.clientX - drag.x);
+    py = drag.py + (e.clientY - drag.y);
+    apply();
+  });
+  function endDrag() { drag = null; table.classList.remove('drag'); }
+  table.addEventListener('pointerup', endDrag);
+  table.addEventListener('pointercancel', endDrag);
+  table.addEventListener('wheel', function (e) {
+    /* A wheel over the code editor scrolls the CODE. Panning the sheet from
+       under someone's cursor while they are reading a program is the wrong
+       answer, so anything that scrolls itself keeps its own wheel. */
+    if (e.target.closest('textarea, pre, select, .mp-body')) return;
+    e.preventDefault();
+    px -= e.deltaX; py -= e.deltaY; apply();
+  }, { passive: false });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.target !== document.body) return;      /* a focused panel keeps its keys */
+    var d = e.shiftKey ? 240 : 80, hit = true;
+    if (e.key === 'ArrowLeft') px += d;
+    else if (e.key === 'ArrowRight') px -= d;
+    else if (e.key === 'ArrowUp') py += d;
+    else if (e.key === 'ArrowDown') py -= d;
+    else hit = false;
+    if (hit) { e.preventDefault(); apply(); }
+  });
+
+  /* ---- moving around the sheet ---- */
+  function goTo(i, animate) {
+    var t = built[(i + built.length) % built.length];
+    var r = t.el.getBoundingClientRect();
+    panTo(Math.round(window.innerWidth / 2 - t.x - r.width / 2),
+          Math.round(window.innerHeight / 2 - t.y - r.height / 2),
+          animate !== false);
+  }
+
+  var list = document.getElementById('idx-list');
+  var barNav = document.getElementById('bar-stations');
+  built.forEach(function (st, i) {
+    if (barNav) {
+      var bb = document.createElement('button');
+      bb.type = 'button';
+      bb.className = 'barbtn';
+      bb.textContent = st.no === '00' ? 'index' : st.nm.toLowerCase();
+      bb.addEventListener('click', function () { goTo(i); });
+      barNav.appendChild(bb);
+    }
+    if (i > 0) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.innerHTML = '<span>' + st.no + '</span>' + st.nm;
+      b.addEventListener('click', function () { goTo(i); });
+      list.appendChild(b);
+    }
+    /* prev / next, so the sheet can be walked without ever finding the index */
+    var nav = st.el.querySelector('.nav');
+    if (!nav) return;
+    nav.querySelector('.pos').textContent =
+      st.no + ' / ' + built[built.length - 1].no;
+    Array.prototype.forEach.call(nav.querySelectorAll('button'), function (btn) {
+      btn.addEventListener('click', function () {
+        goTo(i + parseInt(btn.getAttribute('data-go'), 10));
+      });
+    });
+  });
+
+  /* the sheet opens on its own index */
+  setTimeout(function () { goTo(0, false); }, 30);
+});
+</script>
+</body>
+</html>

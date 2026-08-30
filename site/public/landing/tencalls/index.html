@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mjsx — a port is ten functions</title>
+<!--
+  DIRECTION: don't claim the contract is small. Implement it, here, and run
+  a real app on the result.
+
+  The backend below is written in this file, in plain Canvas2D, and it is
+  the ONLY thing this page gives the engine. The app running on it is
+  examples/* out of the repository, unmodified. If ten functions were not
+  really the whole contract, this page could not exist.
+
+  It deliberately uses the browser's own font rather than the bitmap
+  faces, because that is a backend's choice to make — and seeing the same
+  app in a different typeface is the clearest possible demonstration of
+  where the seam is.
+-->
+<style>
+  :root {
+    --accent:#4b8bf5; --ok:#4ade80; --warn:#fbbf24; --err:#f87171;
+    --bg:#0a0c10; --panel:#141920; --ink:#e6e9ef; --dim:#98a1ae; --line:#222932;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg:#f6f7f9; --panel:#fff; --ink:#11141a; --dim:#5b6472; --line:#e1e5ea;
+    }
+  }
+  * { box-sizing:border-box; }
+  html { color-scheme: dark light; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 var(--sans); }
+  .wrap { max-width:78rem; margin:0 auto; padding:0 1.5rem; }
+  header { border-bottom:1px solid var(--line); }
+  header .wrap { display:flex; align-items:center; gap:.5rem .9rem; flex-wrap:wrap;
+                 min-height:3.25rem; padding-top:.4rem; padding-bottom:.4rem;
+                 font:600 14px/1 var(--mono); }
+  header .tag { color:var(--dim); font-weight:400; font-size:11px;
+                letter-spacing:.07em; text-transform:uppercase; }
+  header .sp { margin-left:auto; }
+  header a { color:var(--dim); text-decoration:none; font-size:12px; }
+  header a:hover { color:var(--accent); }
+
+  h1 { font-size:clamp(2rem,4.6vw,3rem); line-height:1.06; margin:2.5rem 0 .7rem;
+       letter-spacing:-.025em; text-wrap:balance; }
+  h2 { font-size:1.35rem; margin:0 0 .5rem; letter-spacing:-.015em; }
+  .lede { font-size:1.1rem; color:var(--dim); max-width:47rem; margin:0 0 2rem; }
+  p { max-width:47rem; }
+  code { font-family:var(--mono); font-size:.92em; }
+  a { color:var(--accent); }
+  .note { font-size:.9rem; color:var(--dim); }
+  section { padding:2.75rem 0; border-top:1px solid var(--line); }
+  .eyebrow { font:600 11px/1 var(--mono); letter-spacing:.15em; text-transform:uppercase;
+             color:var(--dim); margin:0 0 .8rem; }
+
+  .two { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);
+         gap:1.5rem; align-items:start; }
+  @media (max-width:940px) { .two { grid-template-columns:1fr; } }
+
+  .box { border:1px solid var(--line); border-radius:10px; background:var(--panel);
+         overflow:hidden; }
+  .box > header { display:flex; align-items:baseline; gap:.6rem; height:auto;
+                  padding:.55rem .8rem; border-bottom:1px solid var(--line);
+                  font:600 12px/1.2 var(--mono); }
+  .box > header .r { margin-left:auto; font-weight:400; font-size:10.5px; color:var(--dim); }
+  .box .body { padding:.8rem; }
+  pre { margin:0; font:11.5px/1.55 var(--mono); overflow:auto; max-height:32rem; }
+  .k { color:var(--accent); } .s { color:var(--warn); } .c { color:var(--dim); font-style:italic; }
+  .fn { color:var(--ok); } .num { color:var(--err); } .op { color:var(--ink); }
+
+  .devs { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center;
+          align-items:flex-start; }
+  .dev { text-align:center; }
+  .screen { background:#000; border-radius:10px; padding:8px; line-height:0;
+            display:inline-block; border:1px solid #2a3140; }
+  .screen.round { border-radius:50%; padding:7px; }
+  canvas { display:block; touch-action:none; border-radius:4px; }
+  .screen.round canvas { border-radius:50%; }
+  .cap { font:11px/1.5 var(--mono); color:var(--dim); margin-top:.5rem; }
+
+  .bar { display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin:0 0 1.2rem; }
+  select { font:inherit; font-size:.82rem; padding:.35rem .6rem; border-radius:8px;
+           border:1px solid var(--line); background:var(--panel); color:var(--ink);
+           cursor:pointer; }
+  select:hover { border-color:var(--accent); }
+  .stat { border:1px solid var(--line); border-radius:999px; padding:.28rem .7rem;
+          font:12px/1.4 var(--mono); color:var(--dim); background:var(--panel); }
+  .stat b { color:var(--ink); font-variant-numeric:tabular-nums; }
+
+  /* a table wider than the phone scrolls inside its own box rather than
+     pushing the page sideways */
+  .tw { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; }
+  th, td { overflow-wrap:break-word; }
+  th, td { text-align:left; padding:.4rem .6rem; border-bottom:1px solid var(--line);
+           vertical-align:top; }
+  th { font:600 11px/1.4 var(--mono); letter-spacing:.08em; text-transform:uppercase;
+       color:var(--dim); }
+  td code { white-space:nowrap; }
+  footer { padding:2.5rem 0 4rem; }
+</style>
+<script src="/hl.js"></script>
+</head>
+<body>
+
+<header><div class="wrap">
+  <span>mjsx</span><span class="tag">a port is ten functions</span>
+  <span class="sp"></span>
+  <a href="/landing/">other directions</a><a href="/play/">simulator</a><a href="https://github.com/bitbased/mjsx" rel="noopener">github</a><a href="/docs/">docs</a>
+</div></header>
+
+<div class="wrap">
+  <h1>Porting it means writing ten functions.</h1>
+  <p class="lede">
+    Not ten <em>files</em>, not ten <em>classes</em> — ten functions and a clock.
+    To prove it rather than assert it, this page implements them itself, in plain
+    Canvas2D, and hands that to the engine as its only backend. The panels below
+    are a real example from the repository running on the code in the box beside
+    them.
+  </p>
+
+  <div class="bar">
+    <select id="ex"></select>
+    <span class="stat">backend <b id="s-lines">—</b> lines</span>
+    <span class="stat">calls it implements <b>10</b> + a clock</span>
+    <span class="stat">native calls · frame <b id="s-ops">—</b></span>
+  </div>
+
+  <div class="two">
+    <div class="box">
+      <header>THE ENTIRE BACKEND <span class="r">written in this page · Canvas2D</span></header>
+      <div class="body"><pre id="code"></pre></div>
+    </div>
+    <div>
+      <div class="devs" id="devs"></div>
+      <p class="note" style="margin-top:1.2rem">
+        <b>Look at the typeface.</b> This backend draws text with the browser's own
+        font instead of the project's bitmap faces — because choosing a font is a
+        backend's job, not the engine's. The engine only ever asks “draw this
+        string, at this size, in this colour, here”. That is exactly the seam a
+        port lives on, and you are looking straight at it.
+      </p>
+    </div>
+  </div>
+
+  <section>
+    <p class="eyebrow">the contract, in full</p>
+    <h2>There is no second page.</h2>
+    <div class="tw"><table>
+      <thead><tr><th>Call</th><th>What a backend must do</th></tr></thead>
+      <tbody>
+        <tr><td><code>gfx.clear(color)</code></td><td>Fill the surface. Start of every frame.</td></tr>
+        <tr><td><code>gfx.rect(x,y,w,h,color,radius)</code></td><td>1px outline, optionally rounded.</td></tr>
+        <tr><td><code>gfx.frect(x,y,w,h,color,radius)</code></td><td>Filled rect. The workhorse.</td></tr>
+        <tr><td><code>gfx.circle(cx,cy,r,color,filled)</code></td><td>Centre, radius, filled or not.</td></tr>
+        <tr><td><code>gfx.line(x0,y0,x1,y1,color)</code></td><td>1px line. Thickness is the core's problem.</td></tr>
+        <tr><td><code>gfx.text(x,y,size,color,str)</code></td><td>Draw a string. The font is yours to pick.</td></tr>
+        <tr><td><code>gfx.clip(x,y,w,h)</code></td><td>Set <em>the</em> clip rect — one, not a stack.</td></tr>
+        <tr><td><code>gfx.unclip()</code></td><td>Remove it.</td></tr>
+        <tr><td><code>gfx.width()</code> / <code>gfx.height()</code></td><td>Logical surface size in pixels.</td></tr>
+        <tr><td><code>sys.millis()</code></td><td>Milliseconds since boot. Any epoch, must advance.</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note" style="margin-top:1rem">
+      <code>poly</code> and <code>blit</code> exist and are optional — the core
+      probes for them and falls back to scanline fills when they are absent, which
+      is why this page can ignore them entirely and everything still draws.
+    </p>
+  </section>
+
+  <section>
+    <p class="eyebrow">what that buys</p>
+    <h2>Six backends, one core, no abstraction layer.</h2>
+    <p>
+      Because the surface is this narrow, a backend is a file rather than a
+      subsystem, and the engine needs no renderer interface, no driver model and no
+      capability negotiation. The ones in the repository today:
+    </p>
+    <div class="tw"><table>
+      <thead><tr><th>Backend</th><th>Draws into</th></tr></thead>
+      <tbody>
+        <tr><td><code>pure-js</code></td><td>Its own scanline rasterizer — the reference, and what every documentation figure is drawn with.</td></tr>
+        <tr><td><code>terminal</code></td><td>Half-block cells and ANSI colour.</td></tr>
+        <tr><td><code>sdl</code></td><td>A native desktop window.</td></tr>
+        <tr><td><code>http</code></td><td>A browser, over a websocket, by streaming the op list.</td></tr>
+        <tr><td><code>wasm</code></td><td>The same MicroQuickJS bytecode a chip runs, compiled to WebAssembly.</td></tr>
+        <tr><td><code>esp32</code></td><td>C functions bound into the firmware's stdlib table.</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note" style="margin-top:1rem">
+      And now a seventh, in this page, in the box above. It took the space it takes
+      to describe one.
+    </p>
+  </section>
+</div>
+
+<footer><div class="wrap note">
+  A hobby project, MIT licensed, pre-publication. This page loads the engine
+  (<code>/mjsx-sim.js</code>) and the example sources (<code>/examples.json</code>).
+  The backend is its own.
+</div></footer>
+
+<script src="/mjsx-sim.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (i) { return document.getElementById(i); };
+
+/* ---- THE BACKEND. Everything below, and nothing else, is what this page
+   gives the engine. It is shown verbatim in the box on the left, read out
+   of this very function, so the code you read is provably the code that
+   ran. ---------------------------------------------------------------- */
+function canvas2dBackend(cv, w, h) {
+  var g = cv.getContext('2d');
+  var css = function (c) {
+    return '#' + ('000000' + (c >>> 0).toString(16)).slice(-6);
+  };
+  var box = function (x, y, w2, h2, r) {
+    r = Math.min(r || 0, w2 / 2, h2 / 2);
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.arcTo(x + w2, y, x + w2, y + h2, r);
+    g.arcTo(x + w2, y + h2, x, y + h2, r);
+    g.arcTo(x, y + h2, x, y, r);
+    g.arcTo(x, y, x + w2, y, r);
+    g.closePath();
+  };
+  return {
+    gfx: {
+      clear: function (c) { g.fillStyle = css(c); g.fillRect(0, 0, w, h); },
+      frect: function (x, y, w2, h2, c, r) {
+        g.fillStyle = css(c); box(x, y, w2, h2, r); g.fill();
+      },
+      rect: function (x, y, w2, h2, c, r) {
+        g.strokeStyle = css(c); g.lineWidth = 1;
+        box(x + 0.5, y + 0.5, w2 - 1, h2 - 1, r); g.stroke();
+      },
+      circle: function (cx, cy, r, c, filled) {
+        g.beginPath(); g.arc(cx, cy, r, 0, 6.2832);
+        if (filled) { g.fillStyle = css(c); g.fill(); }
+        else { g.strokeStyle = css(c); g.lineWidth = 1; g.stroke(); }
+      },
+      line: function (x0, y0, x1, y1, c) {
+        g.strokeStyle = css(c); g.lineWidth = 1;
+        g.beginPath(); g.moveTo(x0 + 0.5, y0 + 0.5); g.lineTo(x1 + 0.5, y1 + 0.5); g.stroke();
+      },
+      text: function (x, y, size, c, str) {
+        g.fillStyle = css(c);
+        g.font = (size * 8) + 'px ui-sans-serif, system-ui, sans-serif';
+        g.textBaseline = 'top';
+        g.fillText(str, x, y);
+      },
+      clip: function (x, y, w2, h2) {
+        g.save(); g.beginPath(); g.rect(x, y, w2, h2); g.clip();
+      },
+      unclip: function () { g.restore(); },
+      width: function () { return w; },
+      height: function () { return h; }
+    },
+    sys: { millis: function () { return Date.now() - t0; },
+           store: function () {}, fetch: function () { return ''; } }
+  };
+}
+var t0 = Date.now();
+/* ---- end of the backend ------------------------------------------------ */
+
+  /* show the backend, read from the function itself */
+  (function () {
+    var src = canvas2dBackend.toString();
+    $('s-lines').textContent = src.split('\n').length;
+    /* The ten calls get their own colour, so the contract stands out from
+       the arithmetic that implements it. Everything else is the shared
+       tokenizer in /hl.js — the .replace() chain that used to be here
+       coloured keywords inside comments, of which this source has many. */
+    var TEN = {};
+    ['clear','frect','rect','circle','line','text','clip','unclip','width','height','millis']
+      .forEach(function (k) { TEN[k] = 'fn'; });
+    $('code').innerHTML = hl(src, { names: TEN });
+  })();
+
+  var KEYS = ['h','UI','Button','Swatch','em','Modal','Keyboard','ArcFooter','configStorage'];
+  var PANELS = [
+    { w: 240, h: 280, label: '240×280 · 1.69″' },
+    { w: 240, h: 240, round: true, label: '240×240 · round' },
+    { w: 320, h: 172, label: '320×172 · landscape' }
+  ];
+  var devs = [], examples = [];
+
+  function boot(src) {
+    $('devs').innerHTML = '';
+    devs = [];
+    PANELS.forEach(function (p) {
+      var wrap = document.createElement('div'); wrap.className = 'dev';
+      var sc = document.createElement('div'); sc.className = 'screen' + (p.round ? ' round' : '');
+      var cv = document.createElement('canvas');
+      /* 1:1, so all three panels sit side by side and can be compared —
+         which is the point of showing three. At 2x the round one fell
+         below the fold, where it proves nothing. */
+      cv.width = p.w; cv.height = p.h;
+      cv.style.width = p.w + 'px'; cv.style.height = p.h + 'px';
+      sc.appendChild(cv);
+      var cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = p.label;
+      wrap.appendChild(sc); wrap.appendChild(cap);
+      $('devs').appendChild(wrap);
+
+      /* the canvas is 2x for a crisp picture, so the backend is told the
+         logical size and the context is scaled — exactly what a real
+         backend does with a dpr */
+      cv.getContext('2d').setTransform(1, 0, 0, 1, 0, 0);
+      var be = canvas2dBackend(cv, p.w, p.h);
+      var core;
+      try { core = mjsxRun(src, be, { round: !!p.round }); }
+      catch (e) { cap.textContent = p.label + ' — ' + e.message; return; }
+      var d = { be: be, core: core, cv: cv, w: p.w, h: p.h, saved: {} };
+      for (var i = 0; i < KEYS.length; i++) d.saved[KEYS[i]] = core[KEYS[i]];
+      devs.push(d);
+      wire(d);
+      render(d);
+    });
+    countOps();
+  }
+
+  function enter(d) {
+    globalThis.gfx = d.be.gfx; globalThis.sys = d.be.sys;
+    for (var i = 0; i < KEYS.length; i++) globalThis[KEYS[i]] = d.saved[KEYS[i]];
+  }
+  function render(d) { enter(d); d.core.UI.render(); }
+
+  function wire(d) {
+    function at(e) {
+      var r = d.cv.getBoundingClientRect();
+      return { x: Math.round((e.clientX - r.left) / r.width * d.w),
+               y: Math.round((e.clientY - r.top) / r.height * d.h) };
+    }
+    function send(phase, e) {
+      enter(d);
+      var p = at(e);
+      d.core.UI.pointer('p', phase, p.x, p.y);
+      if (d.core.UI.dirty()) { render(d); countOps(); }
+    }
+    d.cv.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      try { d.cv.setPointerCapture(e.pointerId); } catch (err) {}
+      send(0, e);
+    });
+    d.cv.addEventListener('pointermove', function (e) { if (e.buttons) send(1, e); });
+    d.cv.addEventListener('pointerup', function (e) { send(2, e); });
+  }
+
+  function countOps() {
+    if (!devs.length) return;
+    var d = devs[0];
+    enter(d);
+    var rec = mjsxRecord(d.be.gfx), real = globalThis.gfx;
+    globalThis.gfx = rec.gfx;
+    d.core.UI.render();
+    globalThis.gfx = real;
+    var n = rec.take().length;
+    d.core.UI.render();
+    $('s-ops').textContent = n;
+  }
+
+  /* a frame loop, so anything with a ticker (the game, a fling) keeps
+     moving on a backend written in this page */
+  function loop() {
+    requestAnimationFrame(loop);
+    for (var i = 0; i < devs.length; i++) {
+      enter(devs[i]);
+      if (devs[i].core.UI.ticker() || devs[i].core.UI.dirty()) devs[i].core.UI.render();
+    }
+  }
+  requestAnimationFrame(loop);
+
+  $('ex').addEventListener('change', function () {
+    for (var i = 0; i < examples.length; i++) {
+      if (examples[i].name === this.value) { boot(examples[i].source); return; }
+    }
+  });
+
+  fetch('/examples.json').then(function (r) { return r.json(); }).then(function (list) {
+    examples = list.filter(function (e) { return !e.synthetic; });
+    var prefer = ['counter', 'shapes', 'layers', 'hello', 'asteroids'];
+    examples.forEach(function (e) {
+      var o = document.createElement('option');
+      o.value = e.name; o.textContent = 'examples/' + e.name;
+      $('ex').appendChild(o);
+    });
+    var pick = null;
+    for (var p = 0; p < prefer.length && !pick; p++) {
+      for (var i = 0; i < examples.length; i++) {
+        if (examples[i].name === prefer[p]) pick = examples[i];
+      }
+    }
+    if (!pick) pick = examples[0];
+    $('ex').value = pick.name;
+    boot(pick.source);
+  }).catch(function (e) {
+    $('devs').textContent = 'could not load /examples.json — run `bun run site`';
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+/* pipe.css — GEOMETRY ONLY for the MJSX.pipeline widget.
+ *
+ * Colours, borders and chrome belong to the page. What lives here is the
+ * thing every page kept getting wrong: the stages must be SQUASHED AND
+ * NARROW. A code pane that grows to fill the room turns a four-stage
+ * pipeline into four acres of whitespace with a 40-character program
+ * floating in it.
+ *
+ * So the panes are sized in CHARACTERS, not fractions of the viewport, and
+ * they scroll inside themselves. They never grow. They wrap to the next row
+ * when the window is too narrow to hold them side by side.
+ *
+ * Pages tune it with custom properties:
+ *   --mp-code-w   width of a code pane   (scales with the window)
+ *   --mp-code-h   height of a code pane  (default: scales with the window)
+ *   --mp-font     the monospace stack
+ *   --mp-fs       code font size                  (default 12.5px)
+ *   --mp-pad      code padding                    (default .5rem .55rem)
+ */
+
+.mp {
+  /* THE LAYOUT:
+       [ source     ][ glass ]
+       [ transpiled ][ ops   ]
+     Source and transpiled share one column so the transform sits directly
+     under the code it came from, at the same width. Glass and its call list
+     share the other. A wrapping flex row could not express that — it put the
+     transpiled pane BESIDE the source and pushed the glass onto its own line. */
+  display: grid;
+  /* The code column takes everything the glass does not. Capping the STAGE
+     inside a 1fr track left the leftover as an empty gap between the two
+     panes — the cap belongs on the track, or nowhere. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, max-content);
+  grid-template-areas: "source panel" "js ops";
+  /* stretch, so the code pane is as tall as the glass beside it: `start` left
+     the editor at its content height with dead space under it while the
+     panel column ran on past it. */
+  align-items: stretch;
+  justify-content: start;
+  gap: var(--mp-gap, .5rem);
+
+  /* Sizes FOLLOW THE WINDOW: a readable floor, growth with the viewport, and
+     a ceiling before a line of code becomes a page-wide ribbon. */
+  /* Proportional to the WINDOW, with no character floor to stop it
+     shrinking: a `clamp(40ch, …)` never went below 40 characters, so on a
+     small window the pane stayed too wide instead of following the screen. */
+  --mp-code-w: min(52vw, 160ch);
+  /* a CEILING, not a height: the pane fits its program (set from the content
+     in script) and stops growing here */
+  --mp-code-h: clamp(20rem, 58vh, 46rem);
+  --mp-sub-h:  clamp(7rem, 22vh, 18rem);
+}
+.mp [data-stage="source"] { grid-area: source; }
+.mp [data-stage="js"]     { grid-area: js; }
+
+/* The PANE owns its width. It used to live on the textarea, whose parent is
+   a shrink-to-fit flex item — so `width:100%` had nothing to resolve against
+   and the field collapsed to a couple of hundred pixels inside a box three
+   times as wide, clipping every line. */
+.mp [data-stage="source"],
+.mp [data-stage="js"] { width: 100%; }
+.mp [data-stage="panel"]  { grid-area: panel; }
+.mp [data-stage="ops"]    { grid-area: ops; }
+
+
+.mp-stage {
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.mp-head {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  min-width: 0;
+}
+.mp-n { flex: none; }
+.mp-f {
+  margin-left: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mp-body {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+/* ---- the editable source pane ----
+   Two layers that must agree on every metric that affects wrapping, or the
+   caret drifts away from the glyphs underneath it. */
+.mp-ed {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+}
+.mp-ed pre,
+.mp-ed textarea {
+  margin: 0;
+  border: 0;
+  font: var(--mp-fs, 12.5px) / 1.5 var(--mp-font, ui-monospace, SFMono-Regular, Menlo, monospace);
+  white-space: pre;
+  padding: var(--mp-pad, .5rem .55rem);
+  tab-size: 2;
+  width: 100%;
+  letter-spacing: 0;
+}
+.mp-ed pre {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  width: auto;
+}
+.mp-ed textarea {
+  position: relative;
+  display: block;
+  background: transparent;
+  color: transparent;
+  resize: vertical;
+  overflow: auto;
+  /* height comes from the CONTENT (see autoHeight in device.js) and is capped
+     here — a fixed vh height left a 15-line program floating in 800px of
+     empty editor on a tall window */
+  /* Side by side with the glass the editor is nearly the height of the
+     WINDOW — that is the point of the two-column layout. Stacked, its height
+     is measured from the program instead (autoHeight in device.js), so a tall
+     narrow window does not leave it mostly empty. */
+  height: 100%;
+  min-height: min(72vh, 60rem);
+  overscroll-behavior: none;
+}
+.mp-ed textarea:focus { outline: none; }
+/* The glyphs are transparent so the highlighted copy shows through — which
+   makes the caret transparent too unless it is given its own colour. A page
+   that forgets to theme it still gets a visible one. */
+.mp-ed textarea { caret-color: var(--mp-caret, #7f8c99); }
+
+/* The two layers must agree on EVERY metric that moves a glyph, and a
+   scrollbar is one: the textarea used to reserve space for its own bars while
+   the highlighted copy underneath did not, which slid the text out of
+   register by exactly the scrollbar's thickness. The textarea's bars are
+   hidden — it still scrolls by wheel, drag and caret, and hlAttach copies
+   scrollTop/scrollLeft onto the copy underneath. */
+.mp-ed textarea { scrollbar-width: none; -ms-overflow-style: none; }
+.mp-ed textarea::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* ---- the read-only panes ---- */
+pre.mp-js,
+pre.mp-ops {
+  margin: 0;
+  font: var(--mp-fs, 12.5px) / 1.5 var(--mp-font, ui-monospace, SFMono-Regular, Menlo, monospace);
+  white-space: pre;
+  overflow: auto;
+  padding: var(--mp-pad, .5rem .55rem);
+  width: 100%;
+  max-width: 100%;
+  /* min and max both: the read-only panes stay level with the editor whether
+     the program is two lines or two hundred */
+  height: auto;
+  min-height: 0;
+  max-height: var(--mp-sub-h);
+  letter-spacing: 0;
+}
+/* both read-only panes simply fill the stage that sizes them: the transpiled
+   pane sits in the source column and so matches its width exactly, and the
+   call list fills the glass column. */
+pre.mp-js { width: 100%; }
+pre.mp-ops { width: 0; min-width: 100%; }
+
+/* ---- the glass ----
+   min-width:0 matters: a flex item will not shrink below its min-content by
+   default, and the panel's min-content is its full pixel width — which is
+   how a 240px panel ends up hanging off the side of a 405px phone. */
+.mp-screen {
+  display: flex;
+  justify-content: center;
+  /* start, not stretch: the glass keeps its own aspect ratio and is not
+     pulled to the height of the code beside it */
+  align-items: flex-start;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.mp-screen > .glass { flex: 0 0 auto; align-self: flex-start; }
+
+.mp-ctl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mp-gap, .4rem);
+}
+/* the shape picker is a row of chips, not a stack */
+.mp-shapes { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
+
+/* a label that exists for screen readers and takes no space */
+.mp-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- stacked (narrow) ----------------------------------------------------
+   Placed LAST on purpose: these override the side-by-side rules above, and a
+   media block earlier in the file loses the cascade to the equally specific
+   rules that follow it — which is why the narrow layout kept the tall
+   window-height editor. */
+@media (max-width: 860px) {
+  /* one column: the pane takes the full card width instead of half a window */
+  .mp { grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "source" "js" "panel" "ops";
+        --mp-code-w: 100%; }
+  /* stacked: height comes from the content, capped — and the tall
+     side-by-side minimum must be released or a narrow window gets a
+     window-height editor holding fifteen lines */
+  .mp-ed textarea { height: auto; min-height: 14rem;
+                    max-height: var(--mp-code-h); }
+}

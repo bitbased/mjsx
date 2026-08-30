@@ -56,7 +56,9 @@ function pageList() {
     for (const f of readdirSync(gen)) {
       if (!/\.mdx?$/.test(f)) continue;
       const slug = f.replace(/\.mdx?$/, '');
-      out.add(slug === 'index' ? '/' : '/' + slug + '/');
+      /* '/' is the drafting demo in public/, not a docs page; the docs
+         overview is the 'docs' slug like any other. */
+      out.add('/' + slug + '/');
     }
   }
   /* the hand-written pages under public/, which have no markdown at all

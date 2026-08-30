@@ -1,580 +1,183 @@
-<!--
-  mjsx landing pages — CHOOSER.
-
-  Five alternative designs for the same project, presented as a contact sheet.
-  Page chrome follows the reader's light/dark preference; each specimen chip
-  keeps its own page's committed colours in both prints, because that is the
-  thing being chosen.
-
-  Self-contained: no external requests, no fonts fetched, no binary assets.
--->
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<title>mjsx landing pages — five directions</title>
-<meta name="description" content="Five alternative landing page designs for mjsx, the JSX UI engine for microcontrollers, Raspberry Pi, desktop and the browser. Same facts, five treatments.">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mjsx Presentations</title>
+<meta name="description" content="Seven presentations of the same three mjsx programs — asteroids, input and drawing — plus the source-to-glass pipeline, all running live.">
+<!--
+  The chooser. Seven presentations of the same material: three real programs
+  (asteroids, input, drawing) plus the source-to-glass pipeline, each shown in
+  a different idiom. One live panel here, so the index is not the only page on
+  the site that merely talks about the engine.
+-->
+<script src="/mjsx-sim.js"></script>
+<script src="/landing/device.js"></script>
 <style>
-/* ------------------------------------------------------------------ TOKENS
-   Complete palette on bare :root. The dark media query only REDEFINES these
-   names; no colour is ever defined only inside it. */
-:root{
-  color-scheme: light dark;
-
-  --bg:        #f6f4ef;
-  --surface:   #fdfcfa;
-  --surface-2: #efece5;
-  --ink:       #15171c;
-  --dim:       #4c525d;
-  --faint:     #6b7280;
-  --rule:      #ddd8cd;
-  --rule-soft: #e9e5db;
-  --accent:    #1a56c4;
-  --spot:      #9a4a00;
-  --focus:     #1a56c4;
-  --sel-bg:    #1a56c4;
-  --sel-fg:    #ffffff;
-  --shadow:    0 1px 0 rgba(21,23,28,.05);
-
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-          "DejaVu Sans Mono", "Liberation Mono", monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
-          Arial, sans-serif;
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg:        #0b0d11;
-    --surface:   #12151b;
-    --surface-2: #171b22;
-    --ink:       #e2e7ef;
-    --dim:       #9aa3b2;
-    --faint:     #7d8593;
-    --rule:      #242a34;
-    --rule-soft: #1b2029;
-    --accent:    #6ba4ff;
-    --spot:      #e0a86a;
-    --focus:     #6ba4ff;
-    --sel-bg:    #6ba4ff;
-    --sel-fg:    #0b0d11;
-    --shadow:    0 0 0 1px rgba(107,164,255,.06);
+  :root {
+    --bg:#0d0f12; --card:#151a20; --line:#242c35; --line2:#33404c;
+    --ink:#e7ebf0; --dim:#8b96a3; --accent:#6ee7b7;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
-}
-
-*{ box-sizing: border-box; }
-html{ -webkit-text-size-adjust: 100%; }
-body{
-  margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--sans);
-  font-size: 15px;
-  line-height: 1.62;
-  overflow-x: hidden;
-}
-::selection{ background: var(--sel-bg); color: var(--sel-fg); }
-:focus-visible{ outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 2px; }
-
-.skip{
-  position: absolute; left: -9999px; top: 0; z-index: 30;
-  background: var(--surface); color: var(--ink);
-  border: 1px solid var(--accent); padding: 9px 14px;
-  font: 500 12px/1 var(--mono); text-decoration: none;
-}
-.skip:focus{ left: 12px; top: 12px; }
-
-.wrap{
-  width: 100%;
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 0 clamp(16px, 4vw, 36px);
-}
-
-/* ------------------------------------------------------------------ HEAD */
-header{ border-bottom: 1px solid var(--rule); background: var(--surface-2); }
-.head-in{
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px;
-  padding: 12px 0;
-}
-.mark{ font: 700 15px/1 var(--mono); letter-spacing: .14em; }
-.mark b{ color: var(--accent); }
-.head-note{
-  font: 400 12px/1.5 var(--mono); color: var(--faint); letter-spacing: .02em;
-}
-
-.intro{ padding: clamp(30px, 6vw, 62px) 0 clamp(22px, 3vw, 34px); }
-h1{
-  margin: 0 0 16px;
-  font-size: clamp(24px, 4.6vw, 40px);
-  line-height: 1.12;
-  letter-spacing: -.02em;
-  font-weight: 700;
-  max-width: 20ch;
-}
-.lede{ margin: 0 0 12px; max-width: 68ch; color: var(--dim); font-size: clamp(15px, 1.7vw, 17px); }
-.lede strong{ color: var(--ink); font-weight: 700; }
-.lede code{
-  font-family: var(--mono); font-size: .9em; color: var(--ink);
-  background: var(--surface-2); border: 1px solid var(--rule-soft);
-  padding: .05em .35em; border-radius: 2px;
-}
-
-.callout{
-  margin: 22px 0 0;
-  border-left: 3px solid var(--spot);
-  background: var(--surface);
-  padding: 12px 16px;
-  max-width: 72ch;
-  font-size: 14px;
-  color: var(--dim);
-  box-shadow: var(--shadow);
-}
-.callout b{ color: var(--ink); }
-
-.facts{
-  margin: 24px 0 0; padding: 0; list-style: none;
-  display: flex; flex-wrap: wrap; gap: 6px 8px;
-  font: 400 12px/1.5 var(--mono); color: var(--faint);
-}
-.facts li{ border: 1px solid var(--rule); padding: 3px 9px; white-space: nowrap; }
-.facts li b{ color: var(--ink); font-weight: 700; }
-
-/* ----------------------------------------------------------------- CARDS */
-.sheet-label{
-  display: flex; align-items: center; gap: 12px;
-  margin: clamp(18px, 3vw, 30px) 0 14px;
-  font: 500 11px/1 var(--mono); letter-spacing: .18em;
-  text-transform: uppercase; color: var(--faint);
-}
-.sheet-label .hr{ flex: 1 1 auto; height: 1px; background: var(--rule); }
-
-.cards{
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(288px, 1fr));
-  gap: clamp(14px, 2vw, 20px);
-  margin: 0 0 clamp(30px, 5vw, 56px);
-  padding: 0;
-  list-style: none;
-}
-
-.card{
-  display: flex; flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  box-shadow: var(--shadow);
-  text-decoration: none;
-  color: inherit;
-  overflow: hidden;
-}
-.card:hover{ border-color: var(--accent); }
-.card:hover .card-name{ color: var(--accent); }
-
-.chip{ display: block; width: 100%; height: auto; border-bottom: 1px solid var(--rule); }
-
-.card-body{ padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; }
-.card-top{ display: flex; align-items: baseline; gap: 10px; }
-.card-no{
-  font: 700 10.5px/1 var(--mono); letter-spacing: .16em; color: var(--spot);
-  flex: 0 0 auto; padding-top: 2px;
-}
-.card-name{
-  font: 700 16px/1.2 var(--mono); letter-spacing: .02em; margin: 0;
-}
-.card-kind{
-  font: 500 10.5px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
-  color: var(--faint); margin: 0;
-}
-.card p.desc{ margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--dim); }
-.card .go{
-  margin-top: auto; padding-top: 10px;
-  font: 500 11px/1 var(--mono); letter-spacing: .14em;
-  text-transform: uppercase; color: var(--accent);
-}
-.card .go::after{ content: " \2192"; }
-
-/* ---------------------------------------------------------------- FOOTER */
-footer{
-  border-top: 1px solid var(--rule);
-  background: var(--surface-2);
-  padding: clamp(24px, 4vw, 44px) 0 clamp(32px, 5vw, 56px);
-}
-footer h2{
-  margin: 0 0 10px;
-  font: 700 12px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase;
-  color: var(--faint);
-}
-footer p{ margin: 0 0 10px; max-width: 72ch; font-size: 13.5px; color: var(--dim); }
-footer p:last-child{ margin-bottom: 0; }
-footer strong{ color: var(--ink); }
-.badges{ display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 14px 0 16px; }
-.badge{
-  border: 1px solid var(--rule); padding: 2px 9px;
-  font: 400 11.5px/1.6 var(--mono); color: var(--dim);
-}
-.badge.no{ color: var(--spot); border-color: var(--spot); }
-
-@media (prefers-reduced-motion: reduce){
-  *, *::before, *::after{
-    animation-duration: .001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .001ms !important;
+  @media (prefers-color-scheme:light) {
+    :root:not([data-theme="dark"]) {
+      --bg:#fafbfc; --card:#ffffff; --line:#e3e8ed; --line2:#c9d2da;
+      --ink:#131820; --dim:#5b6772; --accent:#0d7a5f;
+    }
   }
-}
+  * { box-sizing:border-box; }
+  html { color-scheme:dark light; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:16px/1.65 var(--sans); -webkit-text-size-adjust:100%; }
+  I8rem; margin:0 auto; padding:0 1.2rem; }
+  code { font-family:var(--mono); font-size:.88em; }
+
+  header.top { border-bottom:1px solid var(--line); }
+  header.top .wrap { display:flex; align-items:center; gap:1rem; height:3.1rem;
+                     font:600 13px/1 var(--mono); letter-spacing:.06em; }
+  header.top .sp { margin-left:auto; }
+  header.top a { color:var(--dim); text-decoration:none; font-size:12px; }
+  header.top a:hover, header.top a:focus-visible { color:var(--accent); }
+
+    .top-lay { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:clamp(2rem,5vw,5rem);
+             align-items:center; padding:clamp(2.6rem,5vw,4.5rem) 0 2.6rem; }
+  @media (max-width:760px) { .top-lay { grid-template-columns:1fr; } }
+  h1 { font-size:clamp(1.9rem,5vw,2.8rem); line-height:1.08; margin:0 0 .6rem;
+       letter-spacing:-.025em; text-wrap:balance; }
+  .lede { color:var(--dim); max-width:34rem; margin:0; }
+  .lede b { color:var(--ink); font-weight:600; }
+
+  .glass { background:#000; border:1px solid var(--line2); border-radius:50%;
+           padding:8px; line-height:0; justify-self:center; max-width:100%; }
+  .glass canvas { border-radius:50%; image-rendering:pixelated; touch-action:none;
+                  outline:none; }
+  .glass canvas:focus-visible { box-shadow:0 0 0 2px var(--accent); }
+  .caption { text-align:center; font:10.5px/1.5 var(--mono); color:var(--dim);
+             margin-top:.5rem; letter-spacing:.06em; }
+
+  h2.sec { font:600 11px/1 var(--mono); letter-spacing:.18em; text-transform:uppercase;
+           color:var(--dim); margin:0 0 1rem; }
+
+  .grid { display:grid; align-items:start; grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));
+          gap:.9rem; padding-bottom:3.5rem; }
+  a.card { display:block; text-decoration:none; color:inherit; background:var(--card);
+           border:1px solid var(--line); border-radius:11px; padding:1.1rem 1.15rem;
+           transition:border-color .12s ease, transform .12s ease; }
+  a.card:hover, a.card:focus-visible { border-color:var(--accent); transform:translateY(-2px); }
+  a.card:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  @media (prefers-reduced-motion:reduce) { a.card { transition:none; } a.card:hover { transform:none; } }
+  a.card h3 { margin:0 0 .1rem; font-size:1.12rem; letter-spacing:-.01em; }
+  a.card .idiom { font:10.5px/1.5 var(--mono); letter-spacing:.12em; text-transform:uppercase;
+                  color:var(--accent); margin-bottom:.55rem; }
+  a.card p { margin:0 0 .7rem; font-size:.9rem; color:var(--dim); }
+  a.card p b { color:var(--ink); font-weight:600; }
+  a.card .pipe { font:10.5px/1.5 var(--mono); color:var(--dim);
+                 border-top:1px solid var(--line); padding-top:.5rem; }
+  a.card .pipe b { color:var(--ink); font-weight:400; }
+
+  footer { border-top:1px solid var(--line); padding:1.3rem 0 3rem;
+           font-size:.86rem; color:var(--dim); }
+  footer a { color:var(--accent); }
 </style>
 </head>
 <body>
 
-<a class="skip" href="#directions">Skip to the five directions</a>
+<header class="top"><div class="wrap">
+  <span>mjsx</span>
+  <span class="sp"></span>
+  <a href="/play/">simulator</a><a href="https://github.com/bitbased/mjsx" rel="noopener">github</a><a href="/docs/">docs</a>
+</div></header>
 
-<header>
-  <div class="wrap head-in">
-    <span class="mark">mjsx<b>_</b></span>
-    <span class="head-note">landing pages &middot; five directions &middot; same project</span>
-  </div>
-</header>
-
-<main>
-  <section class="intro">
-    <div class="wrap">
-      <h1>Five landing pages for one engine.</h1>
-
+<div class="wrap">
+  <div class="top-lay">
+    <div>
+      <h1>Seven presentations, same three programs</h1>
       <p class="lede">
-        <strong>mjsx</strong> is JSX for microcontrollers, a Raspberry&nbsp;Pi, the desktop and the
-        browser: one portable core file that lays out, draws and handles touch, reaching pixels
-        through exactly <strong>ten <code>gfx</code> calls plus a clock</strong>. Anything that
-        realizes those ten is a backend &mdash; a chip, a terminal, a native window, a browser tab.
+        Every page below runs <b>asteroids</b>, <b>input</b> and <b>drawing</b> —
+        the real examples from the repository, on the same engine that runs on
+        the hardware — plus the source&#8209;to&#8209;glass pipeline, editable.
+        What differs between them is entirely the treatment. The panel here is
+        one of those programs, live: click it and fly.
       </p>
-      <p class="lede">
-        Below are five complete alternative designs for that same page. They are not chapters and
-        not a sequence: each one is a finished attempt at the whole story, and they carry the same
-        checkable facts in five different voices.
-      </p>
-
-      <div class="callout">
-        <b>These are alternatives, not a set.</b> Pick one. Every page below describes the same
-        repository, states the same numbers, and links nowhere off itself &mdash; none of them, and
-        not this one, makes a single network request.
-      </div>
-
-      <ul class="facts">
-        <li><b>10</b> native calls</li>
-        <li><b>0</b> dependencies</li>
-        <li><b>2,526</b> lines of core</li>
-        <li><b>312</b> lines of transpiler</li>
-        <li><b>6</b> backends</li>
-        <li><b>4</b> boards, daily</li>
-        <li><b>MIT</b>, pre&#8209;publication</li>
-      </ul>
     </div>
-  </section>
-
-  <div class="wrap" id="directions">
-    <p class="sheet-label">The five directions <span class="hr"></span> light / dark shown on each chip</p>
-
-    <ul class="cards">
-
-      <!-- 01 OSCILLOSCOPE -->
-      <li>
-        <a class="card" href="oscilloscope/">
-          <svg class="chip" viewBox="0 0 320 108" role="img"
-               aria-label="Specimen chip: a dark instrument panel with a green waveform over a graticule, beside its light print in green ink on warm paper.">
-            <rect x="0" y="0" width="160" height="108" fill="#07100c"/>
-            <g stroke="#101f19" stroke-width="1">
-              <path d="M32 0V108M64 0V108M96 0V108M128 0V108M0 27H160M0 54H160M0 81H160"/>
-            </g>
-            <path d="M8 62C22 62 22 30 40 30C58 30 58 78 76 78C94 78 94 40 112 40C130 40 130 66 152 58"
-                  fill="none" stroke="#1d7a4a" stroke-width="6" stroke-linecap="round" opacity=".55"/>
-            <path d="M8 62C22 62 22 30 40 30C58 30 58 78 76 78C94 78 94 40 112 40C130 40 130 66 152 58"
-                  fill="none" stroke="#3df08c" stroke-width="2" stroke-linecap="round"/>
-            <rect x="8" y="88" width="44" height="10" fill="#0e1a16"/>
-            <rect x="56" y="88" width="26" height="10" fill="#0e1a16"/>
-
-            <rect x="160" y="0" width="160" height="108" fill="#e7e3d8"/>
-            <g stroke="#dfd9c9" stroke-width="1">
-              <path d="M192 0V108M224 0V108M256 0V108M288 0V108M160 27H320M160 54H320M160 81H320"/>
-            </g>
-            <path d="M168 62C182 62 182 30 200 30C218 30 218 78 236 78C254 78 254 40 272 40C290 40 290 66 312 58"
-                  fill="none" stroke="#0a6b38" stroke-width="2" stroke-linecap="round"/>
-            <rect x="168" y="88" width="44" height="10" fill="#f1eee5"/>
-            <rect x="216" y="88" width="26" height="10" fill="#f1eee5"/>
-            <line x1="160" y1="0" x2="160" y2="108" stroke="#857b66" stroke-width="1"/>
-          </svg>
-          <div class="card-body">
-            <div class="card-top">
-              <span class="card-no">01</span>
-              <div>
-                <h2 class="card-name">Oscilloscope</h2>
-                <p class="card-kind">Laboratory instrument</p>
-              </div>
-            </div>
-            <p class="desc">
-              A bench front panel: bezelled readouts, a live phosphor trace on canvas, and every
-              number presented as a measurement rather than a claim. Dark is the CRT; light is a
-              chart&#8209;recorder printout.
-            </p>
-            <span class="go">Open</span>
-          </div>
-        </a>
-      </li>
-
-      <!-- 02 LETTERPRESS -->
-      <li>
-        <a class="card" href="letterpress/">
-          <svg class="chip" viewBox="0 0 320 108" role="img"
-               aria-label="Specimen chip: a warm paper sheet with a large serif wordmark, hairline rules and a vermilion spot colour, beside its dark plate print.">
-            <rect x="0" y="0" width="160" height="108" fill="#f3ede1"/>
-            <g stroke="#c6bba7" stroke-width="1">
-              <path d="M12 22H148M12 26H148M12 92H148"/>
-            </g>
-            <text x="12" y="72" font-family="ui-serif, Georgia, 'Times New Roman', serif"
-                  font-size="46" font-weight="600" fill="#241f1a" letter-spacing="-1.5">mjsx<tspan fill="#9c3524">.</tspan></text>
-            <rect x="12" y="82" width="52" height="4" fill="#9c3524"/>
-            <rect x="12" y="8" width="34" height="6" fill="#d8cdb9"/>
-
-            <rect x="160" y="0" width="160" height="108" fill="#14120e"/>
-            <g stroke="#3d372c" stroke-width="1">
-              <path d="M172 22H308M172 26H308M172 92H308"/>
-            </g>
-            <text x="172" y="72" font-family="ui-serif, Georgia, 'Times New Roman', serif"
-                  font-size="46" font-weight="600" fill="#ece3d2" letter-spacing="-1.5">mjsx<tspan fill="#d2694f">.</tspan></text>
-            <rect x="172" y="82" width="52" height="4" fill="#d2694f"/>
-            <rect x="172" y="8" width="34" height="6" fill="#262119"/>
-            <line x1="160" y1="0" x2="160" y2="108" stroke="#6b6154" stroke-width="1"/>
-          </svg>
-          <div class="card-body">
-            <div class="card-top">
-              <span class="card-no">02</span>
-              <div>
-                <h2 class="card-name">Letterpress</h2>
-                <p class="card-kind">Printed specimen sheet</p>
-              </div>
-            </div>
-            <p class="desc">
-              Two inks on paper, set as a type specimen: rules and small caps instead of cards, true
-              marginalia, numbered plates. The ten calls are implemented against a canvas in the page
-              and their frame is logged beside it.
-            </p>
-            <span class="go">Open</span>
-          </div>
-        </a>
-      </li>
-
-      <!-- 03 PIXELS -->
-      <li>
-        <a class="card" href="pixels/">
-          <svg class="chip" viewBox="0 0 320 108" role="img"
-               aria-label="Specimen chip: a chunky pixel-art panel with hard black borders and offset shadows on a light ground, beside the same on a near-black ground.">
-            <rect x="0" y="0" width="160" height="108" fill="#f0ece1"/>
-            <g stroke="#d5cdb7" stroke-width="1">
-              <path d="M16 0V108M32 0V108M48 0V108M64 0V108M80 0V108M96 0V108M112 0V108M128 0V108M144 0V108
-                       M0 16H160M0 32H160M0 48H160M0 64H160M0 80H160M0 96H160"/>
-            </g>
-            <rect x="22" y="22" width="58" height="34" fill="#14161b"/>
-            <rect x="19" y="19" width="58" height="34" fill="#4b8bf5" stroke="#14161b" stroke-width="3"/>
-            <g fill="#f0ece1">
-              <rect x="27" y="29" width="6" height="6"/><rect x="39" y="29" width="6" height="6"/>
-              <rect x="51" y="29" width="6" height="6"/><rect x="63" y="29" width="6" height="6"/>
-              <rect x="33" y="41" width="6" height="6"/><rect x="45" y="41" width="6" height="6"/>
-              <rect x="57" y="41" width="6" height="6"/>
-            </g>
-            <rect x="94" y="22" width="46" height="20" fill="#14161b"/>
-            <rect x="91" y="19" width="46" height="20" fill="#d8d2bf" stroke="#14161b" stroke-width="3"/>
-            <rect x="19" y="66" width="118" height="22" fill="#14161b"/>
-            <rect x="16" y="63" width="118" height="22" fill="#4ade80" stroke="#14161b" stroke-width="3"/>
-
-            <rect x="160" y="0" width="160" height="108" fill="#0b0d11"/>
-            <g stroke="#191d25" stroke-width="1">
-              <path d="M176 0V108M192 0V108M208 0V108M224 0V108M240 0V108M256 0V108M272 0V108M288 0V108M304 0V108
-                       M160 16H320M160 32H320M160 48H320M160 64H320M160 80H320M160 96H320"/>
-            </g>
-            <rect x="182" y="22" width="58" height="34" fill="#232936"/>
-            <rect x="179" y="19" width="58" height="34" fill="#4b8bf5" stroke="#39404e" stroke-width="3"/>
-            <g fill="#0b0d11">
-              <rect x="187" y="29" width="6" height="6"/><rect x="199" y="29" width="6" height="6"/>
-              <rect x="211" y="29" width="6" height="6"/><rect x="223" y="29" width="6" height="6"/>
-              <rect x="193" y="41" width="6" height="6"/><rect x="205" y="41" width="6" height="6"/>
-              <rect x="217" y="41" width="6" height="6"/>
-            </g>
-            <rect x="254" y="22" width="46" height="20" fill="#232936"/>
-            <rect x="251" y="19" width="46" height="20" fill="#1b1f27" stroke="#39404e" stroke-width="3"/>
-            <rect x="179" y="66" width="118" height="22" fill="#232936"/>
-            <rect x="176" y="63" width="118" height="22" fill="#4ade80" stroke="#39404e" stroke-width="3"/>
-            <line x1="160" y1="0" x2="160" y2="108" stroke="#98a1ae" stroke-width="1"/>
-          </svg>
-          <div class="card-body">
-            <div class="card-top">
-              <span class="card-no">03</span>
-              <div>
-                <h2 class="card-name">Pixels</h2>
-                <p class="card-kind">The pixel itself</p>
-              </div>
-            </div>
-            <p class="desc">
-              Toy&#8209;bright and hard&#8209;edged. Every screen on it is a real canvas at the panel&rsquo;s
-              true resolution, scaled by a whole number, drawn by an implementation of the ten calls
-              written into the page &mdash; wordmark and bitmap font included.
-            </p>
-            <span class="go">Open</span>
-          </div>
-        </a>
-      </li>
-
-      <!-- 04 BLUEPRINT -->
-      <li>
-        <a class="card" href="blueprint/">
-          <svg class="chip" viewBox="0 0 320 108" role="img"
-               aria-label="Specimen chip: a whiteprint drafting sheet with a dimensioned panel elevation and a balloon callout, beside the same drawing as a dark cyanotype.">
-            <rect x="0" y="0" width="160" height="108" fill="#f3f6f9"/>
-            <g stroke="rgba(24,68,112,.12)" stroke-width="1">
-              <path d="M20 0V108M40 0V108M60 0V108M80 0V108M100 0V108M120 0V108M140 0V108
-                       M0 20H160M0 40H160M0 60H160M0 80H160M0 100H160"/>
-            </g>
-            <rect x="44" y="18" width="52" height="66" fill="none" stroke="#2a5d8f" stroke-width="1.6"/>
-            <rect x="50" y="24" width="40" height="12" fill="#0a5ea6" opacity=".18"/>
-            <rect x="50" y="42" width="40" height="5" fill="none" stroke="rgba(42,93,143,.42)" stroke-width=".85"/>
-            <rect x="50" y="52" width="26" height="5" fill="none" stroke="rgba(42,93,143,.42)" stroke-width=".85"/>
-            <rect x="50" y="64" width="40" height="13" fill="none" stroke="#2a5d8f" stroke-width="1"/>
-            <path d="M44 92H96" stroke="#a24a12" stroke-width=".9"/>
-            <path d="M44 88V96M96 88V96" stroke="#a24a12" stroke-width=".9"/>
-            <text x="70" y="102" text-anchor="middle" font-family="ui-monospace, Menlo, monospace"
-                  font-size="7.5" fill="#a24a12" letter-spacing=".6">240 PX</text>
-            <circle cx="122" cy="30" r="8" fill="#f3f6f9" stroke="#a24a12" stroke-width="1"/>
-            <text x="122" y="33.5" text-anchor="middle" font-family="ui-monospace, Menlo, monospace"
-                  font-size="8" font-weight="600" fill="#a24a12">1</text>
-            <path d="M96 30H113" stroke="#a24a12" stroke-width=".9"/>
-
-            <rect x="160" y="0" width="160" height="108" fill="#0a1826"/>
-            <g stroke="rgba(126,196,255,.10)" stroke-width="1">
-              <path d="M180 0V108M200 0V108M220 0V108M240 0V108M260 0V108M280 0V108M300 0V108
-                       M160 20H320M160 40H320M160 60H320M160 80H320M160 100H320"/>
-            </g>
-            <rect x="204" y="18" width="52" height="66" fill="none" stroke="#6ab0e2" stroke-width="1.6"/>
-            <rect x="210" y="24" width="40" height="12" fill="#63cdf2" opacity=".22"/>
-            <rect x="210" y="42" width="40" height="5" fill="none" stroke="rgba(106,176,226,.42)" stroke-width=".85"/>
-            <rect x="210" y="52" width="26" height="5" fill="none" stroke="rgba(106,176,226,.42)" stroke-width=".85"/>
-            <rect x="210" y="64" width="40" height="13" fill="none" stroke="#6ab0e2" stroke-width="1"/>
-            <path d="M204 92H256" stroke="#f2ac5c" stroke-width=".9"/>
-            <path d="M204 88V96M256 88V96" stroke="#f2ac5c" stroke-width=".9"/>
-            <text x="230" y="102" text-anchor="middle" font-family="ui-monospace, Menlo, monospace"
-                  font-size="7.5" fill="#f2ac5c" letter-spacing=".6">240 PX</text>
-            <circle cx="282" cy="30" r="8" fill="#0a1826" stroke="#f2ac5c" stroke-width="1"/>
-            <text x="282" y="33.5" text-anchor="middle" font-family="ui-monospace, Menlo, monospace"
-                  font-size="8" font-weight="600" fill="#f2ac5c">1</text>
-            <path d="M256 30H273" stroke="#f2ac5c" stroke-width=".9"/>
-            <line x1="160" y1="0" x2="160" y2="108" stroke="#55708c" stroke-width="1"/>
-          </svg>
-          <div class="card-body">
-            <div class="card-top">
-              <span class="card-no">04</span>
-              <div>
-                <h2 class="card-name">Blueprint</h2>
-                <p class="card-kind">Engineering drawing</p>
-              </div>
-            </div>
-            <p class="desc">
-              Seven numbered sheets with a real title block. The contract, the backend fan&#8209;out and
-              the round&#8209;glass keyboard are annotated SVG drawings with dimension lines and balloon
-              callouts keyed to a notes schedule.
-            </p>
-            <span class="go">Open</span>
-          </div>
-        </a>
-      </li>
-
-      <!-- 05 TERMINAL -->
-      <li>
-        <a class="card" href="terminal/">
-          <svg class="chip" viewBox="0 0 320 108" role="img"
-               aria-label="Specimen chip: a light terminal transcript with a green prompt and a row of half-block cells, beside the same transcript on a near-black terminal.">
-            <rect x="0" y="0" width="160" height="108" fill="#f4f2ed"/>
-            <rect x="0" y="0" width="160" height="14" fill="#eae7e0"/>
-            <g fill="#d6d2c8"><rect x="8" y="5" width="5" height="5"/><rect x="17" y="5" width="5" height="5"/><rect x="26" y="5" width="5" height="5"/></g>
-            <g font-family="ui-monospace, Menlo, monospace" font-size="9">
-              <text x="10" y="30" fill="#1f6b3a" font-weight="700">$</text>
-              <text x="20" y="30" fill="#16181d">bun run examples</text>
-              <text x="10" y="44" fill="#4d535e">rendered 240x280</text>
-              <text x="10" y="86" fill="#1f6b3a" font-weight="700">$</text>
-            </g>
-            <rect x="10" y="52" width="140" height="24" fill="#000000"/>
-            <g fill="#4b8bf5"><rect x="14" y="56" width="4" height="7"/><rect x="22" y="56" width="4" height="7"/>
-              <rect x="30" y="56" width="4" height="7"/><rect x="46" y="56" width="4" height="7"/>
-              <rect x="54" y="56" width="4" height="7"/><rect x="70" y="56" width="4" height="7"/></g>
-            <g fill="#212530"><rect x="14" y="66" width="132" height="6"/></g>
-            <rect x="19" y="80" width="5" height="9" fill="#1a56c4"/>
-
-            <rect x="160" y="0" width="160" height="108" fill="#0b0d10"/>
-            <rect x="160" y="0" width="160" height="14" fill="#161a21"/>
-            <g fill="#242a35"><rect x="168" y="5" width="5" height="5"/><rect x="177" y="5" width="5" height="5"/><rect x="186" y="5" width="5" height="5"/></g>
-            <g font-family="ui-monospace, Menlo, monospace" font-size="9">
-              <text x="170" y="30" fill="#57c98a" font-weight="700">$</text>
-              <text x="180" y="30" fill="#dfe4ec">bun run examples</text>
-              <text x="170" y="44" fill="#9aa3b2">rendered 240x280</text>
-              <text x="170" y="86" fill="#57c98a" font-weight="700">$</text>
-            </g>
-            <rect x="170" y="52" width="140" height="24" fill="#000000"/>
-            <g fill="#4b8bf5"><rect x="174" y="56" width="4" height="7"/><rect x="182" y="56" width="4" height="7"/>
-              <rect x="190" y="56" width="4" height="7"/><rect x="206" y="56" width="4" height="7"/>
-              <rect x="214" y="56" width="4" height="7"/><rect x="230" y="56" width="4" height="7"/></g>
-            <g fill="#212530"><rect x="174" y="66" width="132" height="6"/></g>
-            <rect x="179" y="80" width="5" height="9" fill="#6ba4ff"/>
-            <line x1="160" y1="0" x2="160" y2="108" stroke="#63697a" stroke-width="1"/>
-          </svg>
-          <div class="card-body">
-            <div class="card-top">
-              <span class="card-no">05</span>
-              <div>
-                <h2 class="card-name">Terminal</h2>
-                <p class="card-kind">Live session transcript</p>
-              </div>
-            </div>
-            <p class="desc">
-              The whole page is one console transcript of commands that really run in the repository,
-              with their real output &mdash; including two device frames decoded from the terminal
-              backend&rsquo;s own half&#8209;block bytes. The typing has a skip control.
-            </p>
-            <span class="go">Open</span>
-          </div>
-        </a>
-      </li>
-
-    </ul>
-  </div>
-</main>
-
-<footer>
-  <div class="wrap">
-    <h2>About the subject</h2>
-    <p>
-      <strong>mjsx</strong> is one file of ES5 / MicroQuickJS&#8209;safe JavaScript &mdash; 2,526 lines
-      holding <code>h()</code>, the layout pass, hit&#8209;testing and the touch state machine &mdash;
-      that reaches pixels through ten <code>gfx</code> calls plus <code>sys.millis</code>. No virtual
-      DOM and no reconciler: a dirty frame simply redraws. Six backends exist and run today (a
-      headless rasterizer, an ANSI terminal, an SDL window, a browser mirror, WASM running the same
-      MicroQuickJS bytecode a chip runs, and the ESP32 itself), and it drives a four&#8209;board fleet
-      daily, one of which is round.
-    </p>
-
-    <div class="badges">
-      <span class="badge">hobby project</span>
-      <span class="badge">MIT licensed</span>
-      <span class="badge">zero dependencies</span>
-      <span class="badge no">not published to npm</span>
-      <span class="badge no">not on a public git host</span>
+    <div>
+      <div id="host-a"></div>
+      <div class="caption">240 × 240 round · click, then arrows + space</div>
     </div>
-
-    <p>
-      It is a hobby project, open&#8209;sourced as&#8209;is and still pre&#8209;publication: the
-      <code>"private": true</code> in its package.json is deliberate, so there is no install line
-      here and no repository link to hand you. If you have a copy, pin to your checkout.
-    </p>
-    <p>
-      These five pages are alternative designs for the same project, not five different products.
-      This chooser and all five of them are single self&#8209;contained files: no fonts fetched, no
-      scripts fetched, no images fetched, no analytics &mdash; nothing here makes a network request.
-    </p>
   </div>
-</footer>
 
+  <h2 class="sec">Choose a treatment</h2>
+  <div class="grid">
+    <a class="card" href="/landing/arcade/">
+      <div class="idiom">CRT · phosphor</div>
+      <h3>Arcade</h3>
+      <p>Cabinets with marquees and control panels, scanlines over the lot.</p>
+      <div class="pipe">pipeline: <b>source → glass → call list</b></div>
+    </a>
+
+    <a class="card" href="/landing/bench/">
+      <div class="idiom">Graph paper · annotated</div>
+      <h3>Bench</h3>
+      <p>Specimens under the lamp, with numbered callouts pointing at what the
+         engine is doing while you touch it.</p>
+      <div class="pipe">pipeline: <b>four wired probe points</b></div>
+    </a>
+
+    <a class="card" href="/landing/cyber/">
+      <div class="idiom">HUD · neon</div>
+      <h3>Cyber</h3>
+      <p>Clipped corners, target brackets round every panel, readouts in the
+         margin.</p>
+      <div class="pipe">pipeline: <b>source → transpiled → glass</b></div>
+    </a>
+
+    <a class="card" href="/landing/telemetry/">
+      <div class="idiom">Amber console · channels</div>
+      <h3>Telemetry</h3>
+      <p>A ground station: numbered channels down the left rail and dense
+         fixed-width readouts beside each bay.</p>
+      <div class="pipe">pipeline: <b>source → downlink → glass</b></div>
+    </a>
+
+    <a class="card" href="/landing/datasheet/">
+      <div class="idiom">Document · parameter tables</div>
+      <h3>Datasheet</h3>
+      <p>The document a part ships with — numbered sections, a features column,
+         and typical-application figures that happen to run.</p>
+      <div class="pipe">pipeline: <b>all four stages</b></div>
+    </a>
+
+    <a class="card" href="/landing/firmware/">
+      <div class="idiom">Toolchain · hex gutter</div>
+      <h3>Firmware</h3>
+      <p>A flasher's manifest: images listed by address, each already running on
+         its target panel.</p>
+      <div class="pipe">pipeline: <b>scratch image at 0x0c000</b></div>
+    </a>
+    <a class="card" href="/">
+      <div class="idiom">Blueprint · infinite sheet</div>
+      <h3>Drafting table</h3>
+      <p>Every program rendered <b>twice at the same instant</b>: the panel's
+         pixels, and the identical op stream drawn with a wobbling pen. Drag
+         the sheet to pan between stations.</p>
+      <div class="pipe">pipeline: <b>a station on the sheet</b></div>
+    </a>
+  </div>
+</div>
+
+<footer><div class="wrap">
+  The programs come from <code>examples/</code> and are built into
+  <code>examples.json</code>; the engine is the same core file the boards run.
+  Edit any of them in the <a href="/play/">simulator</a>.
+</div></footer>
+
+<script>
+MJSX.ready(function (ex) {
+  MJSX.panel(document.getElementById('host-a'),
+    { src: ex.asteroids, w: 240, h: 240, round: 1, zoom: 2, maxW: 400,
+      label: 'Asteroids, playable' });
+});
+</script>
 </body>
 </html>

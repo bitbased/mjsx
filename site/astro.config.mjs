@@ -61,7 +61,11 @@ function publicDirIndexes() {
         const PUBLIC = fileURLToPath(new URL('./public/', import.meta.url));
         server.middlewares.use((req, res, next) => {
           const [path, rest] = req.url.split(/(?=[?#])/);
-          if (path === '/') return next();
+          /* The ROOT is public/index.html now (the drafting demo); the docs
+             overview lives at /docs/. This used to bail out here because
+             Starlight owned '/', which left the new root 404ing in dev while
+             a production build — where public/ is copied to dist/ — served
+             it fine. */
 
           /* /landing -> /landing/ as a REDIRECT, not a rewrite. The chooser
              links to its siblings relatively (`oscilloscope/`), and a
@@ -139,6 +143,12 @@ function wrapTables() {
 export default defineConfig({
   markdown: { rehypePlugins: [wrapTables] },
   site: 'https://example.invalid/mjsx',
+  /* The deployed origin. Needed for canonical URLs and absolute asset
+     references; without it Astro assumes localhost. The custom domain also
+     keeps base at '/' — on a project page (bitbased.github.io/mjsx) every
+     absolute link in this site (/docs/, /play/, /landing/device.js) would
+     need rewriting. */
+  site: 'https://mjsx.bitbased.net',
   base: '/',
   outDir: './dist',
   integrations: [
@@ -147,8 +157,13 @@ export default defineConfig({
       title: 'mjsx',
       description:
         'JSX for microcontrollers, Raspberry Pi, desktop and the browser — one core, several backends.',
-      /* No repo link: this project is not published yet, and a dead
-         "edit this page" link is worse than none. */
+      social: [
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/bitbased/mjsx' },
+      ],
+      /* Still no editLink: Starlight builds it from the CONTENT path
+         (src/content/docs/...), and these pages are synced there from the
+         repo's own docs/ — so every "edit this page" would land on a file
+         that does not exist. */
       customCss: ['./src/styles/mjsx.css'],
       /* An embedded simulator measures itself and posts its height; this
          resizes the frame to match, so a live simulator in an article never
@@ -188,7 +203,7 @@ export default defineConfig({
       }],
       sidebar: [
         ...group('Start here', [
-          { label: 'Overview', slug: 'index' },
+          { label: 'Overview', slug: 'docs' },
           { label: 'Getting started', slug: 'getting-started' },
         ]),
         ...group('Try it', [
@@ -222,7 +237,7 @@ export default defineConfig({
            filenames next to written labels. A page appearing here is a
            prompt to give it a group, not a resting place. */
         ...leftovers(new Set([
-          'index', 'getting-started', 'simulator', 'ui', 'layout', 'fonts', 'components',
+          'docs', 'getting-started', 'simulator', 'ui', 'layout', 'fonts', 'components',
           'shapes', 'keyboards', 'input', 'devices', 'round', 'sensors', 'hardware-api',
           'contract', 'consistency', 'shots',
         ])),

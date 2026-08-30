@@ -48,7 +48,7 @@ mkdirSync(OUT, { recursive: true });
 /* One-line descriptions for the pages, used as the Starlight subtitle
    when the markdown does not carry its own. Keyed by slug. */
 const BLURBS = {
-  index: 'JSX for microcontrollers, Raspberry Pi, desktop and the browser.',
+  docs: 'JSX for microcontrollers, Raspberry Pi, desktop and the browser.',
   'getting-started': 'From an empty directory to a UI on real glass.',
   simulator: 'Edit an example and run it, on the real engine, in the browser.',
   ui: 'h(), state, memo, scrolling, and the pointer model.',
@@ -184,7 +184,7 @@ if (existsSync(IMG_SRC)) {
 
 const slugs = new Set();
 for (const f of readdirSync(DOCS)) {
-  if (f.endsWith('.md')) slugs.add(f === 'README.md' ? 'index' : basename(f, '.md'));
+  if (f.endsWith('.md')) slugs.add(f === 'README.md' ? 'docs' : basename(f, '.md'));
 }
 
 const warnings = [];
@@ -193,7 +193,9 @@ let pages = 0;
 
 for (const f of readdirSync(DOCS)) {
   if (!f.endsWith('.md')) continue;
-  const slug = f === 'README.md' ? 'index' : basename(f, '.md');
+  /* The site ROOT is the drafting demo (site/public/index.html); the docs
+     overview lives at /docs/ so the two do not collide. */
+  const slug = f === 'README.md' ? 'docs' : basename(f, '.md');
   let md = readFileSync(join(DOCS, f), 'utf8');
 
   /* title from the first heading, which is then removed */
@@ -205,7 +207,7 @@ for (const f of readdirSync(DOCS)) {
     title = m[1].trim();
     md = md.replace(m[0], '').replace(/^\s+/, '');
   }
-  if (slug === 'index') title = 'mjsx';
+  if (slug === 'docs') title = 'mjsx';
 
   /* Images, in BOTH syntaxes. Markdown `](./img/x.png)` is the obvious
      one; raw HTML `<img src="./img/x.png">` is the one that was missed,

@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mjsx Bench</title>
+<!--
+  PRESENTATION 2 of 5 — THE BENCH.
+  Three specimens on graph paper, each with numbered callouts pointing at
+  what the engine is doing. The panel is the subject; the annotations are
+  captions on a drawing, not paragraphs about a product.
+-->
+<script src="/mjsx-sim.js"></script>
+<script src="/hl.js"></script>
+<link rel="stylesheet" href="/landing/pipe.css">
+<script src="/landing/device.js"></script>
+<style>
+  :root {
+    --paper:#f7f8f6; --ink:#12181c; --dim:#5d6b73; --rule:#d9e0e0;
+    --grid:#e4ebe9; --grid2:#eef3f1;
+    --teal:#0b7285; --mark:#c2255c; --amber:#b5730b;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme:dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0f1416; --ink:#e6edee; --dim:#8b9aa1; --rule:#26312f;
+      --grid:#18201f; --grid2:#141b1a;
+      --teal:#4fd1e0; --mark:#ff85a8; --amber:#f5b73d;
+    }
+  }
+  * { box-sizing:border-box; }
+  html { color-scheme:light dark; }
+  body {
+    margin:0; color:var(--ink); font:15.5px/1.65 var(--sans);
+    background-color:var(--paper);
+    /* graph paper: a fine grid with a heavier one every fifth line */
+    background-image:
+      linear-gradient(var(--grid2) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid2) 1px, transparent 1px),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:20px 20px, 20px 20px, 100px 100px, 100px 100px;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap { max-width:66rem; margin:0 auto; padding:0 1.2rem; }
+
+  header.top { border-bottom:1px solid var(--rule); background:var(--paper); }
+  header.top .wrap { display:flex; align-items:center; gap:.9rem; height:3rem;
+                     font:600 12px/1 var(--mono); letter-spacing:.1em; }
+  header.top .sp { margin-left:auto; }
+  header.top a { color:var(--dim); text-decoration:none; font-size:11.5px; letter-spacing:.04em; }
+  header.top a:hover, header.top a:focus-visible { color:var(--teal); }
+
+  h1 { font-size:clamp(1.7rem,4.4vw,2.6rem); line-height:1.08; margin:2.2rem 0 .4rem;
+       letter-spacing:-.02em; text-wrap:balance; }
+  .lede { color:var(--dim); max-width:40rem; margin:0 0 2.2rem; font-size:1rem; }
+
+  /* ---- a specimen ---- */
+  .spec { margin:0 0 3rem; border-top:2px solid var(--ink); padding-top:.5rem; }
+  .titleblock { display:flex; align-items:baseline; gap:.7rem; flex-wrap:wrap;
+                font:600 11px/1.4 var(--mono); letter-spacing:.12em;
+                text-transform:uppercase; margin-bottom:1rem; }
+  .titleblock .no { background:var(--ink); color:var(--paper); padding:.12rem .45rem; }
+  .titleblock .nm { font-size:14px; letter-spacing:.16em; }
+  .titleblock .file { margin-left:auto; color:var(--dim); text-transform:none;
+                      letter-spacing:.02em; font-weight:400; }
+
+  /* The panel track is capped (see maxW in device.js) and the prose track is
+     given a real minimum, so switching to a wide panel can never squeeze the
+     callouts into a ladder of three-word lines. */
+  .lay { display:grid; grid-template-columns:minmax(0,auto) minmax(21rem,1fr);
+         gap:1.6rem 2rem; align-items:start; }
+  @media (max-width:800px) { .lay { grid-template-columns:1fr; } }
+  .spec:nth-of-type(even) .lay { grid-template-columns:minmax(21rem,1fr) minmax(0,auto); }
+  .spec:nth-of-type(even) .col-panel { order:2; }
+  @media (max-width:800px) {
+    .spec:nth-of-type(even) .lay { grid-template-columns:1fr; }
+    .spec:nth-of-type(even) .col-panel { order:0; }
+  }
+
+  .glass { background:#0a0d0f; border:1px solid var(--rule); border-radius:8px;
+           padding:8px; line-height:0; box-shadow:0 2px 0 rgba(0,0,0,.06); }
+  .glass.round { border-radius:50%; padding:10px; }
+  .glass canvas { border-radius:2px; image-rendering:pixelated; touch-action:none; outline:none; }
+  .glass.round canvas { border-radius:50%; }
+  .glass canvas:focus-visible { box-shadow:0 0 0 2px var(--teal); }
+  .col-panel { display:flex; flex-direction:column; gap:.6rem; align-items:center;
+              width:100%; min-width:0; max-width:100%; }
+  .scale { font:10px/1.4 var(--mono); color:var(--dim); letter-spacing:.08em; }
+
+  /* numbered callouts, set like a parts list */
+  ol.calls { list-style:none; counter-reset:c; margin:0; padding:0; }
+  ol.calls li { counter-increment:c; position:relative; padding:0 0 .7rem 2.1rem;
+                font-size:.93rem; max-width:34rem; }
+  ol.calls li::before {
+    content:counter(c); position:absolute; left:0; top:.12rem;
+    width:1.45rem; height:1.45rem; border:1.5px solid var(--teal); color:var(--teal);
+    border-radius:50%; font:600 10.5px/1.35rem var(--mono); text-align:center;
+  }
+  ol.calls b { font-weight:600; }
+  ol.calls code { font-family:var(--mono); font-size:.86em; background:var(--grid);
+                  padding:.05rem .28rem; border-radius:3px; white-space:nowrap; }
+
+  .try { margin-top:.4rem; padding:.55rem .7rem; border-left:3px solid var(--mark);
+         background:var(--grid2); font:12px/1.5 var(--mono); color:var(--dim); }
+  .try b { color:var(--mark); font-weight:600; letter-spacing:.05em; }
+
+  .switch { display:flex; flex-wrap:wrap; gap:.35rem; justify-content:center; }
+  .shapebtn { display:flex; align-items:center; gap:.35rem; cursor:pointer;
+              background:transparent; color:var(--dim); border:1px solid var(--rule);
+              border-radius:6px; font:10.5px var(--mono); padding:.25rem .45rem; }
+  .shapebtn .g { background:var(--dim); display:block; opacity:.5; }
+  .shapebtn .g.round { border-radius:50%; }
+  .shapebtn[aria-pressed="true"] { color:var(--teal); border-color:var(--teal); }
+  .shapebtn[aria-pressed="true"] .g { background:var(--teal); opacity:1; }
+  .shapebtn:focus-visible { outline:2px solid var(--teal); outline-offset:1px; }
+
+  /* ---- THE SIGNAL CHAIN ----
+     Probe points on one signal, left to right, wired together. Geometry is
+     /landing/pipe.css — character-width panes that scroll inside themselves
+     rather than stretching across the bench. */
+  .mp { --mp-font:var(--mono); --mp-fs:12.5px;
+        --mp-gap:1.5rem; margin-top:1rem; }
+  .mp-stage { position:relative; border:1px solid var(--rule); background:var(--paper); }
+  /* The connector used to be an absolutely-positioned hairline in the gap to
+     the left, which is wrong the moment the row wraps: the first stage on the
+     second line got an arrow pointing at nothing. It rides in the header
+     instead, so it is correct at every width. */
+  .mp-stage + .mp-stage > .mp-head::before {
+    content:"\2192"; color:var(--teal); margin-right:.1rem; font-size:12px;
+  }
+  .mp-head { padding:.3rem .55rem; border-bottom:1px solid var(--rule);
+             font:600 10px/1.5 var(--mono); letter-spacing:.12em; text-transform:uppercase; }
+  .mp-n { width:1.25rem; height:1.25rem; border:1.5px solid var(--teal); color:var(--teal);
+          border-radius:50%; text-align:center; line-height:1.15rem; }
+  .mp-t { color:var(--ink); }
+  .mp-f { color:var(--dim); font-weight:400; letter-spacing:.02em; text-transform:none; }
+  .mp-panel .mp-body { padding:.7rem; justify-content:center; align-items:center; }
+  .mp-ed pre { color:var(--ink); }
+  .mp-ed textarea { caret-color:var(--mark); }
+  .mp-ed textarea::selection { background:rgba(11,114,133,.22); }
+  pre.mp-js, pre.mp-ops { color:var(--dim); }
+  .k { color:var(--teal); } .s { color:var(--amber); } .c { color:var(--dim); font-style:italic; }
+  .num { color:var(--mark); } .op { color:var(--ink); }
+  .mp-ctl { margin:.9rem 0 0; }
+  .mp-ex, .mp-play { font:11px var(--mono); color:var(--ink); background:transparent;
+                     border:1px solid var(--rule); border-radius:6px;
+                     padding:.26rem .5rem; cursor:pointer; }
+  .mp-play[aria-pressed="true"] { color:var(--teal); border-color:var(--teal); }
+  .mp-ex:focus-visible, .mp-play:focus-visible { outline:2px solid var(--teal); outline-offset:1px; }
+  .mp-shapes { display:flex; flex-wrap:wrap; gap:.3rem; }
+  .mp-err { color:var(--mark); font:11px var(--mono); }
+  .overview { border:1px solid var(--rule); background:var(--grid2);
+              padding:1rem 1.1rem; margin:0 0 2rem; display:grid; gap:.5rem 2rem;
+              grid-template-columns:repeat(auto-fit,minmax(20rem,1fr)); align-items:start; }
+  .overview p { margin:0; color:var(--dim); font-size:.92rem; max-width:44rem; }
+  .overview p b { color:var(--ink); }
+  .overview ul { margin:0; padding:0; list-style:none; font-size:.85rem; color:var(--dim); }
+  .overview li { padding:.12rem 0 .12rem .95rem; position:relative; }
+  .overview li::before { content:"\25AA"; position:absolute; left:0; color:var(--teal); }
+
+  /* ---- USE THE SCREEN ----
+     The examples sit in a deck that fills the window: three across on a wide
+     display, two on a laptop, one on a phone. Each card is a container, so
+     the panel-beside-prose split inside it responds to the CARD's width, not
+     the window's — a narrow column on a wide screen still stacks. */
+  .deck { display:grid; gap:1.4rem; align-items:start;
+          grid-template-columns:repeat(auto-fit, minmax(min(100%, 33rem), 1fr)); }
+  .deck > * { container-type:inline-size; min-width:0; }
+  @container (max-width: 42rem) {
+    .lay { grid-template-columns:1fr; }
+  }
+
+  footer { border-top:1px solid var(--rule); padding:1.2rem 0 3rem;
+           font:12px/1.6 var(--mono); color:var(--dim); }
+  footer a { color:var(--teal); }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <span>MJSX</span><span style="color:var(--dim)">/ BENCH</span>
+  <span class="sp"></span>
+  <a href="/landing/">directions</a><a href="/play/">simulator</a><a href="https://github.com/bitbased/mjsx" rel="noopener">github</a><a href="/docs/">docs</a>
+</div></header>
+
+<div class="wrap">
+  <h1>Three specimens, under the lamp</h1>
+  <p class="lede">
+    Each panel below is a real device: the example's own source, transpiled and
+    running in this page on the core that ships to the hardware. Touch them.
+    The numbers point at what the engine is doing while you do.
+  </p>
+
+  <div class="spec">
+    <div class="titleblock">
+      <span class="no">00</span><span class="nm">The signal</span>
+      <span class="file">source → glass, with every probe point exposed</span>
+    </div>
+    <p style="color:var(--dim); max-width:44rem; margin:0 0 .2rem">
+      The three specimens below are all made of this. Edit the source and the
+      rest of the chain follows: the transpiler, the call list, the pixels.
+    </p>
+    <div id="host-p"></div>
+  </div>
+
+  <div class="overview">
+    <p><b>mjsx</b> is a JSX user-interface engine for the small displays on
+    microcontrollers. You write components; it lays them out, hit-tests them
+    and paints them through ten drawing calls and a clock.</p>
+    <p>It is one file of ES5 — the same core on a 240&times;240 round panel, a
+    480&times;320 screen, an ESP32, a Pi, or this page. Each specimen below is
+    a shipped example running on it.</p>
+    <ul>
+      <li>one ES5 file, no VDOM</li>
+      <li>width-in, height-out layout</li>
+      <li>round glass as geometry, not a special case</li>
+      <li>touch, physical keys and virtual keyboards</li>
+    </ul>
+  </div>
+
+  <div class="deck">
+  <!-- ===== 01 ===== -->
+  <div class="spec">
+    <div class="titleblock">
+      <span class="no">01</span><span class="nm">Asteroids</span>
+      <span class="file">examples/asteroids/app.jsx</span>
+    </div>
+    <div class="lay">
+      <div class="col-panel">
+        <div id="host-a"></div>
+        <div class="scale" id="scale-a">240 × 240 · round</div>
+        <div class="switch" id="shapes-a"></div>
+      </div>
+      <div>
+        <ol class="calls">
+          <li><b>A fixed timestep, from a clock the chip has.</b> The loop reads
+            <code>sys.millis()</code> and advances the world in 16&nbsp;ms steps,
+            catching up at most four at a time. The same file plays identically
+            on a 15&nbsp;Hz panel and a 120&nbsp;Hz browser.</li>
+          <li><b>The world is a torus.</b> One wrap rule covers every shape; on
+            the circle it wraps at the rim, and a rock is only ever born at an
+            edge, never in your lap.</li>
+          <li><b>Ship-centred mode scrolls the field.</b> The ship holds the
+            middle and the rocks and 1&nbsp;px stars carry the offset — the
+            parallax you see is the world moving past a fixed camera.</li>
+          <li><b>Rocks are outlines, not discs.</b> Each is a closed polyline,
+            which is what an asteroid looks like and what the vector hardware
+            this genre came from could actually draw.</li>
+        </ol>
+        <p class="try"><b>TRY&nbsp;→</b> click the glass, then hold the mouse down
+          and drag around the circle: the ship turns to face your finger.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 02 ===== -->
+  <div class="spec">
+    <div class="titleblock">
+      <span class="no">02</span><span class="nm">Input</span>
+      <span class="file">examples/input/app.jsx</span>
+    </div>
+    <div class="lay">
+      <div class="col-panel">
+        <div id="host-i"></div>
+        <div class="scale" id="scale-i">240 × 280</div>
+        <div class="switch" id="shapes-i"></div>
+      </div>
+      <div>
+        <ol class="calls">
+          <li><b>Your keyboard works.</b> Click a field and type: printable keys
+            insert, Backspace and the arrows edit, Tab walks the fields and
+            scrolls them into view.</li>
+          <li><b>The virtual keyboard picks itself.</b> QWERTY where ten columns
+            fit, T9 where four do, and a single scrolling STRIP below that —
+            switch panels and watch the layout change with the glass.</li>
+          <li><b>On the circle, every row is inset to its own chord.</b> A round
+            keyboard is a trapezoid: the bottom row sits nearest the rim and is
+            narrowest, which is the difference between a usable space bar and one
+            half under the bezel.</li>
+          <li><b>A custom keyboard is just JSX.</b> The PIN field raises a pad
+            written as ordinary components whose taps call
+            <code>UI.type()</code> — the same path a physical key takes.</li>
+        </ol>
+        <p class="try"><b>TRY&nbsp;→</b> switch to <b>240×240 round</b> and open the
+          keyboard. Then compare it against the same source on 320×172.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 03 ===== -->
+  <div class="spec">
+    <div class="titleblock">
+      <span class="no">03</span><span class="nm">Drawing</span>
+      <span class="file">examples/canvas/app.jsx</span>
+    </div>
+    <div class="lay">
+      <div class="col-panel">
+        <div id="host-c"></div>
+        <div class="scale" id="scale-c">240 × 280</div>
+        <div class="switch" id="shapes-c"></div>
+      </div>
+      <div>
+        <ol class="calls">
+          <li><b>The live stroke is ordinary drawing.</b> While your finger is
+            down the path is emitted as normal ops, painted over the bitmap, so
+            it previews at full speed.</li>
+          <li><b>On release it is committed.</b> The stroke is rasterised into a
+            canvas source and disappears from the op stream entirely — it is
+            pixels now, not a path.</li>
+          <li><b>The frame then composites one image.</b> A drawing with a
+            hundred strokes emits the same call list as an empty one.</li>
+          <li><b>Round glass gets the whole circle.</b> The canvas takes the
+            full disc and the controls ride the rim on an arc, rather than
+            spending a strip of drawing surface on a square toolbar.</li>
+        </ol>
+        <p class="try"><b>TRY&nbsp;→</b> scribble, then hit <b>DIRECT</b> and
+          scribble again: that mode skips the preview and rasterises each
+          segment straight into the bitmap.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer><div class="wrap">
+  OTHER PRESENTATIONS ·
+  <a href="/landing/arcade/">arcade</a> ·
+  <a href="/landing/cyber/">cyber</a> ·
+  <a href="/landing/telemetry/">telemetry</a> ·
+  <a href="/landing/datasheet/">datasheet</a> ·
+  <a href="/landing/firmware/">firmware</a> ·
+  <a href="/">drafting</a> </div></footer>
+
+<script>
+var STARTER =
+  'function App() {\n' +
+  '  var n = UI.state.n || 0;\n' +
+  '  return (\n' +
+  '    <box h={gfx.height()} pad={em(1)} gap={em(1)}>\n' +
+  '      <text text="SPECIMEN" size={1} align="center"\n' +
+  '            color={UI.theme.accent} />\n' +
+  '      <box bg={UI.theme.panel} radius={8} pad={em(1)}>\n' +
+  '        <text text={"COUNT: " + n} size={2} align="center" />\n' +
+  '      </box>\n' +
+  '      <Button label="+1" size={2}\n' +
+  '              onTap={function () { UI.set({ n: n + 1 }); }} />\n' +
+  '    </box>\n' +
+  '  );\n' +
+  '}\n' +
+  'UI.mount(App);\n';
+
+MJSX.ready(function (ex) {
+  MJSX.pipeline(document.getElementById('host-p'), {
+    src: STARTER, w: 240, h: 280, chip: 16,
+    stages: ['source', 'js', 'ops', 'panel'],
+    labels: { source: 'Source', sourceMeta: '.jsx, editable',
+              js: 'Transpiled', jsMeta: 'core/src/jsx.js',
+              ops: 'Calls', panel: 'Glass' },
+    examples: [{ name: '_starter', label: 'specimen (editable)', source: STARTER }]
+      .concat(['asteroids','input','canvas','counter','shapes','layers','fonts']
+        .filter(function (n) { return ex[n]; })
+        .map(function (n) { return { name: n, label: n, source: ex[n] }; })),
+    panelLabel: 'the program in the chain'
+  });
+
+  function label(id) {
+    return function (s) {
+      document.getElementById(id).textContent =
+        s.w + ' × ' + s.h + (s.round ? ' · round' : '');
+    };
+  }
+  var a = MJSX.panel(document.getElementById('host-a'),
+    { src: ex.asteroids, w: 240, h: 240, round: 1, zoom: 1.7, label: 'Asteroids, playable' });
+  MJSX.shapeButtons(document.getElementById('shapes-a'), a,
+    { current: '240x240r', onChange: label('scale-a') });
+
+  var i = MJSX.panel(document.getElementById('host-i'),
+    { src: ex.input, w: 240, h: 280, zoom: 1.7, label: 'Text input' });
+  MJSX.shapeButtons(document.getElementById('shapes-i'), i,
+    { current: '240x280', onChange: label('scale-i') });
+
+  var c = MJSX.panel(document.getElementById('host-c'),
+    { src: ex.canvas, w: 240, h: 280, zoom: 1.7, label: 'Freehand drawing' });
+  MJSX.shapeButtons(document.getElementById('shapes-c'), c,
+    { current: '240x280', onChange: label('scale-c') });
+});
+</script>
+</body>
+</html>

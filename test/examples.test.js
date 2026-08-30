@@ -20,13 +20,21 @@ var HAVE = fs.existsSync(BUNDLE) && fs.existsSync(AST);
 if (!HAVE) console.warn('\nexamples: SKIPPED — run `bun run docs:sync`.\n');
 var maybe = HAVE ? it : it.skip;
 
-function boot(extra, w, h, round) {
+function bootFile(file, extra, w, h, round) {
   globalThis.window = globalThis;
   require(BUNDLE);
-  var src = fs.readFileSync(AST, 'utf8') + (extra || '');
+  var src = fs.readFileSync(file, 'utf8') + (extra || '');
   var be = createPureJsBackend(w || 240, h || 280, {});
   mjsxRun(src, be, { round: !!round });
   return be;
+}
+function boot(extra, w, h, round) { return bootFile(AST, extra, w, h, round); }
+
+/* the ops one frame emits, with the recorder swapped in around a render */
+function frameOps(be) {
+  var rec = mjsxRecord(be.gfx), real = globalThis.gfx;
+  globalThis.gfx = rec.gfx; UI.render(); globalThis.gfx = real;
+  return rec.take();
 }
 
 describe('examples/asteroids', function () {
@@ -232,5 +240,55 @@ describe('examples/asteroids', function () {
     var ops = rec.take();
     expect(ops.filter(function (o) { return o[0] === 'c'; }).length).toBe(0);
     expect(ops.filter(function (o) { return o[0] === 'l'; }).length).toBeGreaterThan(15);
+  });
+});
+
+describe('examples/canvas', function () {
+  var CV = path.join(ROOT, 'examples/canvas/app.jsx');
+  var haveCv = HAVE && fs.existsSync(CV);
+  var itCv = haveCv ? it : it.skip;
+
+  /* Press, drag, release — one finished stroke. */
+  function stroke(y) {
+    UI.pointer(0, 0, 40, y);
+    for (var x = 50; x <= 200; x += 10) UI.pointer(0, 1, x, y);
+    UI.pointer(0, 2, 200, y);
+  }
+
+  itCv('commits finished strokes to the canvas source, not to the op stream', function () {
+    /* The whole point of the canvas source: a stroke is rasterised into an
+       offscreen buffer ONCE and the frame composites that buffer. Reported
+       from the site, where the browser backend had no canvas natives at all
+       and the example silently took its path-keeping fallback — so every
+       stroke ever drawn was re-emitted as polys on every single frame. */
+    var be = bootFile(CV, '\nglobalThis.__HAVE_CV = HAVE_CV;\n');
+    expect(globalThis.__HAVE_CV).toBe(true);
+
+    stroke(60);
+    var ops = frameOps(be);
+    var polys = ops.filter(function (o) { return o[0] === 'p'; }).length;
+    var blits = ops.filter(function (o) { return o[0] === 'b'; }).length;
+    expect(blits).toBe(1);
+    expect(polys).toBe(0);
+  });
+
+  itCv('costs the same per frame at one stroke as at fifty', function () {
+    var be = bootFile(CV, '');
+    stroke(60);
+    var one = frameOps(be).length;
+    for (var i = 0; i < 50; i++) stroke(30 + (i % 40) * 5);
+    var fifty = frameOps(be).length;
+    expect(fifty).toBe(one);
+  });
+
+  itCv('the committed pixels actually land in the source', function () {
+    /* A blit of an empty buffer is also "one op per frame". */
+    var be = bootFile(CV, '');
+    var blank = be.raw.slice();
+    stroke(60);
+    UI.render();
+    var diff = 0;
+    for (var i = 0; i < blank.length; i++) if (blank[i] !== be.raw[i]) diff++;
+    expect(diff).toBeGreaterThan(500);
   });
 });
