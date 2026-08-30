@@ -278,7 +278,7 @@ h(Keyboard, { layout: kb, position: pos, height: Math.floor(gfx.height() / 2.6) 
 | Page | The question it answers |
 |---|---|
 | [getting-started.md](/getting-started) | Install, run an example in a window and in the terminal, write a first app, push it to a board. |
-| ../examples/README.md (`examples/README.md` in the repo) | The fourteen shipped examples and what each one demonstrates. Every one is a single flat `app.jsx` with no imports and no build step. |
+| ../examples/README.md (`examples/README.md` in the repo) | The sixteen shipped examples and what each one demonstrates. Every one is a single flat `app.jsx` with no imports and no build step. |
 
 <div class="shapes">
   <input type="radio" name="sw-ex-hello-6" id="sw-ex-hello-6-0">

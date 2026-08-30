@@ -110,7 +110,16 @@ function transformJsx(src, file) {
       }
       if (c === '"' || c === "'" || c === '`') { out.push(str()); tok('value', ''); continue; }
       if (c === '/' && regexAllowed()) { out.push(regex()); tok('value', ''); continue; }
-      if (c === '<' && jsxOpens()) { out.push(element()); tok('value', ''); continue; }
+      /* A '<' only opens an element when a NAME or '>' follows it. Without
+         that guard `(x | 0) << 4` reads as JSX: ')' does not open, so the
+         first '<' is a punctuator, and '<' IS in OPENERS, so the second one
+         calls element() — which finds no tag name and blames fragments.
+         packages/core/src/jsx.js has always required this; the cross-check
+         did not, so the two transforms disagreed on shift operators. */
+      if (c === '<' && jsxOpens() &&
+          (NAME_START.test(src[i + 1] || '') || src[i + 1] === '>')) {
+        out.push(element()); tok('value', ''); continue;
+      }
       if (c === '(' || c === '[' || c === '{') depth++;
       else if (c === ')' || c === ']' || c === '}') depth--;
       if (WORD.test(c)) {

@@ -241,10 +241,20 @@ function aim(x, y) {
 
 UI.onPointer = function (id, phase, x, y) {
   if (phase === 0) {
+    /* ...with one exception. Claiming EVERY stroke also swallows chrome
+       drawn over the game: the on-device launcher paints an exit dot on top
+       of whatever is running, and a handler that never yields leaves the
+       physical button as the only way out of the game. A press that lands on
+       something with its own tap target is not ours -- and the whole stroke
+       goes with it, or the release would arrive here without its press. */
+    var over = UI._hitAt ? UI._hitAt(x, y) : null;
+    if (over && over.fn) { G.pass = 1; return false; }
+    G.pass = 0;
     G.t0 = sys.millis(); G.px = x; G.py = y;
     aim(x, y);
     return true;
   }
+  if (G.pass) return false;
   if (phase === 1) { aim(x, y); return true; }
   if (phase === 2) {
     var dx = x - G.px, dy = y - G.py;

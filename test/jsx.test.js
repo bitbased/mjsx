@@ -84,6 +84,22 @@ describe('jsx transpiler', function () {
   /* The corpus: every app in the repo, transpiled and then evaluated.
      `new Function` throws on a syntax error, which is exactly the failure
      that would otherwise reach a device as an unbootable bundle. */
+  /* `(x | 0) << 4` is a shift, not a tag. It reads as JSX to a scanner that
+     treats every '<' after a punctuator as an element opener: ')' does not
+     open one, so the first '<' becomes a punctuator itself, and then the
+     SECOND '<' looks like the start of a tag with no name. examples/clock
+     hit exactly this while packing BCD. */
+  it('leaves shift operators alone', function () {
+    var out = transpile('var a = (((n / 10) | 0) << 4) | (n % 10);', 'shift');
+    expect(out).toContain('<< 4');
+    expect(out).not.toContain('h(');
+
+    expect(transpile('var b = x >> 2;', 'shift')).toContain('>> 2');
+    expect(transpile('var c = 1 << 3 << 2;', 'shift')).toContain('1 << 3 << 2');
+    /* and the guard must not cost a real element its opener */
+    expect(transpile('var d = cond ? <box/> : null;', 'shift')).toContain('h("box"');
+  });
+
   describe('every example transpiles to valid JavaScript', function () {
     var dirs = [];
     ['examples', 'local-examples'].forEach(function (d) {

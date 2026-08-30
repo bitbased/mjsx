@@ -1,5 +1,5 @@
 ---
-title: "Hardware access: sys.gpio and sys.i2c"
+title: "Hardware access: sys.gpio, sys.i2c and net.fetch"
 description: "The native calls a script can reach."
 ---
 <!-- GENERATED from docs/hardware-api.md by scripts/docs-sync.mjs. Edit that file. -->Two natives give a script direct hardware access on the ESP32 bridge
@@ -115,6 +115,77 @@ registers 0..15 of whichever address you tap.
 </div>
 
 ![](/img/ex-i2c-peek-lcd35.png)
+
+## net.fetch(url, opts) -> int
+
+HTTP from a script, on a budget. Present on the bridge firmware alongside
+the other `net.*` natives; check for it the same way:
+
+```js
+var HAVE = typeof net !== 'undefined' && typeof net.fetch === 'function';
+```
+
+Three calls, async in the same style as `net.scan`/`net.results` — nothing
+blocks the frame:
+
+| Call | Does |
+|---|---|
+| `net.fetch(url, opts)` | Starts a request. **1** accepted, **0** busy, **-1** refused. Returns immediately; the transfer runs on its own task. |
+| `net.fetchState()` | `''` while in flight, else one JSON line: `{status, date, bytes, truncated, error}`. |
+| `net.fetchBody()` | The body as a string, unescaped. Empty after a `HEAD`. |
+
+`opts` is optional: `{head: 1}` sends `HEAD` instead of `GET`, `{max: N}`
+caps the bytes kept.
+
+**The body is not in `fetchState()`.** JSON-escaping 32K of arbitrary bytes
+is up to 192K of `\uXXXX` — exactly the allocation this native exists to
+avoid — so the metadata line stays small and the body has its own accessor.
+A caller that only wants the status, or the time, never materialises it.
+
+### It is sandboxed, and off by default
+
+An empty allowlist refuses everything, so pushing a script to a board does
+not turn the board into an open proxy. The allowlist is one NVS string,
+readable and writable as ordinary config:
+
+```js
+configStorage.set('netfetch', 'example.com,api.local');  /* or '*' */
+```
+
+A refused call returns -1 and reports `"error":"not allowed"`.
+
+### Why the caps are what they are
+
+A response body becomes a JS string in the engine's heap, and the round
+1.28" board is an S3R2 with **2 MB** of PSRAM. So:
+
+- `max` is enforced **while reading**, never "buffer then check" — over the
+  cap the rest is drained and dropped, and `truncated` says so. A 4 MB body
+  costs the same as a 4 KB one.
+- a declared `Content-Length` over `max` is refused **before the body is
+  read at all**.
+- the ceiling is **32 KB with PSRAM, 8 KB without**, and the buffer is
+  allocated in PSRAM when there is any — internal RAM belongs to WiFi.
+- **one request in flight.** A second call gets 0. A queue is an unbounded
+  allocation wearing a hat.
+
+### Asking the time without a body
+
+Every HTTP response carries a `Date` header (RFC 9110), so a `HEAD` is a
+timestamp for the price of the headers — no body, no parse, no JSON. The
+status does not even matter: a 301 or a 403 carries the time as well as a
+200 does. `examples/clock` reads it exactly this way:
+
+```js
+net.fetch('http://example.com/', { head: 1 });   /* later, on a tick: */
+var st = JSON.parse(net.fetchState());           /* '' until it lands */
+```
+
+Note the endpoint must be **plain http** — there is no TLS client here, and
+an https-only host reports `connection lost`.
+
+For setting a fleet's clocks from a machine that already knows the time,
+`mjsx clock set` is better than any of this: see [devices.md](/devices).
 
 ## Safety rules
 

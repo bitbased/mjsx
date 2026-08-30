@@ -32,6 +32,29 @@
 function es5lint(src, opts) {
   opts = opts || {};
   var level = opts.level || 'mquickjs';
+
+  /* Methods every desktop engine has and MicroQuickJS does not.
+     Measured on a board, not assumed:
+       "abc".substr / padStart / padEnd / includes / startsWith / endsWith / at
+       [].find / findIndex / includes / fill / flat
+     These are the worst kind of portability bug, because nothing catches
+     them: the syntax is ES5, every desktop runner works, and the board
+     throws "TypeError: not a function" at the call site. examples/clock hit
+     exactly this -- `substr` in the network-time parser took UI.onTick down
+     with it, which read as a crash on the SYNC button. */
+  var MISSING_ON_DEVICE = {
+    substr: 'use substring or slice',
+    padStart: 'pad by hand',
+    padEnd: 'pad by hand',
+    startsWith: 'use indexOf(x) === 0',
+    endsWith: 'compare with slice',
+    includes: 'use indexOf(x) !== -1',
+    find: 'use a for(;;) loop',
+    findIndex: 'use a for(;;) loop',
+    fill: 'assign in a for(;;) loop',
+    flat: 'concat the parts yourself',
+    at: 'index with [] (negative indices need length + i)'
+  };
   if (level === 'modern') return [];
 
   var findings = [];
@@ -147,6 +170,20 @@ function es5lint(src, opts) {
       while (peek < n && isSpace(src.charAt(peek))) peek++;
       var isKey = src.charAt(peek) === ':' && src.charAt(peek + 1) !== ':';
       var isProp = afterDot() || isKey;
+
+      /* A method call the device does not have. Only after a dot: an object
+         KEY of the same name ({ find: ... }) is the caller's own and fine. */
+      /* hasOwnProperty, not a plain lookup: `MISSING_ON_DEVICE['toString']`
+         finds Object.prototype.toString and flags every .toString() call. */
+      if (level === 'mquickjs' && afterDot() &&
+          Object.prototype.hasOwnProperty.call(MISSING_ON_DEVICE, word)) {
+        var callAt = i;
+        while (callAt < n && isSpace(src.charAt(callAt))) callAt++;
+        if (src.charAt(callAt) === '(') {
+          add(line, 'no-' + word,
+              '.' + word + '() does not exist in MicroQuickJS; ' + MISSING_ON_DEVICE[word]);
+        }
+      }
 
       if (!isProp && level === 'mquickjs') {
         if (word === 'let' || word === 'const') {

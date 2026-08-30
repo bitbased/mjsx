@@ -85,7 +85,7 @@ and left upright.*
 | Page | The question it answers |
 |---|---|
 | [getting-started.md](getting-started.md) | Install, run an example in a window and in the terminal, write a first app, push it to a board. |
-| [../examples/README.md](../examples/README.md) | The fourteen shipped examples and what each one demonstrates. Every one is a single flat `app.jsx` with no imports and no build step. |
+| [../examples/README.md](../examples/README.md) | The sixteen shipped examples and what each one demonstrates. Every one is a single flat `app.jsx` with no imports and no build step. |
 
 ![](./img/ex-hello-lcd147.png)
 

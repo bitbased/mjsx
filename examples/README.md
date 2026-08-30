@@ -33,3 +33,5 @@ and a local name shadows a shipped one.
 | [wifi](wifi/) | WiFi setup in JSX — the native settings page's job done by a script, polling the async `net.*` natives on its tick. | ![](../out/gallery/wifi.png) |
 | [gpio](gpio/) | Direct pin access through `sys.gpio`: read (INPUT_PULLUP), drive high/low, ADC; refused display/touch pins shown as -1. | ![](../out/gallery/gpio.png) |
 | [i2c](i2c/) | Bus scan 8..119 and register peek through `sys.i2c` — the bridge's `reg` command as a UI. | ![](../out/gallery/i2c.png) |
+| [asteroids](asteroids/) | A real-time game: a fixed 16 ms step read from `sys.millis()`, a torus world that wraps at the rim on round glass, and one whole-stroke pointer handler that steers toward your finger. | ![](../out/gallery/asteroids.png) |
+| [clock](clock/) | Four faces, three ways to know the time: an HTTP `Date` header through `net.fetch`, the RTC at 0x51 through `sys.i2c`, or a stored anchor that drifts. Swipes change face, a long press sets it. | ![](../out/gallery/clock.png) |

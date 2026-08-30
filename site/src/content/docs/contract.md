@@ -116,6 +116,15 @@ without them:
   `configStorage` — and therefore `UI.isRound()` — cannot work on it. The
   terminal backend had the same defect and was fixed; it now keeps a
   session `storeMap`. See `docs/consistency.md` (D1).
+- **`net.fetch(url, opts)` / `net.fetchState()` / `net.fetchBody()`** — an
+  HTTP request from a script, async in the `net.scan`/`net.results` style:
+  start, then poll. Sandboxed behind an allowlist and **off by default**, so
+  a host that implements it does not become an open proxy for whatever
+  script is pushed to it. Only the ESP32 bridge firmware has these today; no
+  JS backend in this tree implements them, and every caller gates on
+  `typeof net.fetch === 'function'`. The size caps and the reasoning behind
+  them are in [hardware-api.md](/hardware-api).
+
 - **`gfx.poly(polys, color, rule)`** — fill polygons given as a list of
   point-lists (`{x, y}` floats, logical coordinates), `rule` is
   `'nonzero'` or `'evenodd'`. When present, the `path` element hands its

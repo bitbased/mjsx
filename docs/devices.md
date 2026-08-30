@@ -99,6 +99,44 @@ provisioned board, `wifi` into the new one, and a passphrase never
 crosses a keyboard or the air. Once joined, the board announces itself
 over mDNS (`filman.local` in the current firmware).
 
+## Setting the clock
+
+`mjsx clock` reads and sets the boards' time over the network:
+
+```
+mjsx clock ls                                   what each board thinks the time is
+mjsx clock set [--time now|HH:MM[:SS]] [--tz ±MIN|±H:MM]
+```
+
+**The machine running the command is the time source.** A board can fetch
+its own time with `net.fetch` and a `Date` header, but that needs the fetch
+allowlist opened, a route to the internet, and it lands a second late. The
+laptop already knows the time exactly.
+
+It writes **both** places, because neither is enough alone:
+
+- the **RTC at 0x51** (a PCF85063) through the firmware's `reg` command, so
+  it works whatever app is running — or none — and survives a reboot. Only
+  the 1.69" and 3.5" boards carry one; the 1.47" and round 1.28" do not.
+- **`configStorage`** (`clock_utc`, `clock_tz`), which every board has and
+  `examples/clock` reads at boot. On the two boards with no chip this is the
+  only time there is, and it resets when the app does.
+
+Hours and minutes are written before seconds on purpose: writing the
+seconds register is what clears the oscillator-stop flag and starts the
+count, so it has to go last. That is what takes a chip from `stopped` to
+`running`.
+
+`--time` is always **UTC**. A wall-clock string with no zone is ambiguous,
+and guessing the caller's zone is how clocks end up an hour out twice a
+year. `--tz` is display-only.
+
+```
+$ mjsx clock ls
+  192.168.1.125   rtc:none      -             tz:0   uses stored (drifts)
+  192.168.1.144   rtc:running   15:14:22 UTC  tz:0   uses RTC
+```
+
 ## The on-hardware verification loop
 
 Everything needed to develop against a real panel without touching it:
