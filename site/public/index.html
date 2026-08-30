@@ -91,6 +91,28 @@
   /* the source->glass card follows the window — this is the cap that was
      holding the whole pipeline at ~1184px however wide the screen got */
   .st.wide { width:min(96vw, 124rem); }
+  /* ---- VERY SMALL SCREENS: no sheet, no panning ----
+     Dragging a 2D drafting table is a mouse gesture on a big display and a
+     nuisance on a phone — you cannot see enough of the sheet to know where
+     you are going. Below 640px the whole thing stops being a sheet and
+     becomes what a phone actually wants: one column, scrolled. The stations
+     keep their order, the wires between them go (they connect positions that
+     no longer exist), and the pan handlers switch themselves off. */
+  @media (max-width:640px) {
+    html, body { height:auto; overflow:auto; overscroll-behavior:auto; }
+    #table { position:static; inset:auto; height:auto; overflow:visible;
+             cursor:auto; touch-action:auto; user-select:text;
+             -webkit-user-select:text; background-attachment:local; }
+    #sheet { position:static; transform:none !important; width:auto; height:auto;
+             display:flex; flex-direction:column; gap:1rem;
+             padding:3.4rem .6rem 2rem; will-change:auto; }
+    .st { position:static !important; left:auto !important; top:auto !important;
+          width:100% !important; }
+    svg.wires { display:none; }
+    .hint { display:none; }
+    .bar { position:sticky; }
+  }
+
   @media (max-width:760px) { .st.wide { width:calc(100vw - 1.4rem); } }
   .st > .tt { display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap;
               padding:.35rem .6rem; border-bottom:1px solid var(--edge);
@@ -458,6 +480,7 @@ MJSX.ready(function (ex) {
 
   function wires() {
     while (svg.firstChild) svg.removeChild(svg.firstChild);
+    if (stacked()) return;   /* they would join positions that no longer apply */
     for (var i = 1; i < built.length; i++) {
       var a = built[i - 1].el.getBoundingClientRect();
       var b = built[i].el.getBoundingClientRect();
@@ -487,6 +510,10 @@ MJSX.ready(function (ex) {
      Drag anywhere on the sheet. A drag that starts on a canvas belongs to the
      program, not the table — those panels take real pointer input. */
   var px = 0, py = 0, drag = null, anim = null;
+  /* Below this width the sheet is a plain scrolling column (see the CSS), so
+     panning is not just unnecessary — it would fight the page's own scroll. */
+  var SMALL = window.matchMedia('(max-width: 640px)');
+  function stacked() { return SMALL.matches; }
   function apply() { sheet.style.transform = 'translate(' + px + 'px,' + py + 'px)'; grid(); }
   function grid() {
     table.style.backgroundPosition =
@@ -494,6 +521,7 @@ MJSX.ready(function (ex) {
       px + 'px ' + py + 'px, ' + px + 'px ' + py + 'px';
   }
   function panTo(tx, ty, animate) {
+    if (stacked()) return;
     if (anim) cancelAnimationFrame(anim);
     if (!animate) { px = tx; py = ty; apply(); return; }
     var sx = px, sy = py, t0 = performance.now(), dur = 520;
@@ -507,6 +535,7 @@ MJSX.ready(function (ex) {
   }
 
   table.addEventListener('pointerdown', function (e) {
+    if (stacked()) return;
     if (e.target.tagName === 'CANVAS' ||
         e.target.closest('button, select, textarea, a')) return;
     drag = { x: e.clientX, y: e.clientY, px: px, py: py, id: e.pointerId };
@@ -523,6 +552,7 @@ MJSX.ready(function (ex) {
   table.addEventListener('pointerup', endDrag);
   table.addEventListener('pointercancel', endDrag);
   table.addEventListener('wheel', function (e) {
+    if (stacked()) return;
     /* A wheel over the code editor scrolls the CODE. Panning the sheet from
        under someone's cursor while they are reading a program is the wrong
        answer, so anything that scrolls itself keeps its own wheel. */
@@ -532,6 +562,7 @@ MJSX.ready(function (ex) {
   }, { passive: false });
 
   window.addEventListener('keydown', function (e) {
+    if (stacked()) return;
     if (e.target !== document.body) return;      /* a focused panel keeps its keys */
     var d = e.shiftKey ? 240 : 80, hit = true;
     if (e.key === 'ArrowLeft') px += d;
@@ -545,6 +576,12 @@ MJSX.ready(function (ex) {
   /* ---- moving around the sheet ---- */
   function goTo(i, animate) {
     var t = built[(i + built.length) % built.length];
+    if (stacked()) {
+      /* the same navigation, expressed the way a scrolling page expresses it */
+      t.el.scrollIntoView({ behavior: animate === false ? 'auto' : 'smooth',
+                            block: 'start' });
+      return;
+    }
     var r = t.el.getBoundingClientRect();
     panTo(Math.round(window.innerWidth / 2 - t.x - r.width / 2),
           Math.round(window.innerHeight / 2 - t.y - r.height / 2),
@@ -581,8 +618,18 @@ MJSX.ready(function (ex) {
     });
   });
 
-  /* the sheet opens on its own index */
-  setTimeout(function () { goTo(0, false); }, 30);
+  /* the sheet opens on its own index; stacked, that is simply the top */
+  setTimeout(function () { if (!stacked()) goTo(0, false); }, 30);
+
+  /* Crossing the breakpoint switches modes cleanly: the pan transform is
+     cleared going down (CSS drops it anyway, but the state should agree) and
+     the sheet is re-centred and re-wired coming back up. */
+  var onSmall = function () {
+    if (stacked()) { px = 0; py = 0; sheet.style.transform = ''; wires(); }
+    else { goTo(0, false); wires(); }
+  };
+  if (SMALL.addEventListener) SMALL.addEventListener('change', onSmall);
+  else if (SMALL.addListener) SMALL.addListener(onSmall);
 });
 </script>
 </body>
