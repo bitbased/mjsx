@@ -98,22 +98,9 @@
      becomes what a phone actually wants: one column, scrolled. The stations
      keep their order, the wires between them go (they connect positions that
      no longer exist), and the pan handlers switch themselves off. */
-  @media (max-width:640px) {
-    html, body { height:auto; overflow:auto; overscroll-behavior:auto; }
-    #table { position:static; inset:auto; height:auto; overflow:visible;
-             cursor:auto; touch-action:auto; user-select:text;
-             -webkit-user-select:text; background-attachment:local; }
-    #sheet { position:static; transform:none !important; width:auto; height:auto;
-             display:flex; flex-direction:column; gap:1rem;
-             padding:3.4rem .6rem 2rem; will-change:auto; }
-    .st { position:static !important; left:auto !important; top:auto !important;
-          width:100% !important; }
-    svg.wires { display:none; }
-    .hint { display:none; }
-    .bar { position:sticky; }
-  }
 
-  @media (max-width:760px) { .st.wide { width:calc(100vw - 1.4rem); } }
+
+
   .st > .tt { display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap;
               padding:.35rem .6rem; border-bottom:1px solid var(--edge);
               font-size:11px; letter-spacing:.14em; }
@@ -134,6 +121,10 @@
     /* the pan hint sits on top of the content on a small screen */
     .hint { display:none; }
     .bar { gap:.3rem .6rem; }
+    /* The station buttons wrapped the header to three lines — 17% of a phone
+       screen, permanently, for navigation the sheet index and the PREV/NEXT
+       controls already provide. The header keeps the site links only. */
+    #bar-stations { display:none; }
     .st > .bd { padding:.7rem; }
   }
   .half { display:flex; flex-direction:column; gap:.4rem; align-items:center;
@@ -249,6 +240,34 @@
           font-size:10.5px; letter-spacing:.1em; text-align:right;
           background:rgba(10,47,82,.9); padding:.3rem .55rem;
           border:1px solid var(--edge); }
+
+  /* ---- NARROW SCREENS ----------------------------------------------------
+     Last in the sheet on purpose. These override rules defined above them
+     (.bar's position, the pair's direction), and a media block placed
+     earlier loses the cascade to equally specific rules that follow it —
+     which is exactly how the fixed header kept covering the first card. */
+  @media (max-width:760px) { .st.wide { width:calc(100vw - 1.4rem); } }
+  @media (max-width:640px) {
+    html, body { height:auto; overflow:auto; overscroll-behavior:auto; }
+    #table { position:static; inset:auto; height:auto; overflow:visible;
+             cursor:auto; touch-action:auto; user-select:text;
+             -webkit-user-select:text; background-attachment:local; }
+    #sheet { position:static; transform:none !important; width:auto; height:auto;
+             display:flex; flex-direction:column; gap:1rem;
+             padding:.6rem .6rem 2rem; will-change:auto; }
+    .st { position:static !important; left:auto !important; top:auto !important;
+          width:100% !important; }
+    svg.wires { display:none; }
+    .hint { display:none; }
+    /* STICKY, not fixed: a fixed bar is out of flow, so when it wrapped to
+       two lines on a phone it simply covered the first card. Sticky occupies
+       the space it needs and cannot overlap anything. */
+    .bar { position:sticky; top:0; }
+    /* scrollIntoView puts an element's top at the VIEWPORT top, which is
+       behind the bar. --barh is measured in script, because the bar's height
+       depends on how many lines the nav wraps to. */
+    .st { scroll-margin-top:calc(var(--barh, 3.6rem) + .5rem); }
+  }
 </style>
 </head>
 <body>
@@ -514,6 +533,22 @@ MJSX.ready(function (ex) {
      panning is not just unnecessary — it would fight the page's own scroll. */
   var SMALL = window.matchMedia('(max-width: 640px)');
   function stacked() { return SMALL.matches; }
+
+  /* The header wraps to one or two lines depending on width, so how far a
+     station has to clear it is measured rather than assumed. It feeds
+     .st { scroll-margin-top } so navigation lands with the card's title bar
+     visible instead of tucked underneath. */
+  function measureBar() {
+    var bar = document.querySelector('.bar');
+    if (!bar) return;
+    document.documentElement.style.setProperty(
+      '--barh', Math.ceil(bar.getBoundingClientRect().height) + 'px');
+  }
+  measureBar();
+  window.addEventListener('resize', measureBar);
+  if (window.ResizeObserver) {
+    new ResizeObserver(measureBar).observe(document.querySelector('.bar'));
+  }
   function apply() { sheet.style.transform = 'translate(' + px + 'px,' + py + 'px)'; grid(); }
   function grid() {
     table.style.backgroundPosition =
