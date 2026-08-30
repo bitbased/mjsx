@@ -14,9 +14,19 @@ bringing that here so the engine and its firmware ship together.
 |---|---|
 | `src/engine/` | The MicroQuickJS engine. **Byte-identical** to the bridge's copy, so there is no fork to reconcile. |
 | `src/engine/glue.c` | The full native surface — the ten calls plus `sys.i2c`, canvas sources, `net.*` — not `hello-mjsx`'s ten-call subset. |
-| `natives.h` | The C side of those natives, including `net.fetch` (see `docs/hardware-api.md`). |
+| `natives.h` | The C side of those natives, including `net.fetch` and `sys.log` (see `docs/hardware-api.md` and `docs/logging.md`). |
 | `src/engine/mjsx_board_stdlib.c` + `gen-stdlib.sh` | The native name table and its generator. Run the script after changing the table; it regenerates the tables **and** the atom header from one pass, because the two disagreeing about word size corrupts atom numbering. |
 | `config.h`, `panel_*.h`, `js.h`, `mod_*.h` | Copied from the bridge, unmodified. |
+
+`natives.h` and `glue.c` are copies too, and they drift: a native added to
+the bridge is not here until someone copies it over. `glue.c` differs by
+exactly one line — the stdlib header it includes — so the check is
+
+    diff bridge/natives.h natives.h
+    diff bridge/src/mquickjs/glue.c src/engine/glue.c   # expect 1 hunk
+
+and a copy is followed by re-adding the native's name to
+`src/engine/mjsx_board_stdlib.c` and running `./gen-stdlib.sh`.
 
 ## What is missing
 

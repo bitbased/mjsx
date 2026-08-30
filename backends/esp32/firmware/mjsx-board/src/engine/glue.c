@@ -143,6 +143,7 @@ extern int netNStatus(char *out, int cap);
 extern int netNFetch(const char *url, int ulen, int head, int max);
 extern int netNFetchState(char *out, int cap);
 extern int netNFetchBody(const char **p);
+extern void sysNLog(const char *p, int len);
 extern int gfxNH(void);
 
 static int gi(JSContext *ctx, JSValue v) { int r = 0; JS_ToInt32Sat(ctx, &r, v); return r; }
@@ -436,6 +437,12 @@ JSValue js_net_fetch_body(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
     const char *p = "";
     int n = netNFetchBody(&p);
     return JS_NewStringLen(ctx, p, (size_t)(n < 0 ? 0 : n));
+}
+JSValue js_sys_log(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
+    JSCStringBuf b; size_t l = 0;
+    const char *s = gs(ctx, argv[0], &b, &l);
+    sysNLog(s, (int)l);
+    return JS_UNDEFINED;
 }
 JSValue js_sys_cal_mode(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
     sysNCalMode(argc > 0 ? gi(ctx, argv[0]) : 0);

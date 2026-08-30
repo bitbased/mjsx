@@ -201,6 +201,10 @@ static int netFetchCap() {
 }
 static int g_fetchCapBytes = 0;   /* what was actually allocated */
 
+static char   g_fetchUrl[192];       /* the request, handed to the task */
+static int    g_fetchHead = 0, g_fetchMax = 0;
+static TaskHandle_t g_fetchTask = nullptr;
+
 static bool   g_fetchBusy = false;
 static bool   g_fetchDone = false;
 static int    g_fetchStatus = 0;     /* HTTP status, or negative for a failure */
@@ -235,89 +239,116 @@ static bool netFetchAllowed(const char *url) {
   return false;
 }
 
-/* start a request. 1 accepted, 0 busy, -1 refused */
+/* The transfer runs on its own task.
+ *
+ * The API was always shaped async -- start, then poll -- but the first cut
+ * performed the whole HTTP transaction inline, which blocks the JS engine and
+ * the frame loop for as long as the far end takes. A slow or dead server
+ * froze the UI for the entire timeout. Now netNFetch() only validates and
+ * hands over; the task does the waiting, and net.fetchState() keeps its
+ * contract of '' until there is something to report.
+ *
+ * One task at a time, created per request and deleted on completion, because
+ * a permanent worker would hold its stack (8 KB) forever for a feature most
+ * apps never touch.
+ */
+static void netFetchTask(void *arg) {
+#if HAS_WIFI
+  HTTPClient http;
+  http.setTimeout(6000);
+  http.setConnectTimeout(4000);
+  if (!http.begin(g_fetchUrl)) {
+    snprintf(g_fetchErr, sizeof(g_fetchErr), "bad url");
+    g_fetchStatus = -1;
+  } else {
+    const char *want[] = { "Date", "Content-Length" };
+    http.collectHeaders(want, 2);
+    g_fetchStatus = g_fetchHead ? http.sendRequest("HEAD") : http.GET();
+    if (g_fetchStatus > 0) {
+      String d = http.header("Date");
+      snprintf(g_fetchDate, sizeof(g_fetchDate), "%s", d.c_str());
+      if (!g_fetchHead) {
+        int declared = http.getSize();            /* -1 when chunked */
+        int max = g_fetchMax;
+        if (declared > max) {
+          g_fetchTrunc = true;                    /* refused before the body */
+        } else {
+          if (!g_fetchBody) {
+            /* PSRAM first: a 32K buffer in internal RAM is a WiFi outage */
+            g_fetchCapBytes = netFetchCap();
+            g_fetchBody = (char *)heap_caps_malloc(g_fetchCapBytes + 1, MALLOC_CAP_SPIRAM);
+            if (!g_fetchBody) {
+              g_fetchCapBytes = NET_FETCH_CAP_DRAM;
+              g_fetchBody = (char *)malloc(NET_FETCH_CAP_DRAM + 1);
+            }
+          }
+          if (!g_fetchBody) {
+            snprintf(g_fetchErr, sizeof(g_fetchErr), "no heap");
+            g_fetchStatus = -1;
+          } else {
+            if (max > g_fetchCapBytes) max = g_fetchCapBytes;
+            WiFiClient *st = http.getStreamPtr();
+            unsigned long t0 = millis();
+            while (http.connected() && millis() - t0 < 6000) {
+              size_t avail = st->available();
+              if (!avail) { if (declared >= 0 && g_fetchLen >= declared) break; delay(2); continue; }
+              if (g_fetchLen >= max) {            /* cap reached: drain, drop */
+                g_fetchTrunc = true;
+                while (st->available()) st->read();
+                break;
+              }
+              int room = max - g_fetchLen;
+              int n = st->readBytes(g_fetchBody + g_fetchLen,
+                                    (int)avail < room ? (int)avail : room);
+              if (n <= 0) break;
+              g_fetchLen += n;
+            }
+            g_fetchBody[g_fetchLen] = 0;
+          }
+        }
+      }
+    } else {
+      snprintf(g_fetchErr, sizeof(g_fetchErr), "%s",
+               HTTPClient::errorToString(g_fetchStatus).c_str());
+    }
+    http.end();
+  }
+#endif
+  g_fetchBusy = false;
+  g_fetchDone = true;
+  g_fetchTask = nullptr;
+  vTaskDelete(nullptr);
+}
+
+/* start a request. 1 accepted, 0 busy, -1 refused. Returns immediately. */
 int netNFetch(const char *url, int ulen, int head, int max) {
 #if HAS_WIFI
   if (g_fetchBusy) return 0;
-  if (WiFi.status() != WL_CONNECTED) { return -1; }
+  if (WiFi.status() != WL_CONNECTED) return -1;
 
-  char u[192];
-  snprintf(u, sizeof(u), "%.*s", ulen > (int)sizeof(u) - 1 ? (int)sizeof(u) - 1 : ulen, url);
-  if (!netFetchAllowed(u)) {
+  snprintf(g_fetchUrl, sizeof(g_fetchUrl), "%.*s",
+           ulen > (int)sizeof(g_fetchUrl) - 1 ? (int)sizeof(g_fetchUrl) - 1 : ulen, url);
+
+  /* a refusal is a RESULT, not a silent no-op: clear the previous one so a
+     stale Date cannot look like this request's answer */
+  g_fetchDate[0] = 0; g_fetchErr[0] = 0;
+  g_fetchLen = 0; g_fetchTrunc = false;
+
+  if (!netFetchAllowed(g_fetchUrl)) {
     g_fetchDone = true; g_fetchStatus = -1;
     snprintf(g_fetchErr, sizeof(g_fetchErr), "not allowed");
     return -1;
   }
   int hard = netFetchCap();
   if (max <= 0 || max > hard) max = hard;
+  g_fetchHead = head; g_fetchMax = max;
+  g_fetchBusy = true; g_fetchDone = false; g_fetchStatus = 0;
 
-  g_fetchBusy = true; g_fetchDone = false; g_fetchTrunc = false;
-  g_fetchLen = 0; g_fetchStatus = 0;
-  g_fetchDate[0] = 0; g_fetchErr[0] = 0;
-
-  HTTPClient http;
-  http.setTimeout(6000);
-  http.setConnectTimeout(4000);
-  if (!http.begin(u)) {
-    snprintf(g_fetchErr, sizeof(g_fetchErr), "bad url");
-    g_fetchStatus = -1; g_fetchBusy = false; g_fetchDone = true;
+  if (xTaskCreate(netFetchTask, "netfetch", 8192, nullptr, 1, &g_fetchTask) != pdPASS) {
+    g_fetchBusy = false; g_fetchDone = true; g_fetchStatus = -1;
+    snprintf(g_fetchErr, sizeof(g_fetchErr), "no task");
     return -1;
   }
-  /* Date is why a clock needs no body at all */
-  const char *want[] = { "Date", "Content-Length" };
-  http.collectHeaders(want, 2);
-
-  g_fetchStatus = head ? http.sendRequest("HEAD") : http.GET();
-  if (g_fetchStatus > 0) {
-    String d = http.header("Date");
-    snprintf(g_fetchDate, sizeof(g_fetchDate), "%s", d.c_str());
-
-    if (!head) {
-      int declared = http.getSize();          /* -1 when chunked */
-      if (declared > max) {
-        g_fetchTrunc = true;                  /* refused before reading a byte */
-      } else {
-        if (!g_fetchBody) {
-          /* PSRAM first: a 32K buffer in internal RAM is a WiFi outage */
-          g_fetchCapBytes = hard;
-          g_fetchBody = (char *)heap_caps_malloc(hard + 1, MALLOC_CAP_SPIRAM);
-          if (!g_fetchBody) {
-            g_fetchCapBytes = NET_FETCH_CAP_DRAM;
-            g_fetchBody = (char *)malloc(NET_FETCH_CAP_DRAM + 1);
-            if (max > g_fetchCapBytes) max = g_fetchCapBytes;
-          }
-        }
-        if (!g_fetchBody) {
-          snprintf(g_fetchErr, sizeof(g_fetchErr), "no heap");
-          g_fetchStatus = -1;
-        } else {
-          WiFiClient *st = http.getStreamPtr();
-          unsigned long t0 = millis();
-          while (http.connected() && millis() - t0 < 6000) {
-            size_t avail = st->available();
-            if (!avail) { if (declared >= 0 && g_fetchLen >= declared) break; delay(1); continue; }
-            if (g_fetchLen >= max) {           /* cap reached: drain and drop */
-              g_fetchTrunc = true;
-              while (st->available()) st->read();
-              break;
-            }
-            int room = max - g_fetchLen;
-            int n = st->readBytes(g_fetchBody + g_fetchLen,
-                                  (int)avail < room ? (int)avail : room);
-            if (n <= 0) break;
-            g_fetchLen += n;
-          }
-          g_fetchBody[g_fetchLen] = 0;
-        }
-      }
-    }
-  } else {
-    snprintf(g_fetchErr, sizeof(g_fetchErr), "%s",
-             HTTPClient::errorToString(g_fetchStatus).c_str());
-  }
-  http.end();
-  g_fetchBusy = false;
-  g_fetchDone = true;
   return 1;
 #else
   (void)url; (void)ulen; (void)head; (void)max;
@@ -346,6 +377,18 @@ int netNFetchBody(const char **p) {
   if (g_fetchBusy || !g_fetchDone || !g_fetchBody) { *p = ""; return 0; }
   *p = g_fetchBody;
   return g_fetchLen;
+}
+
+/* The 'serial' console sink.
+ *
+ * The buffer sink is a ring in JS (packages/core/src/log.js, bundled with
+ * the app) and the ops sink is the frame recorder, so neither needs C. This
+ * is the one destination the script cannot reach on its own: the wire.
+ *
+ * Deliberately raw — no level prefix, no newline. The caller formats, this
+ * writes, so what appears on a terminal is exactly what the logger built. */
+void sysNLog(const char *p, int len) {
+  if (len > 0) Serial.write((const uint8_t *)p, (size_t)len);
 }
 
 }  // extern "C"

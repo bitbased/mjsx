@@ -67,6 +67,7 @@ static const JSPropDef js_sys[] = {
     JS_CFUNC_DEF("canvasTarget", 1, js_sys_canvas_target), /* canvasTarget(id | -1) — gfx draws there */
     JS_CFUNC_DEF("store", 2, js_sys_store),    /* store(key, value) — app settings */
     JS_CFUNC_DEF("fetch", 1, js_sys_fetch),    /* fetch(key) -> string or '' */
+    JS_CFUNC_DEF("log", 1, js_sys_log),        /* raw write to the serial console */
     JS_CFUNC_DEF("calMode", 1, js_sys_cal_mode), /* calMode(on) — deliver raw touch */
     JS_CFUNC_DEF("setCal", 2, js_sys_set_cal),   /* setCal(axis, "raw,screen,...") */
     JS_CFUNC_DEF("cal", 0, js_sys_cal),          /* cal() -> JSON of the above */
