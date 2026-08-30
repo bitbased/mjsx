@@ -617,10 +617,25 @@ MJSX.ready(function (ex) {
                             block: 'start' });
       return;
     }
+    /* Centring is only right while the card FITS. A station taller than the
+       window centred on it puts its title bar above the top edge, so you
+       arrive in the middle of a card with no idea which one it is — worse on
+       a short window, where every card is taller than the viewport. Centre
+       within the free space when there is room, otherwise pin the top just
+       below the header. Same rule on both axes. */
     var r = t.el.getBoundingClientRect();
-    panTo(Math.round(window.innerWidth / 2 - t.x - r.width / 2),
-          Math.round(window.innerHeight / 2 - t.y - r.height / 2),
-          animate !== false);
+    var bar = document.querySelector('.bar');
+    var barH = bar ? bar.getBoundingClientRect().height : 0;
+    var padX = 14, padY = 14;
+    var availH = window.innerHeight - barH - padY * 2;
+    var availW = window.innerWidth - padX * 2;
+    var ty = r.height <= availH
+      ? barH + padY + (availH - r.height) / 2 - t.y
+      : barH + padY - t.y;
+    var tx = r.width <= availW
+      ? padX + (availW - r.width) / 2 - t.x
+      : padX - t.x;
+    panTo(Math.round(tx), Math.round(ty), animate !== false);
   }
 
   var list = document.getElementById('idx-list');
