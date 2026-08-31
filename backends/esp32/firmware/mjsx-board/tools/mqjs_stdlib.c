@@ -345,7 +345,6 @@ static const JSPropDef js_global_object[] = {
     JS_PROP_CLASS_DEF("gfx", &js_gfx_obj),
     JS_PROP_CLASS_DEF("sys", &js_sys_obj),
     JS_PROP_CLASS_DEF("net", &js_net_obj),
-    JS_PROP_CLASS_DEF("printer", &js_printer_obj),
 #endif
     JS_PROP_CLASS_DEF("RegExp", &js_regexp_class),
 

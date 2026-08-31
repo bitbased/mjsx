@@ -47,10 +47,10 @@ file. They exist for apps.
 
 The surfaces audited. "esp32 (tree)" is
 `backends/esp32/engine/native_api.c` + `glue.c` +
-`firmware/hello-mjsx/hello-mjsx.ino`, the only ESP32 target whose
-implementation is in this repo. "esp32 (shim)" is that native surface as
-re-wrapped by `backends/esp32/tools/device-shim.js` for the out-of-tree
-filament-rfid firmware.
+`firmware/hello-mjsx/hello-mjsx.ino`, a Serial-only bring-up sketch.
+"esp32 (shim)" is the native surface as re-wrapped by
+`backends/esp32/tools/device-shim.js` for `firmware/mjsx-board/`, the real
+firmware — which is in this repo and builds from it alone.
 
 Throughout this page, **yes** means present and behaving as the contract
 describes, **no** means absent, and **partial** means present but not
@@ -498,11 +498,11 @@ reads `backend.raw` in place and says so.
 
 ## Device-side natives: not verifiable here
 
-`docs/devices.md` and `docs/hardware-api.md` describe firmware living in
-the `filament-rfid` repo. That source has since been read: the natives
-below are declared in its `natives.h` and bound in its
-`src/mquickjs/glue.c`, so they exist rather than being taken on trust —
-but nothing in THIS tree exercises them, so their behaviour is still
+`docs/devices.md` and `docs/hardware-api.md` describe the firmware at
+`backends/esp32/firmware/mjsx-board/`. The natives below are declared in its
+`natives.h` and bound in its `src/engine/glue.c`, so they exist rather than
+being taken on trust — but nothing in THIS tree exercises them (they need a
+board), so their behaviour is still
 **unverified here**: native `gfx.poly` (packed), native `gfx.blit`,
 `sys.gpio`, `sys.i2c`, `sys.mods`, `sys.modCtl`, `sys.canvas`,
 `sys.canvasTarget`, `sys.screen`, `sys.backlight`, `sys.sleepAfter`,

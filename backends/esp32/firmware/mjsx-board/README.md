@@ -1,55 +1,83 @@
-# mjsx-board — an in-progress firmware port
+# mjsx-board — the reference ESP32-S3 firmware
 
-**This does not build yet. Do not flash it.**
+This is the firmware the boards run. It builds and flashes **entirely from
+this repo**: panel driver, touch, WiFi, OTA, mDNS, the web server, the
+`:8765` push server that accepts a pushed JS bundle, the `:81` op stream,
+and MicroQuickJS with mjsx's native surface bound to it.
 
-`hello-mjsx/` next door is a working bring-up sketch that logs `gfx.*` to
-Serial and drives no panel. The firmware that actually runs mjsx on glass —
-panel drivers, touch, WiFi, OTA, the `:8765` push server — lives outside
-this repo, in the `filament-rfid` bridge. This directory is the start of
-bringing that here so the engine and its firmware ship together.
+```
+./build.sh --b35                                # build for the 3.5" board
+./build.sh --b169 --ota 192.168.1.144           # build and update over the air
+./build.sh --b128 --port /dev/cu.usbmodemXXXX   # build and flash over USB
+```
 
-## What is here and working
-
-| Piece | State |
+| Flag | Board |
 |---|---|
-| `src/engine/` | The MicroQuickJS engine. **Byte-identical** to the bridge's copy, so there is no fork to reconcile. |
-| `src/engine/glue.c` | The full native surface — the ten calls plus `sys.i2c`, canvas sources, `net.*` — not `hello-mjsx`'s ten-call subset. |
-| `natives.h` | The C side of those natives, including `net.fetch` and `sys.log` (see `docs/hardware-api.md` and `docs/logging.md`). |
-| `src/engine/mjsx_board_stdlib.c` + `gen-stdlib.sh` | The native name table and its generator. Run the script after changing the table; it regenerates the tables **and** the atom header from one pass, because the two disagreeing about word size corrupts atom numbering. |
-| `config.h`, `panel_*.h`, `js.h`, `mod_*.h` | Copied from the bridge, unmodified. |
+| `--b169` | Waveshare ESP32-S3-Touch-LCD-1.69 — 240×280 ST7789V2, CST816T |
+| `--b35` | Waveshare ESP32-S3-Touch-LCD-3.5 — 320×480 ST7796, FT6336 |
+| `--b147` | Waveshare ESP32-S3-Touch-LCD-1.47 — 172×320 JD9853, AXS5106L |
+| `--b128` | Waveshare ESP32-S3-Touch-LCD-1.28 — 240×240 round GC9A01 |
 
-`natives.h` and `glue.c` are copies too, and they drift: a native added to
-the bridge is not here until someone copies it over. `glue.c` differs by
-exactly one line — the stdlib header it includes — so the check is
+The round board is an S3R2: 2 MB **quad** PSRAM and a CH343 USB console, so
+its FQBN differs (`CDCOnBoot=default`, `PSRAM=enabled`). `build.sh` handles
+that; one shared FQBN does not.
 
-    diff bridge/natives.h natives.h
-    diff bridge/src/mquickjs/glue.c src/engine/glue.c   # expect 1 hunk
+OTA is the normal path. USB flashing on these boards is unreliable enough
+that taking a working board off the network to reflash it over a cable is a
+step backwards. A board flashed once can be updated forever over `--ota`
+(or `mjsx ota <ip> <bin>`).
 
-and a copy is followed by re-adding the native's name to
-`src/engine/mjsx_board_stdlib.c` and running `./gen-stdlib.sh`.
+## What it serves
 
-## What is missing
+| Path | |
+|---|---|
+| `/` | index: links to the two viewers |
+| `/remote` | the op-stream mirror — real rasterizer, touch, console, REPL |
+| `/display` | the plain JPEG view |
+| `/ops`, `/ops.bin`, `:81/ops` | the frame stream, three transports (`?log=1` adds console lines) |
+| `/eval?js=…` | evaluate in the running app's globals — see `docs/logging.md` |
+| `/update` | OTA target |
+| `/info`, `/state` | what it is and how it is doing |
 
-- **The sketch.** There is no `.ino`: no `setup()`/`loop()`, no WiFi join,
-  no OTA, no mDNS, no web server, no `:8765` push listener. Without those a
-  flashed board cannot be updated except over USB.
-- **`ui.h` is still fused.** Its first ~430 lines are the display substrate
-  (panel init, flush, backlight, rotation, the canvas registry, the native
-  surface `glue.c` binds `gfx.*` to). Everything below is the filament
-  app's own C UI — pages, keyboards, calibration — which mjsx replaces with
-  JS and which should not come along.
-- **Never compiled.** No `arduino-cli` run has been attempted here.
+## Layout
 
-## The order that keeps a board usable
+| Piece | |
+|---|---|
+| `mjsx-board.ino` | setup/loop, WiFi/OTA/mDNS, the web server, the push server, the command set |
+| `ui.h` | the display substrate: panel init, flush, dirty-rect diff, the canvas registry, the op recorder |
+| `js.h` | the engine worker task, the script store, the pointer queue |
+| `natives.h` | the C side of the native surface (`sys.*`, `net.*`) |
+| `src/engine/` | MicroQuickJS, and `glue.c` binding the natives to it |
+| `tools/` | the stdlib name table and its generator — **host-only**, deliberately outside `src/` |
+| `panel_*.h`, `config.h` | per-board pins and panel drivers |
+| `mod_*.h`, `modules.h` | the runtime module registry (`sys.mods`, `sys.modCtl`) |
+| `remote_*.cpp`, `display_html.cpp` | the served pages |
+| `remote_assets.h` | the browser rasterizer, generated by `backends/esp32/tools/gen-remote-assets.mjs` |
 
-The remote-update path has to exist in the new firmware *before* it
-replaces the old one, or every iteration costs a USB flash on hardware
-whose USB flashing is unreliable:
+Anything under `src/` is compiled into the sketch by the Arduino build, so
+the stdlib generator sources live in `tools/` instead — they were being
+linked into the firmware, where their `main()` collided with the engine's.
 
-1. panel driver for one controller — prove pixels over USB
-2. a real `loop()` plus the touch controller
-3. WiFi + OTA + the `:8765` push server ← **the gate**
-4. then `sys.i2c`, canvas sources, `net.fetch`
+## Adding a native
 
-The 3.5" board is the one to do it on: it is the largest panel and the
-easiest to see, and taking it off the LAN costs nothing.
+Three edits, all here:
+
+1. a `sysNThing()` / `netNThing()` C function in `natives.h`
+2. a `js_sys_thing` wrapper in `src/engine/glue.c`, with an `extern` beside the others
+3. the name in `tools/mjsx_board_stdlib.c`
+
+then `./gen-stdlib.sh`, which regenerates the tables **and** the atom header
+in one pass — the two disagreeing about word size corrupts atom numbering,
+which surfaces as parse errors and panics rather than as anything obvious.
+
+## Optional modules
+
+`MOD_RFID`, `MOD_PRINTER` and `MOD_CAMERA` are compile switches, off by
+default. What is compiled is *present*; what is *registered* can be started
+and stopped from JS (`sys.modCtl`). The PN532 reader module (`--rfid`) needs
+a `mod_pn532.h`, which is not in this repo yet.
+
+**`local_modules.h`** is the `local-examples/` idea for C: drop one in and it
+is picked up automatically (`__has_include`), gitignored, absent by default.
+Define what you need plus a `localModsSetup()`; it is called last, so it can
+also re-register over a shipped module.

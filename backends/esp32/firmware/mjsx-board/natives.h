@@ -391,4 +391,19 @@ void sysNLog(const char *p, int len) {
   if (len > 0) Serial.write((const uint8_t *)p, (size_t)len);
 }
 
+/* The ops sink: a console line into the frame stream, where a viewer
+ * mirroring the screen shows it beside the drawing it describes.
+ *
+ * Gated in C, not in JS, so the script pays one cheap call and nothing
+ * else when nobody is watching -- and so `log=1` on any of the three
+ * transports is enough to start the flow, with no sink to configure on
+ * the board first.
+ *
+ * `level` is an index into the logger's level names (0 debug .. 4 error),
+ * not a string: five bytes a line matters when the line is the payload.
+ */
+void sysNLogOp(int level, const char *p, int len) {
+  opLogLine((uint8_t)(level < 0 ? 0 : (level > 4 ? 4 : level)), p, len);
+}
+
 }  // extern "C"

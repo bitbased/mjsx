@@ -1,0 +1,18 @@
+# Partition table for the 16MB ESP32-S3 board.
+#
+# Two app slots so the board can update itself over WiFi. That is not a luxury
+# here: flashing this board over USB takes minutes and fails partway often
+# enough that we split the image into chunks to get it done at all. Over the
+# air it is one transfer to a slot that is not running, verified before it is
+# switched to, and a bad image just boots the old slot again.
+#
+# 4MB per slot against a ~1MB firmware leaves generous headroom for a scripting
+# engine and assets later. The rest is storage for scripts, layouts and logs.
+#
+# Name,     Type, SubType,  Offset,    Size,      Flags
+nvs,        data, nvs,      0x9000,    0x5000,
+otadata,    data, ota,      0xe000,    0x2000,
+app0,       app,  ota_0,    0x10000,   0x400000,
+app1,       app,  ota_1,    0x410000,  0x400000,
+storage,    data, spiffs,   0x810000,  0x7E0000,
+coredump,   data, coredump, 0xFF0000,  0x10000,

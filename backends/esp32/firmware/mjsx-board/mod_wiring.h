@@ -28,6 +28,20 @@ static int modRfidStatus(char *out, int cap) {
   String r = readerReport();
   return snprintf(out, cap, "\"readers\":\"%s\"", r.c_str());
 }
+/* local_modules.h -- native code you are working on but not committing,
+   the same idea as local-examples/ for apps. Gitignored, picked up
+   automatically when present, absent by default.
+ 
+   Define anything you need and a `localModsSetup()`; it is called last, so
+   a local module can also re-register over a shipped one. __has_include
+   rather than a build flag, so dropping the file in is the whole step. */
+#if defined(__has_include)
+#if __has_include("local_modules.h")
+#include "local_modules.h"
+#define HAS_LOCAL_MODULES 1
+#endif
+#endif
+
 static void modsSetup() {
 #if HAS_WIFI && MOD_PRINTER
   modRegister("printer", true, modPrinterStart, nullptr, modPrinterTick, modPrinterStatus);
@@ -43,4 +57,8 @@ static void modsSetup() {
   modRegister("cam", false, camStart, camStop, camTick, camStatus, camCtl);
 #endif
 #endif
+#ifdef HAS_LOCAL_MODULES
+  localModsSetup();
+#endif
 }
+

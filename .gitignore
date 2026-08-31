@@ -103,3 +103,9 @@ local-examples/
 # Regenerate with: bun scripts/shoot.mjs --all
 !docs/img/
 !docs/img/*.png
+
+# Native firmware modules you are working on but not committing — the
+# local-examples/ idea for C. Picked up by __has_include; see
+# backends/esp32/firmware/mjsx-board/mod_wiring.h.
+backends/esp32/firmware/mjsx-board/local_*.h
+backends/esp32/firmware/mjsx-board/local_*.cpp

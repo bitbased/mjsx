@@ -16,7 +16,13 @@ function App() {
     <box pad={em(2)} gap={em(2)}>
       <text text={'COUNT: ' + count} size={3} color={UI.theme.text} align="center" />
       <Button label="+1" size={2}
-              onTap={function () { UI.set({ count: count + 1 }); }} />
+              onTap={function () {
+                /* one line per TAP, never per frame: a console line costs
+                   a formatted string, and a render loop would flood the
+                   ring with them and push out what you wanted to see */
+                console.log('tap -> count', count + 1);
+                UI.set({ count: count + 1 });
+              }} />
     </box>
   );
 }

@@ -30,8 +30,8 @@
 #include "mbedtls/base64.h"
 
 extern "C" {
-#include "src/mquickjs/cutils.h"
-#include "src/mquickjs/mquickjs.h"
+#include "src/engine/cutils.h"
+#include "src/engine/mquickjs.h"
 // The stdlib tables live in glue.c, which also supplies the functions they
 // name (print, Date). Generated on the host and committed, so no build step is
 // needed here — see scripts/gen-js-stdlib.sh.

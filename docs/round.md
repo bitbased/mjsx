@@ -81,7 +81,7 @@ isRound: function () {
 The channel is `configStorage`'s `'round'` key, and the firmware seeds it
 at boot before any script can read it — the round build compiles with
 `ROUND_DISPLAY`, so the board knows what it is and the bundle never has to
-(`filament-rfid-bridge.ino`):
+(`mjsx-board.ino`):
 
 ```cpp
 #if defined(ROUND_DISPLAY) && ROUND_DISPLAY

@@ -68,6 +68,7 @@ static const JSPropDef js_sys[] = {
     JS_CFUNC_DEF("store", 2, js_sys_store),    /* store(key, value) — app settings */
     JS_CFUNC_DEF("fetch", 1, js_sys_fetch),    /* fetch(key) -> string or '' */
     JS_CFUNC_DEF("log", 1, js_sys_log),        /* raw write to the serial console */
+    JS_CFUNC_DEF("logOp", 2, js_sys_log_op),   /* a console line into the frame stream */
     JS_CFUNC_DEF("calMode", 1, js_sys_cal_mode), /* calMode(on) — deliver raw touch */
     JS_CFUNC_DEF("setCal", 2, js_sys_set_cal),   /* setCal(axis, "raw,screen,...") */
     JS_CFUNC_DEF("cal", 0, js_sys_cal),          /* cal() -> JSON of the above */
@@ -91,22 +92,6 @@ static const JSPropDef js_net[] = {
 };
 static const JSClassDef js_net_obj = JS_OBJECT_DEF("net", js_net);
 
-/*
- * The printer this box sits next to. Enough to configure it from the screen —
- * the scan-to-printer path itself stays in firmware, because it has to work
- * with no script loaded at all.
- */
-static const JSPropDef js_printer[] = {
-    JS_CFUNC_DEF("ip", 0, js_printer_ip),           /* ip() -> "192.168.1.144" or "" */
-    JS_CFUNC_DEF("setIp", 1, js_printer_set_ip),    /* setIp(ip) — persists, reconnects */
-    JS_CFUNC_DEF("auto", 0, js_printer_auto),       /* auto() -> 0|1: apply scans to the spool */
-    JS_CFUNC_DEF("setAuto", 1, js_printer_set_auto),
-    JS_CFUNC_DEF("syncMats", 0, js_printer_sync_mats),  /* fetch the DB from the printer */
-    JS_CFUNC_DEF("mats", 0, js_printer_mats),           /* {count, note} */
-    JS_CFUNC_DEF("raw", 1, js_printer_raw),             /* raw(json) queue a frame to the WS, async */
-    JS_PROP_END,
-};
-static const JSClassDef js_printer_obj = JS_OBJECT_DEF("printer", js_printer);
 
 static const JSClassDef js_sys_obj = JS_OBJECT_DEF("sys", js_sys);
 

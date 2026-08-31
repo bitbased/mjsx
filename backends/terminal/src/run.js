@@ -86,6 +86,29 @@ globalThis.ArcFooter = core.ArcFooter;
    developable. */
 globalThis.configStorage = core.configStorage;
 
+/* The RUNNER's own status line still goes to the real console (and so to
+   stdout, after the frame, which is where the tests read it). Only the
+   APP's console is redirected below -- taking the global away from the
+   runner too is a mistake worth naming: it silently swallowed every
+   `rendered N frames` line. */
+var hostLog = console.log.bind(console);
+
+/* An app's console goes to STDERR here, because stdout is the frame.
+   The terminal backend paints by writing escape sequences to stdout, so a
+   console.log from the example lands in the middle of the picture — the
+   frame starts with a cursor-home and an app that greeted on open pushed
+   it down a line. stderr keeps `bun run.js ... > frame.txt` clean while
+   the message is still right there in the terminal.
+
+   Same createLog every other host uses, so a line formats identically
+   wherever it is read (docs/logging.md). */
+var appLog = require('../../../packages/core/src/log.js').createLog({
+  sinks: 'serial',
+  write: function (t) { process.stderr.write(t); }
+});
+globalThis.console = appLog.console;
+globalThis.mjsxLog = appLog;
+
 // Text is real characters in the terminal's own font, not sub-pixel art —
 // one character wide, two sub-pixel rows tall (a character cell holds two
 // vertical half-blocks). mjsx-core's default FONT assumes a 6px bitmap
@@ -125,7 +148,7 @@ if (frames > 1) {
     if (drawn >= frames) {
       clearInterval(timer);
       if (headless) {
-        console.log('rendered ' + drawn + ' frame' + (drawn === 1 ? '' : 's') + ' ' +
+        hostLog('rendered ' + drawn + ' frame' + (drawn === 1 ? '' : 's') + ' ' +
           backend.width + 'x' + backend.height + ' (' + backend.mode + ') ' + bytes + ' bytes');
       } else {
         process.stdout.write('\n');
@@ -134,7 +157,7 @@ if (frames > 1) {
   }, interval);
 } else if (headless) {
   if (demo) { demo(UI, backend); if (UI.dirty()) UI.render(); bytes += emit(); }
-  console.log('rendered 1 frame ' + backend.width + 'x' + backend.height +
+  hostLog('rendered 1 frame ' + backend.width + 'x' + backend.height +
     ' (' + backend.mode + ') ' + bytes + ' bytes');
 } else if (demo) {
   setTimeout(function () {

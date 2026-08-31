@@ -32,7 +32,7 @@ or says plainly that the reading is simulated.*
 Modules are a runtime registry. What is *compiled in* is decided by build
 flags; what is *running* is decided by JS. `sys.mods()` lists them,
 `sys.modCtl(name, action)` starts and stops them
-(`firmware/esp32/filament-rfid-bridge/modules.h`).
+(`backends/esp32/firmware/mjsx-board/modules.h`).
 
 The IMU is registered **not running** — starting a sensor is the script's
 call, not the firmware's (`mod_wiring.h`):

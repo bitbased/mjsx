@@ -2,13 +2,16 @@
 title: "ESP32 devices"
 description: "The boards, flashing, OTA and provisioning."
 ---
-<!-- GENERATED from docs/devices.md by scripts/docs-sync.mjs. Edit that file. -->What running mjsx on real hardware looks like today. The firmware and the
-scripts described here live in the `filament-rfid` repo (mjsx was ported
-out of its `ui.js`). The mjsx CLI at `packages/cli`
-(`bun packages/cli/bin/mjsx.js push|ota|device wifi|fleet ...`) wraps the
-push, OTA, and provisioning flows described here; this page remains the
-reference for the underlying firmware scripts (`flash-s3.sh`,
-`ota-s3.sh`) and the HTTP/serial endpoints. What exists and works now: a
+<!-- GENERATED from docs/devices.md by scripts/docs-sync.mjs. Edit that file. -->What running mjsx on real hardware looks like today.
+
+The firmware is **in this repo** and builds from it alone:
+`backends/esp32/firmware/mjsx-board/`, with `./build.sh` for each panel.
+It used to live in an unrelated project and be hand-synced here, which let
+the two drift; it does not any more, and nothing in the build reads a file
+from outside mjsx.
+
+The CLI (`bun packages/cli/bin/mjsx.js push|ota|device wifi|fleet ...`)
+wraps push, OTA and provisioning. What exists and works now: a
 four-board fleet, all
 Waveshare ESP32-S3 touch-LCD boards, running mjsx apps as a pushed JS
 bundle evaluated by the firmware's embedded MicroQuickJS — pushing a new
@@ -16,8 +19,8 @@ app never means reflashing.
 
 ## The boards
 
-Selected at build time with a flag to `flash-s3.sh` / `ota-s3.sh`; the
-board blocks live in `firmware/esp32/filament-rfid-bridge/config.h`.
+Selected at build time with a flag to `build.sh`; the board blocks live in
+`backends/esp32/firmware/mjsx-board/config.h`.
 
 | Flag | Board | Panel | Touch |
 |---|---|---|---|
@@ -94,21 +97,17 @@ noise). `LED_OFF_PIN` / `LED_RGB_PIN` point it at the offender per board.
 
 ## First flash: USB, chunked
 
-`PORT=/dev/cu.usbmodemXXXX ./scripts/flash-s3.sh [--b147|--b128] [--display] [--js] [--sim] [--force]`
+`cd backends/esp32/firmware/mjsx-board && ./build.sh --b35 --port /dev/cu.usbmodemXXXX`
 
 USB flashing on these boards is unreliable for long sustained writes —
-reproducibly, at every baud rate, stub or no stub. The script works
-around it rather than fighting it: it splits the app into 64KB chunks,
-writes as many as one connection will take, and resumes from wherever a
-pass died (esptool prints one "Hash of data verified." per file, so a
-partial run says exactly how far it got). A cache of what was last
-flashed means a rebuild only pushes the chunks that changed, and the
-chunk carrying the image header is written *last*, so a half-written
-image has no valid header to boot-loop on.
+reproducibly, at every baud rate, stub or no stub. It is worth doing
+exactly once per board, to get WiFi and the OTA endpoint onto it; after
+that, use OTA and leave the cable alone.
 
 ## Every flash after that: OTA
 
-`IP=192.168.1.x ./scripts/ota-s3.sh [--b35|--b147|--b128] [--display] [--js] [--sim] [--r1..3] [--jsram]`
+`./build.sh --b35 --ota 192.168.1.x`, or `mjsx ota <ip> <firmware.bin>` for
+an image you already built.
 
 Once the board is on WiFi, OTA replaces the multi-minute chunked USB
 flash with a single transfer of a few seconds — a streamed HTTP upload to
@@ -118,7 +117,7 @@ is verified before the board switches to it, so a failed update leaves
 the working firmware running. Use OTA for everything after the first
 flash; that is what it is for.
 
-Both scripts shell out to `arduino-cli` and esptool from the Arduino
+`build.sh` shells out to `arduino-cli` and esptool from the Arduino
 ESP32 toolchain — the build step is the one piece the mjsx CLI has not
 absorbed (push, OTA, and wifi provisioning are wrapped).
 

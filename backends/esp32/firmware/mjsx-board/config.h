@@ -8,10 +8,16 @@
 // OFF still defines its outward symbols as stubs, so no call site --
 // including the generated JS stdlib's natives -- ever changes.
 #ifndef MOD_PRINTER
-#define MOD_PRINTER 1   // Creality K-series websocket client + dashboard
+/* OFF here. This is an mjsx board: the printer client belongs to the
+   unrelated project this firmware descends from, and its source is not in
+   this repo. Left as a switch rather than deleted so the module wiring
+   keeps its shape for whatever gets built next. */
+#define MOD_PRINTER 0   // Creality K-series websocket client + dashboard
 #endif
 #ifndef MOD_RFID
-#define MOD_RFID 1      // PN532 readers and the tag command set
+/* OFF by default, and OPTIONAL: -DMOD_RFID=1 with mod_pn532.h present
+   brings the readers back as a module, the same way the IMU is one. */
+#define MOD_RFID 0      // PN532 readers and the tag command set
 #endif
 #ifndef MOD_WIFI_CFG
 #define MOD_WIFI_CFG 1  // on-device network chooser + net.* JS natives
@@ -224,7 +230,8 @@
 // The DVP camera connector (OV2640/OV5640). Compiled in by default;
 // the module starts only on request, so absent hardware costs nothing.
 #ifndef MOD_CAMERA
-#define MOD_CAMERA 1
+/* OFF: mod_camera.h is not in this repo (see MOD_PRINTER). */
+#define MOD_CAMERA 0
 #endif
 #define TFT_MOSI 1
 #define TFT_MISO 2

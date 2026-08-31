@@ -86,6 +86,13 @@ function parseSinks(spec) {
  *
  * opts.write(text)      the serial sink; omitted, 'serial' does nothing
  * opts.emit(level, text) the ops sink; omitted, 'ops' does nothing
+ * opts.tap(level, text)  a destination that decides for ITSELF: called for
+ *                        every line that passes the level filter, whatever
+ *                        the sink set says. The board uses it for the frame
+ *                        stream, where the firmware already knows whether a
+ *                        viewer has asked for the console -- if that were a
+ *                        configurable sink, a board could be configured into
+ *                        ignoring a request it was actively receiving.
  * opts.sinks            initial sink spec, default 'buffer'
  * opts.level            lowest level kept, default 'debug'
  * opts.max              lines held in the ring, default 200
@@ -100,6 +107,8 @@ function createLog(opts) {
   function emit(level, args) {
     if ((LEVELS[level] || 20) < minLevel) return;
     var text = format(args);
+    /* before the sinks, and not gated by them: see opts.tap above */
+    if (opts.tap) opts.tap(level, text);
     if (sinks.buffer) {
       ring.push({ n: ++seq, level: level, text: text });
       /* a ring, not a growing list: a script in a loop must not be able to

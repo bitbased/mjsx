@@ -154,7 +154,10 @@ test('both colour paths emit a full frame (COLORTERM decides which)', () => {
 test('an example exporting demo() gets driven headlessly', () => {
   const r = runExample('counter', ['80', '24', '--frames=3', '--no-tty']);
   expectClean(r);
-  expect(r.out).toContain('count is now 1'); // counter's demo taps its own Button
+  /* stdERR: stdout is the frame here, so an APP's console (the demo hook
+     included) is routed to stderr by the runner -- a greeting printed
+     into stdout lands in the middle of the picture. See run.js. */
+  expect(r.err).toContain('count is now 1'); // counter's demo taps its own Button
 });
 
 test('no example argument: usage on stderr, non-zero exit', () => {

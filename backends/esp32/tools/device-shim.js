@@ -58,6 +58,12 @@ var EXAMPLES = [];
  * The set is read from configStorage at boot, so it is changeable on a
  * running board without a rebuild, and defaults to buffer alone: a board
  * with nobody watching should not be paying to format strings onto a wire.
+ *
+ * The ops destination is NOT in that set. It hangs off `tap`, which runs
+ * whatever the config says, because the decision belongs downstream: the
+ * firmware knows whether a viewer asked for log=1 and gates there. A board
+ * whose sinks were once set to 'buffer' would otherwise answer /remote?log=1
+ * with silence, and nothing on either end would say why.
  */
 var mjsxLog = createLog({
   sinks: configStorage.get('log', 'buffer'),
@@ -65,17 +71,39 @@ var mjsxLog = createLog({
   write: function (t) {
     if (typeof sys !== 'undefined' && typeof sys.log === 'function') sys.log(t);
   },
-  emit: function (level, text) {
-    if (__REC) __O.push('["L",' + JSON.stringify(level) + ',' + JSON.stringify(text) + ']');
+  tap: function (level, text) {
+    /* Two recorders, because there are two op streams. The native one is
+       what /ops.bin and the push stream carry, and it is gated in C on
+       whether a viewer asked for log=1 -- so this call is cheap and
+       unconditional rather than something the board has to be configured
+       for. The JS one behind /ops is armed per request instead.
+
+       __LPEND is drained by __OPSGET, not by the render. Recorded into a
+       frame, a line would appear in exactly one and be gone from the next
+       -- and /ops polls at 120-350ms while the board renders faster than
+       that, so most lines would never be seen by anybody. Collected
+       instead, a line waits until somebody actually takes it. */
+    if (typeof sys !== 'undefined' && typeof sys.logOp === 'function') {
+      sys.logOp(__LVL[level] === undefined ? 1 : __LVL[level], text);
+    }
+    if (__LOGOPS) {
+      __LPEND.push('["L",' + JSON.stringify(level) + ',' + JSON.stringify(text) + ']');
+      while (__LPEND.length > 40) __LPEND.shift();
+    }
   }
 });
+/* level name -> the small int the native op carries */
+var __LVL = { debug: 0, log: 1, info: 2, warn: 3, error: 4 };
 var console = mjsxLog.console;
 
 var __NGFX = gfx;
 var __O = [];
 var __REC = false;
-var __OPS = '';
+var __OPSB = '';        /* the last frame's ops, joined */
+var __OPSW = 0, __OPSH = 0;
 var __RECAT = -1000000;
+var __LOGOPS = false;    /* /ops?log=1 -- console lines in the JSON frame */
+var __LPEND = [];        /* logged since the last frame, waiting for one */
 
 function __r10(v) { return Math.round(v * 10) / 10; }
 
@@ -220,7 +248,12 @@ gfx = {
       __REC = true;
       __O.length = 0;
       coreRender.call(UI);
-      __OPS = '{"w":' + __NGFX.width() + ',"h":' + __NGFX.height() + ',"ops":[' + __O.join(',') + ']}';
+      /* body only: __OPSGET composes the frame, because the console lines
+         it splices in belong to whoever COLLECTS the frame, not to the
+         frame itself -- see __LPEND */
+      __OPSW = __NGFX.width();
+      __OPSH = __NGFX.height();
+      __OPSB = __O.join(',');
       __O.length = 0;
       __REC = false;
     } else {
@@ -230,11 +263,22 @@ gfx = {
   };
 })();
 
-function __OPSGET() {
+function __OPSGET(wantLog) {
   var arming = sys.millis() - __RECAT >= 5000;
   __RECAT = sys.millis();
+  /* off by default and re-stated per request, so a viewer that stops
+     asking stops being charged without having to say so */
+  __LOGOPS = !!wantLog;
+  if (!__LOGOPS) __LPEND.length = 0;
   if (arming) UI._dirty = true;  /* record a frame right away */
-  return __OPS;
+  var body = __OPSB;
+  if (__LPEND.length) {
+    /* at the head: they were logged before this frame was collected */
+    var pend = __LPEND.join(',');
+    __LPEND.length = 0;
+    body = body ? pend + ',' + body : pend;
+  }
+  return '{"w":' + __OPSW + ',"h":' + __OPSH + ',"ops":[' + body + ']}';
 }
 
 /* ---- key routing through the patch queue ---- */

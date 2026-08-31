@@ -142,6 +142,13 @@ function App() {
                }
                if (phase === 2) delete live[id];
              }
+             /* on RELEASE only. onDraw fires for every sample of the
+                drag, and logging those would bury the ring under one
+                stroke -- the finished shape is the interesting event. */
+             if (phase === 2 && cur) {
+               console.log('stroke', cur.tool, 'pts=' + (cur.pts ? cur.pts.length : 0),
+                           'total=' + st2.length);
+             }
              UI.set({ strokes: st2, live: live });
            }}>
         {marks}

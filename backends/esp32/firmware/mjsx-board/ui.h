@@ -2188,6 +2188,11 @@ static uint8_t *g_opCur = nullptr, *g_opPub = nullptr;
 static uint32_t g_opLen = 0, g_opPubLen = 0;
 static bool g_opOver = false, g_opFresh = true;
 static volatile uint32_t g_opArmedAt = 0;
+/* Log ops ride the SAME frame stream, on their own arming clock: a viewer
+   that wants the board's console asks for it (log=1), and one that only
+   wants pixels never pays for it. Both expire the same way, so a browser
+   that closes stops the cost without telling anyone. */
+static volatile uint32_t g_logArmedAt = 0;
 static portMUX_TYPE g_opMux = portMUX_INITIALIZER_UNLOCKED;
 
 /* Recording is ALWAYS on once the buffers exist: the op stream is no
@@ -2204,6 +2209,17 @@ static inline bool opOn() {
   return true;
 }
 static void opArm() { (void)opOn(); g_opArmedAt = millis(); }
+static void opLogFlush();
+static inline bool logWatched() { return millis() - g_logArmedAt < 5000; }
+/* A FRESH arm drops whatever is queued. Lines can accumulate while one
+   viewer holds the console open and another has it shut; opening the pane
+   should show what happens next, not a backlog from a window you were not
+   watching. Re-arming an already-live console keeps its queue. */
+static void logArm() {
+  (void)opOn();
+  if (!logWatched()) opLogFlush();
+  g_logArmedAt = millis();
+}
 /* record ops only when drawing the SCREEN: canvas-targeted drawing is
    pixels in a source, not part of the frame's op stream */
 static inline bool opRec() { return g_cvTargetRef() < 0 && opOn(); }
@@ -2227,6 +2243,78 @@ static void opStart() {
   opB((uint8_t)vq()); opB(g_fontMode);
 }
 #define OP_HDR 10
+
+/* op 12 -- a console line, TAKEN with a frame rather than recorded into one.
+ *
+ * The obvious build records the line into the frame buffer like any other
+ * op. It does not work: a line then appears in exactly one frame and is
+ * gone from the next, so a viewer that polls -- /ops.bin runs at 120-350ms
+ * and the board renders faster than that -- misses most of what is logged.
+ * Held here and appended at take time, a line survives until somebody
+ * actually collects it.
+ *
+ * Staying out of the frame buffers has a second payoff: opDiffBox compares
+ * this frame's ops against the last frame's to find the dirty rectangle,
+ * and console lines that came and went between two identical frames would
+ * have made them differ. The diff never sees these at all.
+ *
+ * Bounded on purpose, twice: 240 bytes per line and OPLOG_CAP for the
+ * queue. Past that, lines are counted and dropped rather than growing
+ * memory, and the drain reports the count as a line of its own -- a
+ * console that quietly loses things is worse than one that says it did.
+ */
+#define OPLOG_CAP 2048
+static uint8_t g_logBuf[OPLOG_CAP];
+static uint32_t g_logLen = 0;
+static uint16_t g_logDropped = 0;
+
+static void opLogLine(uint8_t level, const char *p, int len) {
+  if (!logWatched()) return;
+  if (len < 0) len = 0;
+  if (len > 240) len = 240;
+  portENTER_CRITICAL(&g_opMux);
+  if (g_logLen + 4 + (uint32_t)len <= OPLOG_CAP) {
+    g_logBuf[g_logLen++] = 12;
+    g_logBuf[g_logLen++] = level;
+    g_logBuf[g_logLen++] = (uint8_t)(len & 0xff);
+    g_logBuf[g_logLen++] = (uint8_t)((len >> 8) & 0xff);
+    for (int i = 0; i < len; i++) g_logBuf[g_logLen++] = (uint8_t)p[i];
+  } else if (g_logDropped < 0xffff) {
+    g_logDropped++;
+  }
+  portEXIT_CRITICAL(&g_opMux);
+}
+
+/* Drop whatever is queued. Called when the console is armed FRESH, so
+   opening the pane shows what happens next rather than a backlog from a
+   window when nobody was watching. */
+static void opLogFlush() {
+  portENTER_CRITICAL(&g_opMux);
+  g_logLen = 0;
+  g_logDropped = 0;
+  portEXIT_CRITICAL(&g_opMux);
+}
+
+/* Append the queued lines after a taken frame and empty the queue. */
+static uint32_t opLogDrain(uint8_t *dst, uint32_t cap, uint32_t at) {
+  portENTER_CRITICAL(&g_opMux);
+  const uint32_t n = g_logLen;
+  const uint16_t dropped = g_logDropped;
+  if (n && at + n <= cap) { memcpy(dst + at, g_logBuf, n); at += n; }
+  g_logLen = 0;
+  g_logDropped = 0;
+  portEXIT_CRITICAL(&g_opMux);
+  if (dropped) {
+    char m[48];
+    const int ml = snprintf(m, sizeof(m), "[%u console line(s) dropped]", (unsigned)dropped);
+    if (ml > 0 && at + 4 + (uint32_t)ml <= cap) {
+      dst[at++] = 12; dst[at++] = 3;   /* level 3: warn */
+      dst[at++] = (uint8_t)(ml & 0xff); dst[at++] = (uint8_t)((ml >> 8) & 0xff);
+      memcpy(dst + at, m, (size_t)ml); at += (uint32_t)ml;
+    }
+  }
+  return at;
+}
 static volatile uint32_t g_opGen = 0;
 static void opPublish() {
   if (g_opFresh) return;
@@ -2252,6 +2340,7 @@ static uint32_t opSpan(const uint8_t *b, uint32_t off, uint32_t len) {
       return 14 + l;
     }
     case 5: return 12;
+    case 12: return (off + 4 <= len) ? 4u + (uint32_t)(b[off + 2] | (b[off + 3] << 8)) : 0;
     case 6: return (off + 10 <= len) ? 10u + b[off + 9] : 0;
     case 7: return 9;
     case 8: return 1;
@@ -2450,7 +2539,9 @@ static uint32_t opTake(uint8_t *dst, uint32_t cap) {
     portENTER_CRITICAL(&g_opMux);
     const bool clean = (gen == g_opGen);
     portEXIT_CRITICAL(&g_opMux);
-    if (clean) return n;
+    /* console lines ride out with the frame, and leave the queue when
+       they do -- see opLogLine */
+    if (clean) return opLogDrain(dst, cap, n);
   }
   return 0;
 }
@@ -2476,10 +2567,15 @@ static uint32_t opTakeNew(uint8_t *dst, uint32_t cap, uint32_t *seen) {
     portENTER_CRITICAL(&g_opMux);
     const bool clean = (gen == g_opGen);
     portEXIT_CRITICAL(&g_opMux);
-    if (clean) { *seen = gen; return n; }
+    if (clean) { *seen = gen; return opLogDrain(dst, cap, n); }
   }
   return 0;
 }
+/* Lines waiting for a frame to ride out on. The push stream asks, because
+   a UI that is not animating produces no frames and the lines would sit
+   here indefinitely -- a console that only works on a busy screen is not
+   a console. */
+static bool opLogPending() { return g_logLen != 0 || g_logDropped != 0; }
 
 extern "C" {
 void gfxNClip(int x, int y, int w, int h) {

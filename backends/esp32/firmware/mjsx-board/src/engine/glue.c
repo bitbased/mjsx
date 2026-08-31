@@ -122,14 +122,6 @@ extern void sysNCalMode(int on);
 extern void sysNSetCal(int axis, const char *csv, int len);
 extern int sysNGetCal(char *out, int cap);
 extern int sysNRawXY(char *out, int cap);
-extern int printerNIp(char *out, int cap);
-extern void printerNSetIp(const char *ip, int len);
-extern int printerNAuto(void);
-extern void printerNSetAuto(int on);
-extern int printerNSyncMaterials(void);
-extern int printerNMatCount(void);
-extern int printerNMatNote(char *out, int cap);
-extern int printerNRaw(const char *json, int len);
 extern int sysNMods(char *out, int cap);
 extern int sysNModCtl(const char *name, int nlen, const char *action, int alen);
 extern void sysNStore(const char *k, int klen, const char *v, int vlen);
@@ -144,6 +136,7 @@ extern int netNFetch(const char *url, int ulen, int head, int max);
 extern int netNFetchState(char *out, int cap);
 extern int netNFetchBody(const char **p);
 extern void sysNLog(const char *p, int len);
+extern void sysNLogOp(int level, const char *p, int len);
 extern int gfxNH(void);
 
 static int gi(JSContext *ctx, JSValue v) { int r = 0; JS_ToInt32Sat(ctx, &r, v); return r; }
@@ -159,12 +152,6 @@ JSValue js_sys_modctl(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
     const char *ac = (argc > 1 && JS_IsString(ctx, argv[1])) ? JS_ToCStringLen(ctx, &l2, argv[1], &b2) : 0;
     if (!nm || !ac) return JS_NewInt32(ctx, 0);
     return JS_NewInt32(ctx, sysNModCtl(nm, (int)l1, ac, (int)l2));
-}
-JSValue js_printer_raw(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
-    JSCStringBuf b; size_t l = 0;
-    const char *j = JS_IsString(ctx, argv[0]) ? JS_ToCStringLen(ctx, &l, argv[0], &b) : 0;
-    if (!j) return JS_NewInt32(ctx, 0);
-    return JS_NewInt32(ctx, printerNRaw(j, (int)l));
 }
 
 JSValue js_gfx_clear(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
@@ -444,6 +431,12 @@ JSValue js_sys_log(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
     sysNLog(s, (int)l);
     return JS_UNDEFINED;
 }
+JSValue js_sys_log_op(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
+    JSCStringBuf b; size_t l = 0;
+    const char *s = gs(ctx, argv[1], &b, &l);
+    sysNLogOp(gi(ctx, argv[0]), s, (int)l);
+    return JS_UNDEFINED;
+}
 JSValue js_sys_cal_mode(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
     sysNCalMode(argc > 0 ? gi(ctx, argv[0]) : 0);
     return JS_UNDEFINED;
@@ -466,33 +459,6 @@ JSValue js_sys_raw(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
     char out[64];
     int n = sysNRawXY(out, sizeof(out));
     return JS_NewStringLen(ctx, out, jslen(n, sizeof(out)));
-}
-JSValue js_printer_ip(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
-    char out[48];
-    int n = printerNIp(out, sizeof(out));
-    return JS_NewStringLen(ctx, out, jslen(n, sizeof(out)));
-}
-JSValue js_printer_set_ip(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
-    JSCStringBuf b; size_t l;
-    const char *ip = gs(ctx, argv[0], &b, &l);
-    printerNSetIp(ip, (int)l);
-    return JS_UNDEFINED;
-}
-JSValue js_printer_auto(JSContext *ctx, JSValue *t, int argc, JSValue *argv) { return JS_NewInt32(ctx, printerNAuto()); }
-JSValue js_printer_sync_mats(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
-    return JS_NewInt32(ctx, printerNSyncMaterials());
-}
-JSValue js_printer_mats(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
-    char out[64];
-    int n = printerNMatNote(out, sizeof(out));
-    char j[96];
-    int k = snprintf(j, sizeof(j), "{\"count\":%d,\"note\":\"%.*s\"}",
-                     printerNMatCount(), n < 0 ? 0 : n, out);
-    return JS_NewStringLen(ctx, j, (size_t)k);
-}
-JSValue js_printer_set_auto(JSContext *ctx, JSValue *t, int argc, JSValue *argv) {
-    printerNSetAuto(argc > 0 ? gi(ctx, argv[0]) : 0);
-    return JS_UNDEFINED;
 }
 JSValue js_gfx_width(JSContext *ctx, JSValue *t, int argc, JSValue *argv) { return JS_NewInt32(ctx, gfxNW()); }
 JSValue js_gfx_height(JSContext *ctx, JSValue *t, int argc, JSValue *argv) { return JS_NewInt32(ctx, gfxNH()); }

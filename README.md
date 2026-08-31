@@ -1,9 +1,11 @@
 # mjsx
 
 JSX for microcontrollers, terminals, and the browser — one core, several
-backends. Ported from a working ESP32 firmware's UI engine (`filament-rfid`'s
-`ui.js`), generalized so nothing about it assumes a specific board, a
-specific engine, or a specific way of turning a draw call into pixels.
+backends. It began as a working ESP32 firmware's UI engine and was
+generalized so nothing about it assumes a specific board, a specific engine,
+or a specific way of turning a draw call into pixels. The firmware that runs
+it is here too — `backends/esp32/firmware/mjsx-board/`, buildable from this
+repo alone.
 
 ## Quickstart
 

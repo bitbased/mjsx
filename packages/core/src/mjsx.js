@@ -1730,6 +1730,13 @@ var UI = {
     this.onTick = null;
     this.onKey = null;
     this.onPatch = null;
+    /* onPointer too. It was missed here for a long time, and the cost was
+       not obvious: a whole-screen stroke handler that returns true claims
+       every press BEFORE hit-testing, so an example that installed one
+       (asteroids) left every example opened after it unable to be touched
+       at all -- the draw canvas took no strokes, and nothing said why. A
+       screen's input handlers belong to that screen. */
+    this.onPointer = null;
     this.onLongPressFeedback = null;
     this._focus = null;
     this._inputs = {};

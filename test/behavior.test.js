@@ -145,3 +145,39 @@ test('T9 keyboard: tapping the same key again inside the window cycles the lette
   expect(UI._inputs.f.text).toBe('b'); // Backspace + next letter, one char kept
   expect(UI._inputs.f.cur).toBe(1);
 });
+
+/* A screen's whole-stroke handler must not outlive the screen.
+   UI.onPointer returning true claims a press BEFORE hit-testing, so one
+   left behind by a previous screen makes the next screen untouchable --
+   which is exactly what happened on hardware: after visiting the
+   asteroids example, the draw example's canvas accepted no strokes at
+   all, and every ordinary button still worked, so nothing pointed at the
+   cause. reset() clears onTick/onKey/onPatch; it has to clear this too. */
+test('reset: a screen-wide onPointer does not survive into the next screen', () => {
+  const { UI, h } = fresh(240, 280);
+
+  var claimed = 0;
+  UI.onPointer = function () { claimed++; return true; };   /* an asteroids-like grab */
+  UI.mount(function () { return h('box', {}); });
+  UI.render();
+  UI.pointer(0, 0, 100, 100);
+  expect(claimed).toBe(1);                                  /* it is in force */
+
+  UI.reset();
+  expect(UI.onPointer).toBe(null);
+
+  /* and the next screen's capture control actually receives the stroke */
+  var got = [];
+  UI.mount(function () {
+    return h('box', { h: 200,
+      onDraw: function (phase, x, y, id) { got.push(phase); } });
+  });
+  UI.render();
+  const box = UI._hits[UI._hits.length - 1];
+  UI.pointer(0, 0, box.x + 10, box.y + 10);
+  UI.pointer(0, 1, box.x + 20, box.y + 20);
+  UI.pointer(0, 2, box.x + 30, box.y + 30);
+
+  expect(claimed).toBe(1);            /* the old handler saw nothing more */
+  expect(got).toEqual([0, 1, 2]);     /* the new screen owns its strokes */
+});
