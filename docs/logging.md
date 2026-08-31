@@ -89,6 +89,38 @@ at 120–350ms misses most of what is logged. Queued and appended when a
 frame is taken, a line survives until somebody actually collects it. If the
 queue overflows, the drop is itself reported as a line.
 
+## What it costs, and what bounds it
+
+Every buffer in the path is bounded, and the ring is bounded **twice**:
+
+| | bound |
+|---|---|
+| the ring (`buffer` sink) | 120 lines **and** 8 KB of text on a board, 512 bytes per line |
+| the queue feeding the frame stream | 2 KB, 240 bytes per line, drops reported as a line |
+| lines pending a JSON frame | 40 |
+| the browser pane | 300 rows |
+
+A line *count* is not a memory bound, which is worth saying plainly because
+the first version of this had only a count: 120 lines of a megabyte each is
+120 megabytes, on the host least able to survive it. The ring now evicts on
+whichever bound is reached first, and a single line longer than `maxLine` is
+truncated with a count of what was cut rather than kept whole.
+
+Eviction is visible rather than silent: `since(n)` is read by sequence
+number, so a reader that missed lines sees the gap and says so instead of
+presenting a shortened history as a complete one.
+
+## Opening the console shows what it missed
+
+The pane **backfills** from the ring when you open it, so a board's boot
+lines are there a minute later rather than only what happens after you
+thought to look. Backfilled rows are dimmed; live lines arrive below them.
+
+An earlier cut did the opposite — it dropped the queue whenever the console
+was freshly armed, to keep the pane "clean". That was the wrong trade: the
+buffer is bounded anyway, and its contents are exactly what somebody opening
+a console wants to see.
+
 ## A REPL, in the same pane
 
 Under the console there is a prompt. What you type is evaluated **in the

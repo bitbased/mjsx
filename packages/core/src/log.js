@@ -96,11 +96,24 @@ function parseSinks(spec) {
  * opts.sinks            initial sink spec, default 'buffer'
  * opts.level            lowest level kept, default 'debug'
  * opts.max              lines held in the ring, default 200
+ * opts.maxBytes         total text bytes held, default 64k. The ring evicts
+ *                       on whichever bound is hit first; a line count on its
+ *                       own is not a memory bound.
+ * opts.maxLine          longest single line kept, default 4k, truncated with
+ *                       a count of what was dropped
  */
 function createLog(opts) {
   opts = opts || {};
-  var ring = [], seq = 0;
+  var ring = [], seq = 0, bytes = 0;
   var max = opts.max || 200;
+  /* A LINE COUNT is not a memory bound. `max` alone caps how many lines are
+     held, not how big they are, and one console.log of a long string is
+     enough to make "120 lines" mean megabytes -- on the host that runs out
+     of a chip's RAM. So the ring is bounded twice: by lines, and by the
+     total bytes of their text. */
+  var maxBytes = opts.maxBytes || 64 * 1024;
+  var maxLine = opts.maxLine || 4096;
+  if (maxLine > maxBytes) maxLine = maxBytes;
   var sinks = parseSinks(opts.sinks === undefined ? 'buffer' : opts.sinks);
   var minLevel = LEVELS[opts.level] || LEVELS.debug;
 
@@ -110,10 +123,22 @@ function createLog(opts) {
     /* before the sinks, and not gated by them: see opts.tap above */
     if (opts.tap) opts.tap(level, text);
     if (sinks.buffer) {
-      ring.push({ n: ++seq, level: level, text: text });
+      /* One line cannot be allowed to fill the whole ring by itself: past
+         maxLine it is truncated and says by how much, which is more useful
+         than a silent cut and much more useful than an out-of-memory. */
+      var kept = text;
+      if (kept.length > maxLine) {
+        kept = kept.slice(0, maxLine) + '... +' + (text.length - maxLine) + ' more';
+      }
+      ring.push({ n: ++seq, level: level, text: kept });
+      bytes += kept.length;
       /* a ring, not a growing list: a script in a loop must not be able to
-         exhaust memory by logging */
-      while (ring.length > max) ring.shift();
+         exhaust memory by logging. Evict on EITHER bound -- 200 short lines
+         and 3 enormous ones are both things that happen. */
+      while (ring.length > max || (bytes > maxBytes && ring.length > 1)) {
+        bytes -= ring[0].text.length;
+        ring.shift();
+      }
     }
     if (sinks.serial && opts.write) {
       opts.write((level === 'log' ? '' : '[' + level + '] ') + text + '\n');
@@ -131,7 +156,10 @@ function createLog(opts) {
       return out;
     },
     lines: function () { return ring.slice(); },
-    clear: function () { ring = []; },
+    /* what the ring is actually holding, for anyone who wants to see the
+       bound working rather than trust it */
+    bytes: function () { return bytes; },
+    clear: function () { ring = []; bytes = 0; },
     seq: function () { return seq; },
     setSinks: function (spec) { sinks = parseSinks(spec); return api.sinks(); },
     sinks: function () {

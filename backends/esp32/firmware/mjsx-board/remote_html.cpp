@@ -40,6 +40,8 @@ extern const char REMOTE_HTML[] PROGMEM = R"HTML(<!doctype html>
  .l-debug{color:#7a7a7a}.l-log{color:#ccc}.l-info{color:#6cf}
  .l-warn{color:#fc6}.l-error{color:#f77}
  .l-in{color:#8fa}.l-out{color:#9bd0ff}
+ /* backfilled from the ring: same text, visibly older */
+ #cono div.hist{opacity:.62;border-left:2px solid #333;padding-left:6px}
  /* the prompt: same eval the tooling uses, in the app's own globals */
  #conp{flex:0 0 auto;display:flex;align-items:center;gap:6px;
    border-top:1px solid #222;padding:4px 8px}
@@ -79,24 +81,60 @@ var conOn=false,conN=0;
 try{conOn=localStorage.mjsxRemoteCon==="1";}catch(e){}
 /* Appended one node at a time and capped: this pane can be left open on a
    board that logs every tick, and an unbounded list would eat the tab. */
-function conAdd(level,text){
+function conAdd(level,text,history){
   var atEnd=conOut.scrollTop+conOut.clientHeight>=conOut.scrollHeight-24;
   var d=document.createElement("div");
-  d.className="l-"+level;
+  d.className="l-"+level+(history?" hist":"");
   /* "in" and "out" are the REPL's own pseudo-levels and carry their own
      marker; only the real console levels get named. */
   d.textContent=(level==="log"||level==="in"||level==="out"?"":level+": ")+text;
-  conOut.appendChild(d);
+  /* backfilled lines happened BEFORE anything already shown, so they go
+     above it, in order, rather than at the bottom out of sequence */
+  if(history&&conOut.firstChild)conOut.insertBefore(d,conHistAt?conHistAt.nextSibling:conOut.firstChild);
+  else conOut.appendChild(d);
+  if(history)conHistAt=d;
   while(conOut.childNodes.length>300)conOut.removeChild(conOut.firstChild);
   conCnt.textContent=(++conN)+" lines";
-  if(atEnd)conOut.scrollTop=conOut.scrollHeight;
+  if(atEnd&&!history)conOut.scrollTop=conOut.scrollHeight;
 }
+var conHistAt=null;
 var R=mjsxRemote(cv,{hd:hd,dbg:dbg,src:src,log:conOn,
   fitBox:function(){return [innerWidth,innerHeight-(conOn?Math.round(innerHeight*0.34):0)];},
   onStatus:function(t){st.textContent=t;},
   onLog:conAdd,
   onSrc:function(){srcLabel();}});
 function conLabel(){conBtn.textContent="CON:"+(conOn?"ON":"OFF");}
+/* Opening the console BACKFILLS from the board's ring before live lines
+   start arriving, so you see what it has been saying -- its boot included
+   -- instead of only what happens after you thought to look. The ring is
+   the same bounded buffer `mjsx logs` reads; this just asks for the tail
+   of it once, through the REPL endpoint that already exists.
+
+   conBackAt tracks the highest sequence number backfilled, so reopening
+   the pane does not repeat what is already on screen. */
+var conBackAt = 0, conBackDone = false;
+function conBackfill(){
+  if(conBackDone)return;
+  conBackDone=true;
+  fetch("/eval?js="+encodeURIComponent(
+      'JSON.stringify(mjsxLog.since('+conBackAt+'))'))
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(!j||!j.ok||!j.value)return;
+      var rows;
+      try{rows=JSON.parse(JSON.parse(j.value));}catch(e){
+        try{rows=JSON.parse(j.value);}catch(e2){return;}
+      }
+      if(!rows||!rows.length)return;
+      /* oldest first, above whatever has already streamed in */
+      for(var i=0;i<rows.length;i++){
+        conAdd(rows[i].level,rows[i].text,true);
+        if(rows[i].n>conBackAt)conBackAt=rows[i].n;
+      }
+    })
+    .catch(function(){});
+}
+
 function conApply(){
   conEl.className=conOn?"on":"";
   document.body.className=conOn?"conon":"";
@@ -105,7 +143,7 @@ function conApply(){
   try{localStorage.mjsxRemoteCon=conOn?"1":"0";}catch(e){}
   conLabel();
 }
-conBtn.addEventListener("click",function(){conOn=!conOn;conApply();});
+conBtn.addEventListener("click",function(){conOn=!conOn;conApply();if(conOn)conBackfill();});
 
 /* ---- the REPL ------------------------------------------------------
    /eval runs the text in the SAME globals the app is running in, so
@@ -169,7 +207,7 @@ conIn.addEventListener("keydown",function(e){
 });
 document.getElementById("conx").addEventListener("click",function(){conOn=false;conApply();});
 document.getElementById("conclr").addEventListener("click",function(){
-  conOut.innerHTML="";conN=0;conCnt.textContent="0";});
+  conOut.innerHTML="";conN=0;conHistAt=null;conCnt.textContent="0";});
 conApply();
 function hdLabel(){var m=R.hd();hdBtn.textContent="HD:"+(m==="off"?"OFF":(m==="pix"?"PIX":"FULL"));}
 function srcLabel(){srcBtn.textContent="SRC:"+(R.src()==="bin"?"BIN":"JS");}

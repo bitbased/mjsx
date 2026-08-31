@@ -2209,17 +2209,13 @@ static inline bool opOn() {
   return true;
 }
 static void opArm() { (void)opOn(); g_opArmedAt = millis(); }
-static void opLogFlush();
 static inline bool logWatched() { return millis() - g_logArmedAt < 5000; }
-/* A FRESH arm drops whatever is queued. Lines can accumulate while one
-   viewer holds the console open and another has it shut; opening the pane
-   should show what happens next, not a backlog from a window you were not
-   watching. Re-arming an already-live console keeps its queue. */
-static void logArm() {
-  (void)opOn();
-  if (!logWatched()) opLogFlush();
-  g_logArmedAt = millis();
-}
+/* Arming does NOT discard what is queued. An earlier cut flushed on a fresh
+   arm so the pane would open "clean", which is the wrong trade: the queue
+   is bounded anyway, and the lines it holds are exactly the ones somebody
+   opening a console wants -- what the board just did, including its boot.
+   Throwing away bounded history to avoid showing history is silly. */
+static void logArm() { (void)opOn(); g_logArmedAt = millis(); }
 /* record ops only when drawing the SCREEN: canvas-targeted drawing is
    pixels in a source, not part of the frame's op stream */
 static inline bool opRec() { return g_cvTargetRef() < 0 && opOn(); }
@@ -2285,9 +2281,9 @@ static void opLogLine(uint8_t level, const char *p, int len) {
   portEXIT_CRITICAL(&g_opMux);
 }
 
-/* Drop whatever is queued. Called when the console is armed FRESH, so
-   opening the pane shows what happens next rather than a backlog from a
-   window when nobody was watching. */
+/* Drop whatever is queued. Not called on arm -- see logArm -- but this is
+   what an explicit "clear" means, and it keeps the queue honest if one is
+   ever needed. */
 static void opLogFlush() {
   portENTER_CRITICAL(&g_opMux);
   g_logLen = 0;

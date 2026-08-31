@@ -152,3 +152,46 @@ describe('the L op', function () {
     expect(oprec.active()).toBe(before);
   });
 });
+
+describe('the ring is bounded by size, not only by line count', function () {
+  var createLog = mlog.createLog;
+
+  it('evicts on BYTES as well as on lines', function () {
+    /* A line count alone is not a memory bound: 120 lines of a megabyte
+       each is 120 megabytes, which on the host this runs on is the whole
+       chip. This was the actual shape of the bug -- `max` looked like a
+       memory limit and was not one. */
+    var log = createLog({ max: 1000, maxBytes: 1000, maxLine: 400 });
+    for (var i = 0; i < 50; i++) log.console.log(new Array(301).join('x'));
+
+    expect(log.lines().length).toBeLessThan(50);      /* evicted long before 1000 */
+    expect(log.bytes()).toBeLessThanOrEqual(1000);
+    expect(log.seq()).toBe(50);                        /* and it is the OLD ones that went */
+    expect(log.lines()[log.lines().length - 1].n).toBe(50);
+  });
+
+  it('truncates one enormous line rather than letting it fill the ring', function () {
+    var log = createLog({ max: 10, maxBytes: 4096, maxLine: 100 });
+    log.console.log(new Array(5001).join('y'));
+    var only = log.lines()[0];
+
+    expect(only.text.length).toBeLessThan(200);
+    expect(only.text.indexOf('+4900 more') >= 0).toBe(true);   /* says what it dropped */
+    expect(log.bytes()).toBe(only.text.length);
+  });
+
+  it('keeps the newest line even when it alone exceeds the budget', function () {
+    var log = createLog({ max: 10, maxBytes: 50, maxLine: 500 });
+    log.console.log(new Array(301).join('z'));
+    expect(log.lines().length).toBe(1);
+    expect(log.since(0).length).toBe(1);
+  });
+
+  it('clear() resets the byte count too', function () {
+    var log = createLog({ maxBytes: 1000 });
+    log.console.log('something');
+    expect(log.bytes()).toBeGreaterThan(0);
+    log.clear();
+    expect(log.bytes()).toBe(0);
+  });
+});

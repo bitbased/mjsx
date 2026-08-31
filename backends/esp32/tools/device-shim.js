@@ -67,7 +67,13 @@ var EXAMPLES = [];
  */
 var mjsxLog = createLog({
   sinks: configStorage.get('log', 'buffer'),
-  max: 120,                       /* a ring, on a chip: bounded on purpose */
+  /* Three bounds, not one. 120 lines is a COUNT, and a count is not a
+     memory bound: one console.log of a long string would make it mean
+     whatever that string was. On a chip the byte budget is the real limit
+     and the line count is just a sanity cap on top of it. */
+  max: 120,
+  maxBytes: 8 * 1024,
+  maxLine: 512,
   write: function (t) {
     if (typeof sys !== 'undefined' && typeof sys.log === 'function') sys.log(t);
   },
